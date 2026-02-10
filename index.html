@@ -3,41 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест к экзамену</title>
+    <title>Экзаменационный тест</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: sans-serif; background-color: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); padding: 20px; text-align: center; }
-        .card { background: var(--tg-theme-secondary-bg-color); padding: 15px; border-radius: 12px; margin-bottom: 20px; }
-        button { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        .card { background: var(--tg-theme-secondary-bg-color); padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        button { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 10px; width: 80%; }
+        h1 { font-size: 1.2em; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2 id="question">Сколько будет 2 + 2?</h2>
-        <button onclick="checkAnswer(4)">4</button>
-        <button onclick="checkAnswer(5)">5</button>
+    <div id="quiz-container">
+        <h1 id="grade-title">Загрузка...</h1>
+        <div class="card">
+            <h2 id="question-text">Вопрос появится здесь</h2>
+            <div id="options-container"></div>
+        </div>
     </div>
-    <p id="result"></p>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
+        tg.expand();
 
-        function checkAnswer(ans) {
-            const res = document.getElementById('result');
-            if (ans === 4) {
-                res.innerHTML = "✅ Правильно!";
-                res.style.color = "green";
-                // Отправляем данные обратно боту и закрываем окно через 2 секунды
-                setTimeout(() => {
-                    tg.sendData("Выполнил тест на отлично!");
-                    tg.close();
-                }, 2000);
-            } else {
-                res.innerHTML = "❌ Ошибка, попробуй еще раз.";
-                res.style.color = "red";
-            }
+        // --- ТВОИ ЗАДАНИЯ ТУТ ---
+        const allQuestions = {
+            "9": [
+                { q: "Вопрос для 9 класса: Сколько планет в Солнечной системе?", options: ["7", "8", "9"], correct: "8" },
+                { q: "9 класс: Корень из 81?", options: ["7", "8", "9"], correct: "9" }
+            ],
+            "10": [
+                { q: "Вопрос для 10 класса: Кто написал 'Войну и мир'?", options: ["Толстой", "Чехов", "Пушкин"], correct: "Толстой" }
+            ],
+            "11": [
+                { q: "Вопрос для 11 класса: Чему равна производная sin(x)?", options: ["cos(x)", "-cos(x)", "tg(x)"], correct: "cos(x)" }
+            ]
+        };
+
+        // Получаем класс из ссылки
+        const urlParams = new URLSearchParams(window.location.search);
+        const userGrade = urlParams.get('grade') || "9"; // Если класс не найден, ставим 9 по умолчанию
+
+        const title = document.getElementById('grade-title');
+        const qText = document.getElementById('question-text');
+        const optContainer = document.getElementById('options-container');
+
+        function loadQuiz() {
+            const questions = allQuestions[userGrade] || allQuestions["9"];
+            const currentQ = questions[0]; // Пока берем только первый вопрос для примера
+
+            title.innerText = "Подготовка для " + userGrade + " класса";
+            qText.innerText = currentQ.q;
+
+            optContainer.innerHTML = "";
+            currentQ.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if (opt === currentQ.correct) {
+                        alert("Правильно! 🎉");
+                        tg.close();
+                    } else {
+                        alert("Ошибка, попробуй еще раз! ❌");
+                    }
+                };
+                optContainer.appendChild(btn);
+            });
         }
+
+        loadQuiz();
     </script>
 </body>
 </html>
