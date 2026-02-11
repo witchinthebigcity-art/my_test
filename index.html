@@ -1,70 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Trainer</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* --- ОСНОВНЫЕ СТИЛИ --- */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; 
+            position: relative;
+            transition: background 0.5s ease;
+            color: #333;
+        }
+
+        /* Контейнер для летающих смайликов */
+        #floating-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; 
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .floater {
+            position: absolute;
+            bottom: -150px; 
+            opacity: 0.6;
+            animation: floatUp linear forwards;
+            object-fit: contain; /* Чтобы картинки не искажались */
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Карточка с вопросом */
+        .card { 
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(15px);
+            padding: 25px; 
+            border-radius: 24px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            position: relative;
+            z-index: 10; 
+        }
+
+        h2 { font-size: 1.3em; margin-bottom: 20px; color: #222; }
+        
+        button { 
+            border: none; 
+            padding: 18px; 
+            border-radius: 16px; 
+            width: 100%; 
+            margin: 8px 0; 
+            font-weight: 700; 
+            font-size: 16px; 
+            cursor: pointer; 
+            transition: transform 0.1s, background 0.2s;
+            background: #ffffff;
+            color: #333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        button:active { transform: scale(0.96); }
+
+        #progress { 
+            position: relative;
+            z-index: 10;
+            background: rgba(255,255,255,0.9);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Кнопки действий */
+        #next-btn { background: #28a745; color: white; display: none; margin-top: 15px; }
+        #retry-btn { background: #ffc107; color: #333; display: none; margin-top: 15px; }
+        #finish-btn { background: #dc3545; color: white; display: none; margin-top: 10px; }
+        
+        .correct-anim { background: #d4edda !important; color: #155724 !important; border-color: #c3e6cb !important; }
+        .wrong-anim { background: #f8d7da !important; color: #721c24 !important; border-color: #f5c6cb !important; }
+
+        /* --- ФОНЫ ДЛЯ КЛАССОВ --- */
+        body.grade-5, body.grade-6 { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); }
+        body.grade-7, body.grade-8 { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+        body.grade-9 { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+        body.grade-10, body.grade-11 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+
+    </style>
 </head>
 <body>
-    <div id="quiz-container">
-        <h1 id="grade-title">Загрузка...</h1>
-        <div class="card">
-            <h2 id="question-text">Вопрос появится здесь</h2>
-            <div id="options-container"></div>
-        </div>
+
+    <div id="floating-container"></div>
+
+    <div id="progress">Загрузка...</div>
+
+    <div class="card" id="quiz-card">
+        <h2 id="question">...</h2>
+        <div id="options"></div>
     </div>
+
+    <button id="next-btn">Далее ➡️</button>
+    <button id="retry-btn">Исправить ошибки 🔄</button>
+    <button id="finish-btn">Завершить</button>
+
+    <div id="final-screen" class="card" style="display: none;"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ТВОИ ЗАДАНИЯ ТУТ ---
-        const allQuestions = {
-"5": [
-    { 
-        q: "Как будет выглядеть число один миллион двадцать четыре тысячи сто сорок семь, если его записать цифрами?", 
-        options: ["1 204 147", "1 024 147", "1 024 047", "24 147"], 
-        correct: "1 024 147" 
-    }
-],
-            "9": [
-                { q: "Вопрос для 9 класса: Сколько планет в Солнечной системе?", options: ["7", "8", "9"], correct: "8" },
-                { q: "9 класс: Корень из 81?", options: ["7", "8", "9"], correct: "9" }
+        // --- НАСТРОЙКА КАРТИНОК ---
+        // ВАЖНО: Убедись, что файлы sticker1.png и sticker2.png лежат в той же папке!
+        
+        const stickersDict = {
+            // Для младших классов (5-8) - веселые
+            "kids": [
+                "sticker1.png", // Твой мемный стикер
+                "https://cdn-icons-png.flaticon.com/512/2663/2663067.png", // Утка 1
+                "https://cdn-icons-png.flaticon.com/512/3069/3069172.png"  // Утка 2
             ],
-            "10": [
-                { q: "Вопрос для 10 класса: Кто написал 'Войну и мир'?", options: ["Толстой", "Чехов", "Пушкин"], correct: "Толстой" }
-            ],
-            "11": [
-                { q: "Вопрос для 11 класса: Чему равна производная sin(x)?", options: ["cos(x)", "-cos(x)", "tg(x)"], correct: "cos(x)" }
+            // Для старших (9-11) - твои новые стикеры + математика
+            "math": [
+                "sticker1.png", // Мужчина в костюме
+                "sticker2.png", // Второй стикер
+                "https://cdn-icons-png.flaticon.com/512/2933/2933895.png" // Калькулятор
             ]
         };
 
-        // Получаем класс из ссылки
+        // --- БАЗА ВОПРОСОВ ---
+        const allQuestions = {
+            "5": [
+                { q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй книге?", options: ["42", "378", "40"], correct: "42" },
+                { q: "Найдите значение выражения: 45 + 15 * (102 - 92)", options: ["195", "600", "210"], correct: "195" },
+                { q: "Ширина прямоугольника 8 см, а длина на 4 см больше. Чему равен периметр этого прямоугольника?", options: ["40 см", "24 см", "20 см"], correct: "40 см" },
+                { q: "Какую часть метра составляют 35 сантиметров?", options: ["0,35", "3,5", "0,035"], correct: "0,35" },
+                { q: "Вычислите: 3,27 + 12,5", options: ["15,77", "15,32", "4,52"], correct: "15,77" },
+                { q: "Решите уравнение: x - 14,8 = 5,2", options: ["20", "9,6", "19,6"], correct: "20" },
+                { q: "Округлите число 452,38 до целых.", options: ["452", "453", "450"], correct: "452" },
+                { q: "Площадь квадрата равна 64 см². Найдите его сторону.", options: ["8 см", "16 см", "32 см"], correct: "8 см" },
+                { q: "В классе 25 учеников. 40% из них — девочки. Сколько девочек в классе?", options: ["10", "15", "5"], correct: "10" },
+                { q: "Чему равен объем прямоугольного параллелепипеда с измерениями 2 см, 5 см и 10 см?", options: ["100 см³", "70 см³", "17 см³"], correct: "100 см³" }
+            ],
+            "6": [
+                { q: "Найдите НОК (наименьшее общее кратное) чисел 12 и 15:", options: ["3", "180", "60", "30"], correct: "60" },
+                { q: "Решите пропорцию: 12 : x = 4 : 5", options: ["15", "9,6", "10", "2,4"], correct: "15" },
+                { q: "Расстояние на карте 4 см. Масштаб 1 : 500 000. Каково реальное расстояние?", options: ["2 км", "20 км", "200 км", "12,5 км"], correct: "20 км" },
+                { q: "Найдите длину окружности, если её радиус равен 5 см (π ≈ 3,14):", options: ["15,7 см", "31,4 см", "78,5 см", "314 см"], correct: "31,4 см" },
+                { q: "Вычислите: -18 + (-7) - (-10)", options: ["-35", "-15", "-25", "15"], correct: "-15" },
+                { q: "Найдите значение выражения: (-2,5) * (-4) * 0,3", options: ["3", "-3", "0,3", "-30"], correct: "3" },
+                { q: "В какой четверти координатной плоскости находится точка A(-5; 8)?", options: ["I четверть", "II четверть", "III четверть", "IV четверть"], correct: "II четверть" },
+                { q: "Упростите выражение: 3(x - 2) - 2(x - 3)", options: ["x - 12", "5x", "x", "x + 12"], correct: "x" },
+                { q: "Решите уравнение: 5x - 12 = 2x + 6", options: ["x = 2", "x = 6", "x = -2", "x = 18"], correct: "x = 6" },
+                { q: "Чему равен значение |-12,4| + |3,6|?", options: ["8,8", "16", "-8,8", "-16"], correct: "16" }
+            ],
+            "7": [
+                { q: "Упростите выражение: 2(3x - 1) - 4(x + 2)", options: ["2x - 10", "2x + 6", "10x - 10", "2x - 3"], correct: "2x - 10" },
+                { q: "Решите уравнение: 5x - 4 = 3x + 8", options: ["2", "4", "6", "-2"], correct: "6" },
+                { q: "Вычислите значение выражения: (a³)⁴ / a¹⁰", options: ["a⁷", "a²", "a²²", "a¹²"], correct: "a²" },
+                { q: "Представьте в виде многочлена: (x - 3)(x + 5)", options: ["x² - 15", "x² - 2x - 15", "x² + 8x - 15", "x² + 2x - 15"], correct: "x² + 2x - 15" },
+                { q: "Разложите на множители: 16 - 9y²", options: ["(4 - 3y)(4 + 3y)", "(4 - 3y)²", "(8 - 3y)(8 + 3y)", "(16 - 9y)(16 + 9y)"], correct: "(4 - 3y)(4 + 3y)" },
+                { q: "График y = 3x + b проходит через A(1; 5). Найдите b.", options: ["5", "2", "8", "-2"], correct: "2" },
+                { q: "Решите систему: x + y = 10, x - y = 4. Найдите (x; y).", options: ["(6; 4)", "(5; 5)", "(7; 3)", "(8; 2)"], correct: "(7; 3)" },
+                { q: "Найдите величину угла, смежного с углом 50°.", options: ["40°", "130°", "50°", "180°"], correct: "130°" },
+                { q: "В равнобедренном треугольнике угол при основании 70°. Найдите угол при вершине.", options: ["70°", "110°", "55°", "40°"], correct: "40°" },
+                { q: "Накрест лежащие углы при параллельных прямых. Первый равен 60°. Чему равен второй?", options: ["120°", "60°", "30°", "90°"], correct: "60°" }
+            ],
+            "8": [
+                { q: "Сократите дробь: (a² - 16) / (a² + 4a)", options: ["(a-4)/a", "(a+4)/a", "a-4", "(a-4)/(a+4)"], correct: "(a-4)/a" },
+                { q: "Вычислите значение выражения: √(0,36 * 25)", options: ["0,3", "30", "3", "1,5"], correct: "3" },
+                { q: "Найдите корни уравнения: x² - 5x + 6 = 0", options: ["2; 3", "-2; -3", "1; 6", "-1; 6"], correct: "2; 3" },
+                { q: "Решите неравенство: 3x - 5 > 5x + 1", options: ["x > -3", "x < -3", "x > 3", "x < 3"], correct: "x < -3" },
+                { q: "Представьте в виде степени: (x⁻³)² * x⁸", options: ["x²", "x¹³", "x⁻²", "x³"], correct: "x²" },
+                { q: "Графику функции y = 12/x принадлежит точка:", options: ["(2; 6)", "(3; 3)", "(0; 12)", "(-4; 3)"], correct: "(2; 6)" },
+                { q: "Периметр параллелограмма 40 см, одна сторона 12 см. Найдите соседнюю сторону.", options: ["28 см", "14 см", "8 см", "10 см"], correct: "8 см" },
+                { q: "В прямоугольном треугольнике катеты 6 см и 8 см. Найдите гипотенузу.", options: ["14 см", "100 см", "10 см", "12 см"], correct: "10 см" },
+                { q: "Найдите площадь ромба, диагонали которого 10 см и 12 см.", options: ["120 см²", "60 см²", "11 см²", "44 см²"], correct: "60 см²" },
+                { q: "Треугольники подобны (k=3). Площадь первого 10 см². Найдите площадь второго.", options: ["30 см²", "90 см²", "3,3 см²", "100 см²"], correct: "90 см²" }
+            ],
+            "9": [
+                { q: "Найдите координаты вершины параболы y = x² - 6x + 5.", options: ["(3; -4)", "(-3; 32)", "(3; 4)", "(6; 5)"], correct: "(3; -4)" },
+                { q: "Решите неравенство: x² - 49 ≤ 0.", options: ["(-∞; 7]", "[-7; 7]", "(-∞; -7] ∪ [7; +∞)", "решений нет"], correct: "[-7; 7]" },
+                { q: "Арифм. прогрессия: a1 = 2, d = 3. Найдите сумму первых десяти членов.", options: ["145", "170", "155", "310"], correct: "155" },
+                { q: "Решите систему: {x + y = 5, x² - y = 7}. Ответы:", options: ["(3; 2) и (-4; 9)", "(3; 2) и (4; 1)", "(-3; 8) и (4; 1)", "(1; 4) и (-2; 7)"], correct: "(3; 2) и (-4; 9)" },
+                { q: "В коробке 20 синих и 5 красных ручек. Вероятность достать красную?", options: ["0,25", "0,2", "0,5", "0,4"], correct: "0,2" },
+                { q: "Вписанный угол опирается на дугу 80°. Найдите величину этого угла.", options: ["80°", "160°", "40°", "90°"], correct: "40°" },
+                { q: "Стороны треугольника 5 и 8 см, угол между ними 60°. Найдите третью сторону.", options: ["7 см", "√129 см", "9 см", "√89 см"], correct: "7 см" },
+                { q: "Площадь треугольника со сторонами 6 и 10 см и углом 30° между ними:", options: ["30 см²", "15 см²", "15√3 см²", "60 см²"], correct: "15 см²" },
+                { q: "Найдите область определения функции y = 5 / √(x - 4).", options: ["x ≥ 4", "x ≠ 4", "x < 4", "x > 4"], correct: "x > 4" },
+                { q: "Найдите количество корней уравнения x⁴ - 5x² + 4 = 0.", options: ["2", "0", "4", "3"], correct: "4" }
+            ],
+            "10": [
+                { q: "Найдите значение выражения: 5^0,36 * 25^0,32", options: ["5", "25", "1", "125"], correct: "5" },
+                { q: "Вычислите: log₃ 81 - log₃ 1", options: ["3", "4", "27", "0"], correct: "4" },
+                { q: "Найдите значение выражения: 4cos 60° + 2sin 30°", options: ["2", "4", "3", "2√3"], correct: "3" },
+                { q: "Футболка стоила 800 руб. После снижения стала стоить 680 руб. На сколько процентов снижена цена?", options: ["12%", "15%", "20%", "18%"], correct: "15%" },
+                { q: "Во сколько раз увеличится объем куба, если его ребро увеличить в 3 раза?", options: ["в 3 раза", "в 9 раз", "в 27 раз", "в 6 раз"], correct: "в 27 раз" },
+                { q: "Решите уравнение: 2^(x-3) = 32", options: ["5", "8", "2", "15"], correct: "8" },
+                { q: "Определите по графику наибольшую температуру 15 мая.", options: ["18°", "20°", "22°", "25°"], correct: "22°" },
+                { q: "В сборнике 25 билетов, в 10 есть вопрос по углеводородам. Вероятность достать такой билет?", options: ["0,4", "0,25", "0,1", "0,6"], correct: "0,4" },
+                { q: "Радиус цилиндра 4, высота 5. Найдите объем цилиндра, деленный на π.", options: ["20", "40", "80", "100"], correct: "80" },
+                { q: "Найдите площадь треугольника с вершинами (0;0), (6;0), (0;4).", options: ["24", "12", "10", "6"], correct: "12" }
+            ],
+            "11": [
+                { q: "Решите уравнение: √(2x + 15) = x. (Больший корень)", options: ["5", "-3", "3", "0"], correct: "5" },
+                { q: "Биатлон: 5 выстрелов (p=0.8). Первые 3 попал, последние 2 промах. Вероятность?", options: ["0,512", "0,02048", "0,2048", "0,032"], correct: "0,02048" },
+                { q: "Трапеция описана около окружности, P=36. Найдите среднюю линию.", options: ["18", "9", "12", "10"], correct: "9" },
+                { q: "Найдите значение: 7^(2log₇ 5)", options: ["10", "5", "25", "49"], correct: "25" },
+                { q: "Конус: h=12, l=13. Найдите S_осн / π.", options: ["25", "5", "169", "144"], correct: "25" },
+                { q: "Где max f(x) на [-2; 4], если f'(x) < 0?", options: ["-2", "4", "0", "1"], correct: "-2" },
+                { q: "Рейтинг: r_exp=4, r_pos=1, r_neg=0. Найдите R (по упрощенной формуле R=4).", options: ["4", "3,8", "5", "4,2"], correct: "4" },
+                { q: "Теплоход: 200 км туда-обратно. V=16, U=4. Время в пути?", options: ["25 ч", "26,6 ч", "24 ч", "20 ч"], correct: "26,6 ч" },
+                { q: "График f(x)=a^x проходит через (2; 16). Какая функция?", options: ["4^x", "2^x", "8^x", "16^x"], correct: "4^x" },
+                { q: "Точка максимума y = 9x - 9ln(x+11) + 7", options: ["-10", "10", "0", "-11"], correct: "-10" }
+            ]
+        };
+
+        // --- ЛОГИКА ---
+        let currentQuestions = []; 
+        let wrongAnswers = [];     
+        let currentIndex = 0;
+        let isRetryMode = false;   
+        
         const urlParams = new URLSearchParams(window.location.search);
-        const userGrade = urlParams.get('grade') || "9"; // Если класс не найден, ставим 9 по умолчанию
+        const grade = urlParams.get('grade') || "5";
 
-        const title = document.getElementById('grade-title');
-        const qText = document.getElementById('question-text');
-        const optContainer = document.getElementById('options-container');
+        document.body.classList.add('grade-' + grade);
 
-        function loadQuiz() {
-            const questions = allQuestions[userGrade] || allQuestions["9"];
-            const currentQ = questions[0]; // Пока берем только первый вопрос для примера
+        // --- ЛОГИКА ФОНОВОЙ АНИМАЦИИ ---
+        function spawnFloatingEmojis() {
+            const container = document.getElementById('floating-container');
+            const gradeNum = parseInt(grade);
+            
+            // Выбираем набор картинок
+            let images = [];
+            // Для 9-11 классов используем твои новые стикеры (math)
+            // Для 5-8 классов используем микс (kids)
+            if (gradeNum >= 9) images = stickersDict.math;
+            else images = stickersDict.kids;
 
-            title.innerText = "Подготовка для " + userGrade + " класса";
-            qText.innerText = currentQ.q;
+            if(!images || images.length === 0) return;
 
-            optContainer.innerHTML = "";
-            currentQ.options.forEach(opt => {
+            // Создаем 12 летающих элементов
+            for(let i=0; i<12; i++) {
+                const img = document.createElement('img');
+                img.src = images[Math.floor(Math.random() * images.length)];
+                img.className = 'floater';
+                
+                // Рандомизация параметров
+                const left = Math.random() * 90; // Позиция по горизонтали
+                const size = 50 + Math.random() * 80; // Размер от 50 до 130px (чтобы стикеры были видны)
+                const duration = 12 + Math.random() * 10; // Время полета
+                const delay = Math.random() * 10; 
+
+                img.style.left = left + 'vw';
+                img.style.width = size + 'px';
+                img.style.animationDuration = duration + 's';
+                img.style.animationDelay = '-' + delay + 's'; 
+
+                container.appendChild(img);
+            }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startQuiz() {
+            const questions = allQuestions[grade] ? [...allQuestions[grade]] : [...allQuestions["5"]];
+            currentQuestions = shuffleArray(questions);
+            wrongAnswers = [];
+            currentIndex = 0;
+            isRetryMode = false;
+            
+            spawnFloatingEmojis();
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = currentQuestions[currentIndex];
+            const total = currentQuestions.length;
+            
+            let progressText = isRetryMode 
+                ? `🔥 Ошибки: ${currentIndex + 1} / ${total}`
+                : `Вопрос ${currentIndex + 1} из ${total}`;
+            
+            document.getElementById('progress').innerText = progressText;
+            document.getElementById('question').innerText = q.q;
+            document.getElementById('quiz-card').style.display = "block";
+            document.getElementById('final-screen').style.display = "none";
+            document.getElementById('next-btn').style.display = "none";
+            document.getElementById('retry-btn').style.display = "none";
+            document.getElementById('finish-btn').style.display = "none";
+
+            const container = document.getElementById('options');
+            container.innerHTML = "";
+
+            const shuffledOptions = shuffleArray([...q.options]);
+
+            shuffledOptions.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.innerText = opt;
-                btn.onclick = () => {
-                    if (opt === currentQ.correct) {
-                        alert("Правильно! 🎉");
-                        tg.close();
-                    } else {
-                        alert("Ошибка, попробуй еще раз! ❌");
-                    }
-                };
-                optContainer.appendChild(btn);
+                btn.onclick = () => checkAnswer(btn, opt, q.correct, q);
+                container.appendChild(btn);
             });
         }
 
-        loadQuiz();
+        function checkAnswer(btn, selected, correct, questionObj) {
+            const allBtns = document.getElementById('options').querySelectorAll('button');
+            allBtns.forEach(b => b.disabled = true);
+
+            if (selected === correct) {
+                btn.classList.add('correct-anim');
+            } else {
+                btn.classList.add('wrong-anim');
+                allBtns.forEach(b => {
+                    if (b.innerText === correct) b.classList.add('correct-anim');
+                });
+
+                if (!isRetryMode && !wrongAnswers.includes(questionObj)) {
+                    wrongAnswers.push(questionObj);
+                }
+            }
+            document.getElementById('next-btn').style.display = "block";
+        }
+
+        document.getElementById('next-btn').onclick = () => {
+            currentIndex++;
+            if (currentIndex < currentQuestions.length) {
+                renderQuestion();
+            } else {
+                showResults();
+            }
+        };
+
+        function showResults() {
+            document.getElementById('quiz-card').style.display = "none";
+            document.getElementById('next-btn').style.display = "none";
+            document.getElementById('progress').innerText = "";
+
+            const finalDiv = document.getElementById('final-screen');
+            finalDiv.style.display = "block";
+
+            if (wrongAnswers.length > 0) {
+                finalDiv.innerHTML = `
+                    <h2>🏁 Итоги</h2>
+                    <p>Ошибок: <b>${wrongAnswers.length}</b></p>
+                    <p>Нужно повторить!</p>
+                `;
+                document.getElementById('retry-btn').style.display = "block";
+                document.getElementById('finish-btn').style.display = "block";
+            } else {
+                finalDiv.innerHTML = `
+                    <div style="font-size: 50px; margin-bottom: 20px;">🏆</div>
+                    <h2>Молодец!</h2>
+                    <p>Тест сдан без ошибок.</p>
+                `;
+                setTimeout(() => tg.close(), 4000);
+            }
+        }
+
+        document.getElementById('retry-btn').onclick = () => {
+            currentQuestions = shuffleArray([...wrongAnswers]);
+            wrongAnswers = [];
+            currentIndex = 0;
+            isRetryMode = true;
+            renderQuestion();
+        };
+
+        document.getElementById('finish-btn').onclick = () => {
+            tg.close();
+        };
+
+        startQuiz();
     </script>
 </body>
 </html>
