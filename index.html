@@ -3,223 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Heroes: 5 класс</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    <title>Math Universe: 5-6 классы</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- ЦВЕТОВАЯ ГАММА И ШРИФТЫ --- */
-        :root {
-            --sky-blue: #87CEEB;
-            --lime: #32CD32;
-            --orange: #FF8C00;
-            --white: #FFFFFF;
-            --dark-text: #003366;
-        }
-
+        /* --- ГЛОБАЛЬНЫЕ СТИЛИ --- */
+        * { box-sizing: border-box; }
         body { 
-            font-family: 'Nunito', sans-serif; 
             margin: 0; padding: 20px; min-height: 100vh;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            overflow: hidden; position: relative;
-            background: linear-gradient(180deg, var(--sky-blue) 0%, #E0F7FA 100%);
-            color: var(--dark-text);
-            font-size: 18px;
+            overflow: hidden; position: relative; transition: all 0.5s ease;
         }
 
-        /* Карточки приложения */
-        .card { 
-            background: var(--white); 
-            padding: 25px; border-radius: 35px; 
-            box-shadow: 0 10px 0 rgba(0,0,0,0.1); 
-            width: 100%; max-width: 420px; text-align: center; 
-            position: relative; z-index: 10; 
-            display: none; border: 4px solid var(--dark-text);
-            max-height: 85vh; overflow-y: auto;
-        }
-
-        .active { display: block; animation: bounceIn 0.5s ease; }
-
-        @keyframes bounceIn {
-            0% { transform: scale(0.5); opacity: 0; }
-            70% { transform: scale(1.05); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        /* Кнопки */
-        button { 
+        /* --- ТЕМА 5 КЛАССА --- */
+        body.grade-5 {
             font-family: 'Nunito', sans-serif;
-            border: none; padding: 20px; border-radius: 20px; 
-            width: 100%; margin: 10px 0; 
-            font-weight: 900; font-size: 20px; cursor: pointer; 
-            transition: transform 0.1s, box-shadow 0.1s;
-            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 100%);
+            --accent: #FF8C00; /* Оранжевый */
+            --btn-ok: #32CD32; /* Лайм */
+            --text-main: #003366;
+        }
+
+        /* --- ТЕМА 6 КЛАССА --- */
+        body.grade-6 {
+            font-family: 'Montserrat', sans-serif;
+            background: #1A1A2E;
+            background-image: radial-gradient(circle at 20% 30%, #2D142C 0%, transparent 40%),
+                              radial-gradient(circle at 80% 70%, #16213E 0%, transparent 40%);
+            --accent: #FF7F50; /* Коралловый */
+            --btn-ok: #00CED1; /* Бирюзовый */
+            --text-main: #E1E8F0;
+        }
+
+        /* --- ОБЩИЕ ЭЛЕМЕНТЫ ИНТЕРФЕЙСА --- */
+        .card { 
+            background: white; border-radius: 30px; padding: 25px;
+            box-shadow: 0 10px 0 rgba(0,0,0,0.1); width: 100%; max-width: 420px;
+            text-align: center; position: relative; z-index: 10; display: none;
+            max-height: 85vh; overflow-y: auto; border: 4px solid #333;
+        }
+        body.grade-6 .card { background: rgba(26, 26, 46, 0.95); border-color: #00CED1; color: white; }
+        body.grade-5 .card { color: #003366; }
+
+        .active { display: block; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        button { 
+            border: none; padding: 18px; border-radius: 20px; width: 100%; margin: 8px 0;
+            font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.2s;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.2); font-family: inherit;
         }
         button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
 
-        .btn-theory { background: var(--orange); color: white; }
-        .btn-practice { background: var(--lime); color: white; }
-        .btn-block { background: #f0faff; color: var(--dark-text); border: 3px solid var(--sky-blue); font-size: 18px; }
-        .btn-back { background: #6c757d; color: white; font-size: 16px; padding: 12px; }
+        .btn-theory { background: var(--accent); color: white; }
+        .btn-practice { background: var(--btn-ok); color: white; }
+        .btn-block { background: #f0faff; color: #333; border: 2px solid #ddd; }
+        body.grade-6 .btn-block { background: #252545; color: white; border-color: #00CED1; }
 
-        /* Помощники */
-        .helper-icon { font-size: 70px; margin-bottom: 10px; }
-
-        /* Текст теории */
-        .theory-box {
-            text-align: left; background: #FFFDE7; padding: 20px; 
-            border-radius: 25px; border: 3px dashed var(--orange);
-            font-size: 18px; line-height: 1.5;
+        .helper-icon { font-size: 65px; margin-bottom: 10px; }
+        .theory-box { 
+            text-align: left; padding: 15px; border-radius: 20px; 
+            border: 3px dashed var(--accent); font-size: 16px; line-height: 1.5; margin-bottom: 10px;
         }
 
-        /* Декор фона */
         #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        .floater { position: absolute; bottom: -100px; opacity: 0.5; animation: floatUp linear forwards; }
-        @keyframes floatUp {
-            from { transform: translateY(0) rotate(0deg); }
-            to { transform: translateY(-120vh) rotate(360deg); }
+        .floater { position: absolute; bottom: -100px; opacity: 0.4; animation: floatUp linear forwards; }
+        @keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-120vh); } }
+
+        #solution-box { 
+            display: none; padding: 15px; border-radius: 20px; margin-top: 15px;
+            text-align: left; border: 3px solid var(--btn-ok); font-size: 15px;
         }
     </style>
 </head>
-<body>
+<body class="grade-5">
 
     <div id="floating-container"></div>
 
     <div id="main-menu" class="card active">
-        <div class="helper-icon">🐱🚀</div>
-        <h2 style="font-size: 24px; margin-bottom: 10px;">Привет, Космо-герой!</h2>
-        <p>Я Кот-космонавт. Полетели покорять математику?</p>
+        <div id="menu-helper" class="helper-icon">🐱🚀</div>
+        <h2 id="menu-title">Загрузка...</h2>
         <button class="btn-theory" onclick="showTheoryMenu()">📖 Секреты знаний</button>
-        <button class="btn-practice" onclick="startPractice()">📝 Испытание</button>
+        <button class="btn-practice" onclick="startPractice()">📝 Миссия: Практика</button>
     </div>
 
     <div id="theory-menu" class="card">
-        <div class="helper-icon">🐶🔍</div>
-        <h3 style="margin-bottom: 15px;">Выбери тему для изучения:</h3>
-        <div id="theory-buttons"></div>
-        <button class="btn-back" onclick="showMainMenu()">⬅️ Назад</button>
+        <div id="theory-helper" class="helper-icon">🐶🔍</div>
+        <h3>База данных:</h3>
+        <div id="theory-btns-container"></div>
+        <button onclick="showMainMenu()" style="background:#6c757d; color:white; font-size:14px;">⬅️ Назад</button>
     </div>
 
     <div id="theory-view" class="card">
-        <h3 id="theory-title" style="color: var(--orange); font-size: 22px;"></h3>
-        <div id="theory-text" class="theory-box"></div>
-        <button class="btn-theory" style="margin-top: 20px;" onclick="showTheoryMenu()">🚀 Понятно, дальше!</button>
+        <h3 id="view-title" style="color: var(--accent);"></h3>
+        <div id="view-content" class="theory-box"></div>
+        <button class="btn-theory" onclick="showTheoryMenu()">💪 Усвоено!</button>
     </div>
 
     <div id="quiz-screen" class="card">
-        <div id="q-progress" style="font-weight: 900; font-size: 16px; margin-bottom: 10px; color: var(--orange);"></div>
-        <h2 id="q-text" style="font-size: 20px; margin-bottom: 20px;"></h2>
-        <div id="options"></div>
-        <div id="solution-box" style="display:none; background:#f1f8e9; padding:20px; border-radius:25px; margin-top:15px; text-align:left; border: 3px solid var(--lime);">
-            <b style="font-size: 20px;">🤖 Разбор от Кота:</b><br>
-            <span id="solution-text" style="font-size: 18px;"></span>
+        <div id="q-progress" style="font-weight: 900; font-size: 14px; margin-bottom: 10px; opacity: 0.7;"></div>
+        <h2 id="q-text" style="font-size: 18px; margin-bottom: 20px;"></h2>
+        <div id="options-container"></div>
+        <div id="solution-box">
+            <b id="solution-hero">🤖 Анализ:</b><br>
+            <span id="solution-text"></span>
         </div>
-        <button id="next-btn" class="btn-practice" style="display:none;">К новой цели! 🚀</button>
+        <button id="next-btn" class="btn-practice" style="display:none; margin-top:15px;">Следующий этап ➡️</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Данные 5 класса (Теория по частям + Практика)
         const gradeData = {
             "5": {
+                name: "5 класс",
+                helper: "🐱🚀",
+                helperName: "Кот-космонавт",
                 theoryBlocks: [
-                    { title: "1. Натуральные числа", text: "<b>Свойства нуля:</b><br>• a + 0 = a (нейтральность)<br>• a * 0 = 0 (умножение на ноль)<br><br><b>Метод Гаусса:</b> Чтобы сложить числа от 1 до n, умножь последнее число на следующее за ним и подели на 2!<br><i>Пример: 1+2+3+4 = (4 * 5) / 2 = 10.</i>" },
-                    { title: "2. Умножение и уравнения", text: "<b>Метод «Фонтанчика»:</b> a * (b + c) = a*b + a*c. Умножаем число на каждого в скобках!<br><br><b>Степень:</b><br>• a² (квадрат) = a * a<br>• a³ (куб) = a * a * a<br><br><b>Уравнения:</b> Чтобы найти слагаемое, из суммы (результата) вычти известное число." },
-                    { title: "3. Геометрия", text: "<b>Периметр (P):</b> Сумма всех сторон. P = 2 * (длина + ширина).<br><br><b>Площадь (S):</b> S = длина * ширина.<br><b>Объём (V):</b> V = длина * ширина * высота." },
-                    { title: "4. Обыкновенные дроби", text: "<b>Сложение:</b> Складывай верхние части (числители), нижнюю (знаменатель) оставляй как есть!<br><br><b>Метод «Бабочки»:</b> Чтобы сравнить дроби, умножай крест-накраст. Где результат больше, там и дробь больше." },
-                    { title: "5. Десятичные дроби", text: "<b>Среднее:</b> Сложи все числа и подели на их количество.<br><br><b>Запятая:</b><br>• При умножении на 10, 100 — запятая едет ВПРАВО.<br>• При делении на 10, 100 — запятая едет ВЛЕВО." }
+                    { title: "🔢 Числа и нули", text: "<b>Свойства нуля:</b> Любое число + 0 остается собой. Любое число * 0 превращается в ноль. <br><br><b>Метод Гаусса:</b> Складывай крайние числа в парах, чтобы быстро найти сумму ряда!" },
+                    { title: "📐 Геометрия", text: "<b>Периметр:</b> Длина забора вокруг фигуры. P = 2 * (a + b).<br><b>Площадь:</b> Сколько квадратов внутри. S = a * b." },
+                    { title: "🍰 Дроби", text: "<b>Числитель (верх):</b> Сколько кусков съели. <b>Знаменатель (низ):</b> На сколько частей резали. Складываем только верх!" }
                 ],
                 questions: [
-                    { q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй?", options: ["42", "378", "40"], correct: "42", solution: "Раз в первой больше, значит во второй меньше! Делим: 126 / 3 = 42." },
-                    { q: "Ширина прямоугольника 8 см, а длина на 4 см больше. Найди периметр.", options: ["40 см", "24 см", "20 см"], correct: "40 см", solution: "1) Длина = 8 + 4 = 12. 2) P = (8 + 12) * 2 = 40." },
-                    { q: "Вычисли: 3,27 + 12,5", options: ["15,77", "15,32", "15,52"], correct: "15,77", solution: "Складываем запятую под запятой: 3,27 + 12,50 = 15,77." },
-                    { q: "Площадь квадрата равна 64 см². Какова его сторона?", options: ["8 см", "16 см", "32 см"], correct: "8 см", solution: "Ищем число, которое само на себя дает 64. Это 8 * 8 = 64!" },
-                    { q: "В классе 25 учеников. 40% из них — девочки. Сколько их?", options: ["10", "15", "5"], correct: "10", solution: "Находим процент: 25 * 0,4 = 10 девочек." }
+                    { q: "Ширина 8 см, длина на 4 см больше. Найди периметр.", options: ["40 см", "24 см", "20 см"], correct: "40 см", sol: "Длина = 12. P = (8+12)*2 = 40." },
+                    { q: "Вычисли: 3,27 + 12,5", options: ["15,77", "15,32", "15,52"], correct: "15,77", sol: "Считаем запятую под запятой: 3,27 + 12,50 = 15,77." }
+                ]
+            },
+            "6": {
+                name: "6 класс",
+                helper: "🤖🛰️",
+                helperName: "Робот-аналитик",
+                theoryBlocks: [
+                    { title: "🔬 Теория чисел", text: "<b>НОК:</b> Наименьшее число, которое делится на оба заданных. <br><b>Разложение:</b> Представление числа в виде произведения простых 'цифровых ДНК'." },
+                    { title: "⚖️ Пропорции", text: "<b>Главное правило:</b> Произведение крайних членов равно произведению средних. Если a/b = c/d, то a*d = b*c." },
+                    { title: "🗺️ Масштаб и Координаты", text: "<b>Масштаб:</b> Показывает, во сколько раз реальность сжата на карте. <br><b>Координаты:</b> Точка A(x;y). Сначала идем по горизонтали (X), потом по вертикали (Y)." }
+                ],
+                questions: [
+                    { q: "Найдите НОК чисел 12 и 15:", options: ["3", "180", "60", "30"], correct: "60", sol: "Число 60 делится и на 12 (5), и на 15 (4)." },
+                    { q: "Решите пропорцию: 12 : x = 4 : 5", options: ["15", "9,6", "10", "2,4"], correct: "15", sol: "4x = 12 * 5 -> 4x = 60 -> x = 15." },
+                    { q: "Карта 1:500 000. На карте 4 см. Реальное расстояние?", options: ["2 км", "20 км", "200 км", "12,5 км"], correct: "20 км", sol: "1 см = 5 км. 4 см * 5 = 20 км." },
+                    { q: "Длина окружности (R=5, π≈3,14):", options: ["15,7 см", "31,4 см", "78,5 см", "314 см"], correct: "31,4 см", sol: "C = 2 * π * R = 2 * 3.14 * 5 = 31.4." },
+                    { q: "Вычислите: -18 + (-7) - (-10)", options: ["-35", "-15", "-25", "15"], correct: "-15", sol: "-18 - 7 + 10 = -25 + 10 = -15." },
+                    { q: "Значение: (-2,5) * (-4) * 0,3", options: ["3", "-3", "0,3", "-30"], correct: "3", sol: "(-2.5 * -4) = 10. 10 * 0.3 = 3." },
+                    { q: "В какой четверти находится точка A(-5; 8)?", options: ["I", "II", "III", "IV"], correct: "II", sol: "X отрицательный, Y положительный — это вторая четверть." },
+                    { q: "Упростите: 3(x - 2) - 2(x - 3)", options: ["x - 12", "5x", "x", "x + 12"], correct: "x", sol: "3x - 6 - 2x + 6 = x." },
+                    { q: "Уравнение: 5x - 12 = 2x + 6", options: ["x=2", "x=6", "x=-2", "x=18"], correct: "x=6", sol: "3x = 18 -> x = 6." },
+                    { q: "Значение |-12,4| + |3,6|:", options: ["8,8", "16", "-8,8", "-16"], correct: "16", sol: "12.4 + 3.6 = 16." }
                 ]
             }
         };
 
         const urlParams = new URLSearchParams(window.location.search);
         const grade = urlParams.get('grade') || "5";
+        const currentData = gradeData[grade] || gradeData["5"];
+
+        document.body.className = "grade-" + grade;
+        document.getElementById('menu-title').innerText = currentData.name;
+        document.getElementById('menu-helper').innerText = currentData.helper;
 
         function hideAll() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
         function showMainMenu() { hideAll(); document.getElementById('main-menu').classList.add('active'); }
 
         function showTheoryMenu() {
             hideAll();
-            const container = document.getElementById('theory-buttons');
+            document.getElementById('theory-helper').innerText = currentData.helper === "🐱🚀" ? "🐶🔍" : "🛸📡";
+            const container = document.getElementById('theory-btns-container');
             container.innerHTML = "";
-            gradeData[grade].theoryBlocks.forEach((block, i) => {
-                const b = document.createElement('button');
-                b.className = "btn-block";
-                b.innerText = block.title;
-                b.onclick = () => {
+            currentData.theoryBlocks.forEach((b, i) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-block";
+                btn.innerText = b.title;
+                btn.onclick = () => {
                     hideAll();
-                    document.getElementById('theory-title').innerText = block.title;
-                    document.getElementById('theory-text').innerHTML = block.text;
+                    document.getElementById('view-title').innerText = b.title;
+                    document.getElementById('view-content').innerHTML = b.text;
                     document.getElementById('theory-view').classList.add('active');
                 };
-                container.appendChild(b);
+                container.appendChild(btn);
             });
             document.getElementById('theory-menu').classList.add('active');
         }
 
-        let curQ = 0; let qs = [];
+        let curIdx = 0; let questions = [];
         function startPractice() {
-            hideAll(); curQ = 0;
-            qs = [...gradeData[grade].questions].sort(() => Math.random() - 0.5);
+            hideAll(); curIdx = 0;
+            questions = [...currentData.questions].sort(() => Math.random() - 0.5);
             document.getElementById('quiz-screen').classList.add('active');
             renderQ();
         }
 
         function renderQ() {
-            const q = qs[curQ];
-            document.getElementById('q-progress').innerText = `МИССИЯ ${curQ + 1} / ${qs.length}`;
+            const q = questions[curIdx];
+            document.getElementById('q-progress').innerText = `ЭТАП ${curIdx + 1} / ${questions.length}`;
             document.getElementById('q-text').innerText = q.q;
             document.getElementById('solution-box').style.display = "none";
             document.getElementById('next-btn').style.display = "none";
-            const cont = document.getElementById('options');
+            document.getElementById('solution-hero').innerText = currentData.helperName + " объясняет:";
+            
+            const cont = document.getElementById('options-container');
             cont.innerHTML = "";
-            q.options.forEach(o => {
-                const b = document.createElement('button');
-                b.innerText = o;
-                b.onclick = () => {
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.innerText = opt;
+                btn.onclick = () => {
                     const all = cont.querySelectorAll('button');
-                    all.forEach(btn => btn.disabled = true);
-                    if(o === q.correct) {
-                        b.style.background = "#32CD32"; b.style.color = "white";
+                    all.forEach(b => b.disabled = true);
+                    if (opt === q.correct) {
+                        btn.style.background = "#32CD32"; btn.style.color = "white";
                     } else {
-                        b.style.background = "#FF4500"; b.style.color = "white";
-                        all.forEach(btn => { if(btn.innerText === q.correct) btn.style.background = "#32CD32"; btn.style.color = "white"; });
+                        btn.style.background = "#FF4500"; btn.style.color = "white";
+                        all.forEach(b => { if(b.innerText === q.correct) b.style.background = "#32CD32"; b.style.color = "white"; });
                     }
-                    document.getElementById('solution-text').innerText = q.solution;
+                    document.getElementById('solution-text').innerText = q.sol;
                     document.getElementById('solution-box').style.display = "block";
                     document.getElementById('next-btn').style.display = "block";
                 };
-                cont.appendChild(b);
+                cont.appendChild(btn);
             });
         }
 
         document.getElementById('next-btn').onclick = () => {
-            curQ++;
-            if(curQ < qs.length) renderQ();
+            curIdx++;
+            if (curIdx < questions.length) renderQ();
             else showMainMenu();
         };
 
-        // Анимация плавающих эмодзи
         function spawn() {
-            const c = document.getElementById('floating-container');
-            const i = document.createElement('div');
-            i.innerText = ["🐱","🚀","🐶","⭐","📐","🔭"][Math.floor(Math.random()*6)];
-            i.className = 'floater';
-            i.style.left = Math.random()*95 + 'vw';
-            i.style.fontSize = (25 + Math.random()*35) + 'px';
-            i.style.animationDuration = (7 + Math.random()*10) + 's';
-            c.appendChild(i);
-            setTimeout(() => i.remove(), 15000);
+            const container = document.getElementById('floating-container');
+            const item = document.createElement('div');
+            item.className = 'floater';
+            const icons = grade === "5" ? ["🐱","🚀","⭐","📐"] : ["🤖","🛸","👾","💠"];
+            item.innerText = icons[Math.floor(Math.random()*icons.length)];
+            item.style.left = Math.random() * 95 + 'vw';
+            item.style.fontSize = (20 + Math.random() * 30) + 'px';
+            item.style.animationDuration = (6 + Math.random() * 10) + 's';
+            container.appendChild(item);
+            setTimeout(() => item.remove(), 15000);
         }
-        setInterval(spawn, 1200);
+        setInterval(spawn, 1500);
 
         showMainMenu();
     </script>
