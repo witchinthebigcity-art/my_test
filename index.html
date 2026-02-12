@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Perfect Text</title>
+    <title>Math Universe: Stable</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Roboto:wght@400;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     
@@ -25,6 +25,7 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             overflow: hidden; position: relative; transition: 0.5s;
             font-family: 'Roboto', sans-serif;
+            background: #f0f0f0; /* Дефолтный фон */
         }
 
         /* ТЕМЫ */
@@ -54,7 +55,7 @@
         /* КНОПКИ */
         button { 
             font-family: inherit; border: none; padding: 16px 10px; border-radius: 20px; 
-            width: 100%; margin: 8px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
+            width: 100%; margin: 10px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
             transition: 0.2s; box-shadow: 0 6px 0 rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center;
         }
@@ -62,10 +63,9 @@
         .btn-acc { background: var(--acc); color: white; }
         .btn-ok { background: var(--btn); color: white; }
 
-        /* ТЕКСТ ВОПРОСА С УВЕЛИЧЕННЫМ ИНТЕРВАЛОМ */
+        /* СПЕЦИАЛЬНЫЙ РАЗМЕР ШРИФТА */
         #q-text { font-size: 19px; font-weight: 700; margin-bottom: 20px; line-height: 1.6; text-align: left; }
-        
-        body.grade-5 #q-text { font-size: 18px; } /* Чуть меньше для 5 класса */
+        body.grade-5 #q-text { font-size: 18px; } 
 
         .theory-box { text-align: left; padding: 20px; border-radius: 25px; border: 3px dashed var(--acc); margin-bottom: 15px; font-size: 16px; line-height: 1.5; }
         #solution-box { display: none; padding: 20px; border-radius: 25px; margin-top: 20px; text-align: left; border: 3px solid var(--btn); background: rgba(0,0,0,0.05); }
@@ -75,9 +75,14 @@
         #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
         .floater { position: absolute; bottom: -100px; opacity: 0.3; animation: floatUp linear forwards; }
         @keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-120vh); } }
+        
+        /* Loading Error State */
+        #error-msg { display: none; color: red; background: white; padding: 20px; border-radius: 10px; z-index: 999; position: relative; }
     </style>
 </head>
 <body class="grade-5">
+
+    <div id="error-msg">Ошибка загрузки JS. Проверьте код.</div>
 
     <div id="hud">
         <div class="hud-item">❤️ <span id="lives">5</span></div>
@@ -88,7 +93,7 @@
 
     <div id="main-menu" class="card active">
         <div id="hero" style="font-size: 75px; margin-bottom: 10px;">🐱🚀</div>
-        <h2 id="grade-title" style="font-size: 28px; margin: 10px 0;">Математика</h2>
+        <h2 id="grade-title" style="font-size: 28px; margin: 10px 0;">Загрузка...</h2>
         <button class="btn-acc" onclick="showTheoryMenu()">📖 Теория</button>
         <button class="btn-ok" onclick="startPractice()">🚀 Практика</button>
         <button onclick="showShop()" style="background: var(--gold); color: #000;">🛒 Магазин</button>
@@ -131,10 +136,14 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp; tg.expand();
+    try {
+        const tg = window.Telegram.WebApp; 
+        tg.expand();
+        
         let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], errorsByBlock: {} };
 
-        function renderMath(text, element, isDisplay = false) {
+        // Рендерер
+        window.renderMath = function(text, element, isDisplay = false) {
             try {
                 if (text.includes('$')) {
                     element.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
@@ -144,7 +153,7 @@
                     katex.render(text, element, { displayMode: isDisplay, throwOnError: false });
                 }
             } catch (e) { element.innerHTML = text; }
-        }
+        };
 
         const data = {
             "5": {
@@ -156,7 +165,6 @@
                     { title: "4. Обыкновенные дроби", text: "Сложение (одинаковый низ): $\\frac{a}{c} + \\frac{b}{c} = \\frac{a+b}{c}$.<br>Сравнение (метод бабочки): перемножаем крест-накраст: $\\frac{3}{5}$ vs $\\frac{4}{7} \\implies 21 > 20$." },
                     { title: "5. Десятичные дроби", text: "Умножение на 10, 100 $\\to$ запятая <b>вправо</b>.<br>Деление на 10, 100 $\\to$ запятая <b>влево</b>.<br>Среднее арифметическое: сумма всех чисел деленная на их количество." }
                 ],
-                // ИСПРАВЛЕННЫЕ ПРОБЕЛЫ ДЛЯ 5 КЛАССА
                 questions: [
                     { q: "В первой книге 126 страниц, это в 3 раза больше, чем во второй.<br>Сколько страниц во второй книге?", opt: ["42", "378", "123", "40"], cor: "42", sol: "$126 : 3 = 42$.", bId: "Натуральные числа" },
                     { q: "Найдите значение выражения:<br>$45 + 15 \\cdot (102 - 92)$", opt: ["195", "600", "150", "160"], cor: "195", sol: "1) $102 - 92 = 10$<br>2) $15 \\cdot 10 = 150$<br>3) $45 + 150 = 195$", bId: "Порядок действий" },
@@ -180,7 +188,6 @@
                     { title: "5. Отрицательные числа", text: "Модуль $|a|$ — это расстояние (всегда +).<br>Знаки: минус на минус = плюс. Разные знаки = минус." },
                     { title: "6. Раскрытие скобок", text: "Минус перед скобкой меняет знаки внутри: $-(a-b) = -a+b$." }
                 ],
-                // ИСПРАВЛЕННЫЕ ПРОБЕЛЫ ДЛЯ 6 КЛАССА
                 questions: [
                     { q: "Найдите НОК (наименьшее общее кратное) чисел 12 и 15:", opt: ["3", "180", "60", "30"], cor: "60", sol: "60 делится и на 12, и на 15.", bId: "Теория чисел" },
                     { q: "Решите пропорцию:<br>$12 : x = 4 : 5$", opt: ["15", "9,6", "10", "2,4"], cor: "15", sol: "$4x = 12 \\cdot 5 \\implies x = 15$.", bId: "Пропорции" },
@@ -212,9 +219,9 @@
                     { q: "Разложите: $16 - 9y^2$", opt: ["(4 - 3y)(4 + 3y)", "(4 - 3y)^2", "(8 - 3y)(8 + 3y)", "(16 - 9y)(16 + 9y)"], cor: "(4 - 3y)(4 + 3y)", sol: "$4^2 - (3y)^2 = (4-3y)(4+3y)$", bId: "ФСУ" },
                     { q: "$y = 3x + b$ проходит через $A(1; 5)$.<br>Найдите $b$:", opt: ["5", "2", "8", "-2"], cor: "2", sol: "$5 = 3 \\cdot 1 + b \\implies b=2$", bId: "Функция" },
                     { q: "Решите уравнение:<br>$5x - 4 = 3x + 8$", opt: ["2", "4", "6", "-2"], cor: "6", sol: "$2x = 12 \\implies x = 6$", bId: "Алгебра" },
-                    { q: "Угол, смежный с углом $50^\\circ$:", opt ["40^\\circ", "130^\\circ", "50^\\circ", "180^\\circ"], cor: "130^\\circ", sol: "$180 - 50 = 130$", bId: "Геометрия" },
-                    { q: "Равнобедренный треуг.<br>Угол при основании $70^\\circ$. Угол при 3 вершине??", opt: ["70^\\circ", "110^\\circ", "55^\\circ", "40^\\circ"], cor: "40^\\circ", sol: "$180 - 2 \\cdot 70 = 40$", bId: "Геометрия" },
-                    { q: "Параллельные прямые.<br>Угол, накрест лежащий к $60^\\circ$:", opt: ["120^\\circ", "60^\\circ", "30^\\circ", "90^\\circ"], cor: "60^\\circ", sol: "Углы равны.", bId: "Геометрия" }
+                    { q: "Угол, смежный с углом $50^\\circ$:", opt: ["40^\\circ", "130^\\circ", "50^\\circ", "180^\\circ"], cor: "130^\\circ", sol: "$180 - 50 = 130$", bId: "Геометрия" },
+                    { q: "Равнобедренный треуг.<br>Угол при основании $70^\\circ$. Вершина?", opt: ["70^\\circ", "110^\\circ", "55^\\circ", "40^\\circ"], cor: "40^\\circ", sol: "$180 - 2 \\cdot 70 = 40$", bId: "Геометрия" },
+                    { q: "Параллельные прямые.<br>Накрест лежащий к $60^\\circ$:", opt: ["120^\\circ", "60^\\circ", "30^\\circ", "90^\\circ"], cor: "60^\\circ", sol: "Углы равны.", bId: "Геометрия" }
                 ]
             }
         };
@@ -223,7 +230,8 @@
         const grade = params.get('grade') || "5";
         const curData = data[grade] || data["5"];
 
-        function init() {
+        // Глобальные функции
+        window.init = function() {
             document.body.className = "grade-" + grade;
             document.getElementById('grade-title').innerText = curData.name;
             document.getElementById('hero').innerText = curData.hero;
@@ -231,11 +239,11 @@
             spawnFloating();
         }
 
-        function showMainMenu() { hide(); document.getElementById('main-menu').classList.add('active'); }
-        function showShop() { hide(); document.getElementById('shop').classList.add('active'); }
-        function hide() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
+        window.showMainMenu = function() { hide(); document.getElementById('main-menu').classList.add('active'); }
+        window.showShop = function() { hide(); document.getElementById('shop').classList.add('active'); }
+        window.hide = function() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
 
-        function showTheoryMenu() {
+        window.showTheoryMenu = function() {
             hide();
             const list = document.getElementById('theory-list');
             list.innerHTML = "";
@@ -256,7 +264,7 @@
             document.getElementById('theory-menu').classList.add('active');
         }
 
-        function startPractice(filterBlock = null) {
+        window.startPractice = function(filterBlock = null) {
             hide();
             state.lives = 5; state.coins = 0; state.currentIdx = 0; state.errorsByBlock = {};
             state.questions = filterBlock ? curData.questions.filter(q => q.bId === filterBlock) : [...curData.questions].sort(() => Math.random() - 0.5);
@@ -265,12 +273,12 @@
             renderQ();
         }
 
-        function updateHUD() {
+        window.updateHUD = function() {
             document.getElementById('lives').innerText = state.lives;
             document.getElementById('coins').innerText = state.coins;
         }
 
-        function renderQ() {
+        window.renderQ = function() {
             if(state.lives <= 0) { finish(false); return; }
             const q = state.questions[state.currentIdx];
             document.getElementById('progress').innerText = `Задание ${state.currentIdx + 1} / ${state.questions.length}`;
@@ -318,7 +326,7 @@
             else finish(state.lives > 0);
         };
 
-        function finish(win) {
+        window.finish = function(win) {
             hide();
             document.getElementById('final').classList.add('active');
             const stats = document.getElementById('stats');
@@ -336,7 +344,7 @@
             }
         }
 
-        function spawn() {
+        window.spawn = function() {
             const c = document.getElementById('floating-container');
             const d = document.createElement('div');
             d.className = 'floater';
@@ -348,9 +356,15 @@
             c.appendChild(d);
             setTimeout(() => d.remove(), 12000);
         }
-        function spawnFloating() { setInterval(spawn, 1500); }
+        window.spawnFloating = function() { setInterval(spawn, 1500); }
 
+        // Запуск
         init();
+
+    } catch (e) {
+        document.getElementById('error-msg').style.display = 'block';
+        document.getElementById('error-msg').innerText = "JS Error: " + e.message;
+    }
     </script>
 </body>
 </html>
