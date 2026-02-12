@@ -6,7 +6,7 @@
     <title>Math Learning App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- БАЗОВЫЕ СТИЛИ --- */
+        /* --- СТИЛИ --- */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             margin: 0; padding: 20px; min-height: 100vh;
@@ -26,12 +26,15 @@
             padding: 25px; border-radius: 24px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
             width: 100%; max-width: 450px; text-align: center; position: relative; z-index: 10; 
-            display: none; /* Скрыты по умолчанию, включаются скриптом */
+            display: none; 
+            max-height: 90vh; /* Ограничение высоты для прокрутки теории */
+            overflow-y: auto; /* Прокрутка если текст длинный */
         }
 
         .active { display: block; animation: popIn 0.3s ease; }
 
         h2 { font-size: 1.3em; margin-bottom: 20px; color: #222; }
+        h3 { font-size: 1.1em; color: #0056b3; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
         
         button { 
             border: none; padding: 18px; border-radius: 16px; width: 100%; margin: 8px 0; 
@@ -45,21 +48,18 @@
         .menu-btn-theory { background: linear-gradient(135deg, #17a2b8, #117a8b); color: white; }
         .menu-btn-practice { background: linear-gradient(135deg, #28a745, #218838); color: white; }
 
-        /* Служебные кнопки */
         #next-btn { background: #007bff; color: white; display: none; }
-        #back-to-menu { background: #6c757d; color: white; margin-top: 20px; }
+        #back-to-menu { background: #6c757d; color: white; margin-top: 20px; position: sticky; bottom: 0; }
 
-        /* Стили ответа */
         .correct-anim { background: #d4edda !important; color: #155724 !important; border: 2px solid #28a745; }
         .wrong-anim { background: #f8d7da !important; color: #721c24 !important; border: 2px solid #dc3545; }
 
-        /* Блок решения (появляется после ответа) */
         #solution-box { 
             margin-top: 15px; padding: 15px; border-radius: 12px; 
             background: #e9ecef; text-align: left; font-size: 14px; display: none;
         }
 
-        /* Модальное окно */
+        /* Модальное окно подсказки */
         .modal {
             display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; justify-content: center;
@@ -70,6 +70,11 @@
         }
 
         @keyframes popIn { from {transform: scale(0.8); opacity: 0;} to {transform: scale(1); opacity: 1;} }
+
+        /* Стили для теории */
+        .theory-block p { margin-bottom: 10px; font-size: 15px; line-height: 1.5; }
+        .theory-block b { color: #333; }
+        hr { border: 0; border-top: 1px solid #ddd; margin: 20px 0; }
 
         /* Фоны классов */
         body.grade-5, body.grade-6 { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); }
@@ -84,14 +89,14 @@
 
     <div id="main-menu" class="card active">
         <h2 id="menu-title">Математика</h2>
-        <p>Выбери режим обучения:</p>
+        <p>Выбери режим:</p>
         <button class="menu-btn-theory" onclick="showTheoryScreen()">📖 Изучить теорию</button>
         <button class="menu-btn-practice" onclick="startPractice()">📝 Перейти к практике</button>
     </div>
 
-    <div id="theory-screen" class="card">
-        <h2>📖 Теория по программе</h2>
-        <div id="theory-content" style="text-align: left; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+    <div id="theory-screen" class="card" style="text-align: left;">
+        <h2 style="text-align: center;">📖 Справочник</h2>
+        <div id="theory-content" class="theory-block">
             </div>
         <button id="back-to-menu" onclick="showMainMenu()">⬅️ В меню</button>
     </div>
@@ -100,7 +105,7 @@
         <div id="quiz-progress" style="font-size: 12px; color: #666; margin-bottom: 10px;"></div>
         <h2 id="question-text">...</h2>
         
-        <button id="help-btn" style="background: #17a2b8; color: white; padding: 10px; font-size: 14px;" onclick="showHelp()">💡 Вспомнить правило</button>
+        <button id="help-btn" style="background: #17a2b8; color: white; padding: 10px; font-size: 14px;" onclick="showHelp()">💡 Подсказка (Правило)</button>
         
         <div id="options-container"></div>
 
@@ -110,6 +115,7 @@
         </div>
 
         <button id="next-btn">Далее ➡️</button>
+        <button class="menu-btn-practice" id="finish-early-btn" style="background: #6c757d; margin-top: 10px;" onclick="showMainMenu()">🏠 В меню</button>
     </div>
 
     <div id="final-screen" class="card">
@@ -121,7 +127,7 @@
 
     <div id="help-modal" class="modal">
         <div class="modal-content">
-            <h3 id="help-title">💡 Правило</h3>
+            <h3 id="help-title" style="margin-top:0;">💡 Правило</h3>
             <p id="help-text"></p>
             <button onclick="closeHelp()">Понятно</button>
         </div>
@@ -131,38 +137,162 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ДАННЫЕ (Структура для заполнения) ---
+        // --- ДАННЫЕ С ТЕОРИЕЙ И ВОПРОСАМИ ---
         const gradeData = {
             "5": {
-                generalTheory: "В 5 классе мы изучаем натуральные числа, действия с ними и основы геометрии. Запомни: в выражениях со скобками они всегда решаются первыми!",
+                // ТЕОРИЯ ДЛЯ 5 КЛАССА
+                generalTheory: `
+                    <h3>Часть 1. Натуральные числа</h3>
+                    <p><b>1. Свойства нуля:</b><br>
+                    • a + 0 = a (Прибавление нуля не меняет число)<br>
+                    • a · 0 = 0 (При умножении на ноль получается ноль)</p>
+                    
+                    <p><b>2. Переместительный закон:</b><br>
+                    a + b = b + a (От перемены мест слагаемых сумма не меняется)</p>
+                    
+                    <p><b>3. Сумма последовательности (Метод Гаусса):</b><br>
+                    Чтобы быстро сложить числа от 1 до n: <br>
+                    S = (n · (n + 1)) / 2</p>
+
+                    <hr>
+
+                    <h3>Часть 2. Умножение и уравнения</h3>
+                    <p><b>1. Распределительный закон (Фонтанчик):</b><br>
+                    a · (b + c) = a · b + a · c</p>
+                    
+                    <p><b>2. Степень числа:</b><br>
+                    • a² = a · a (Квадрат)<br>
+                    • a³ = a · a · a (Куб)</p>
+                    
+                    <p><b>3. Компоненты уравнения:</b><br>
+                    Чтобы найти слагаемое: <br>
+                    x + a = b → x = b - a</p>
+
+                    <hr>
+
+                    <h3>Часть 3. Геометрия</h3>
+                    <p><b>1. Периметр прямоугольника:</b><br>
+                    P = 2 · (a + b)</p>
+                    
+                    <p><b>2. Площадь прямоугольника:</b><br>
+                    S = a · b (Сколько квадратов внутри)</p>
+                    
+                    <p><b>3. Объём параллелепипеда:</b><br>
+                    V = a · b · c</p>
+
+                    <hr>
+
+                    <h3>Часть 4. Обыкновенные дроби</h3>
+                    <p><b>1. Сложение (одинаковые знаменатели):</b><br>
+                    a/c + b/c = (a + b)/c (Знаменатель не меняем!)</p>
+                    
+                    <p><b>2. Целое как дробь:</b><br>
+                    n = n/1</p>
+                    
+                    <p><b>3. Сравнение (Метод Бабочки):</b><br>
+                    Умножаем крест-накрест. Где произведение больше, там и дробь больше.</p>
+
+                    <hr>
+
+                    <h3>Часть 5. Десятичные дроби</h3>
+                    <p><b>1. Среднее арифметическое:</b><br>
+                    Сумма всех чисел поделить на их количество.</p>
+                    
+                    <p><b>2. Умножение на 10, 100:</b><br>
+                    Запятую переносим ВПРАВО (число растет).</p>
+                    
+                    <p><b>3. Деление на 10, 100:</b><br>
+                    Запятую переносим ВЛЕВО (число уменьшается).</p>
+                `,
+                // ПРАКТИКА 5 КЛАССА
                 questions: [
                     { 
                         q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй книге?", 
                         options: ["42", "378", "40"], 
                         correct: "42",
-                        help: "Если одно число в несколько раз больше другого, то другое — во столько же раз меньше. Используй деление.",
-                        solution: "Так как в первой книге страниц больше, во второй их меньше. 126 ÷ 3 = 42."
+                        help: "Если одно число 'в 3 раза больше', то второе — в 3 раза меньше. Используй деление.",
+                        solution: "Первая книга больше, значит вторая меньше. 126 / 3 = 42 страницы."
                     },
-                    // Тут будут остальные 9 вопросов...
-                ]
-            },
-            "7": {
-                generalTheory: "Алгебра 7 класса — это формулы сокращенного умножения, степени и линейные уравнения. Это фундамент!",
-                questions: [
-                    {
-                        q: "Представьте в виде многочлена: (x - 3)(x + 5)",
-                        options: ["x² - 15", "x² - 2x - 15", "x² + 2x - 15", "x² + 8x - 15"],
-                        correct: "x² + 2x - 15",
-                        help: "Используй правило фонтанчика: умножь каждое слагаемое первой скобки на каждое слагаемое второй.",
-                        solution: "(x - 3)(x + 5) = x*x + x*5 - 3*x - 3*5 = x² + 5x - 3x - 15 = x² + 2x - 15."
+                    { 
+                        q: "Найдите значение выражения: 45 + 15 * (102 - 92)", 
+                        options: ["195", "600", "210"], 
+                        correct: "195",
+                        help: "Порядок действий: 1) Скобки 2) Умножение 3) Сложение.",
+                        solution: "1) 102-92=10. 2) 15*10=150. 3) 45+150=195."
+                    },
+                    { 
+                        q: "Ширина прямоугольника 8 см, а длина на 4 см больше. Чему равен периметр?", 
+                        options: ["40 см", "24 см", "20 см"], 
+                        correct: "40 см",
+                        help: "Сначала найди длину (сложение). Периметр P = (a + b) * 2.",
+                        solution: "Длина = 8+4=12. Периметр = (8+12)*2 = 20*2 = 40 см."
+                    },
+                    { 
+                        q: "Какую часть метра составляют 35 сантиметров?", 
+                        options: ["0,35", "3,5", "0,035"], 
+                        correct: "0,35",
+                        help: "В 1 метре 100 см. Чтобы перевести см в метры, дели на 100.",
+                        solution: "35 / 100 = 0,35 метра."
+                    },
+                    { 
+                        q: "Вычислите: 3,27 + 12,5", 
+                        options: ["15,77", "15,32", "4,52"], 
+                        correct: "15,77",
+                        help: "Запиши числа столбиком: запятая под запятой.",
+                        solution: "3,27 + 12,50 = 15,77."
+                    },
+                    { 
+                        q: "Решите уравнение: x - 14,8 = 5,2", 
+                        options: ["20", "9,6", "19,6"], 
+                        correct: "20",
+                        help: "Чтобы найти уменьшаемое, нужно к разности прибавить вычитаемое.",
+                        solution: "x = 5,2 + 14,8 = 20."
+                    },
+                    { 
+                        q: "Округлите число 452,38 до целых.", 
+                        options: ["452", "453", "450"], 
+                        correct: "452",
+                        help: "Смотри на первую цифру после запятой. Если она меньше 5, просто отбрось дробную часть.",
+                        solution: "После запятой стоит 3. Это меньше 5, значит не округляем вверх. Ответ: 452."
+                    },
+                    { 
+                        q: "Площадь квадрата равна 64 см². Найдите его сторону.", 
+                        options: ["8 см", "16 см", "32 см"], 
+                        correct: "8 см",
+                        help: "Площадь квадрата S = a * a. Какое число умноженное на себя дает 64?",
+                        solution: "8 * 8 = 64. Сторона равна 8 см."
+                    },
+                    { 
+                        q: "В классе 25 учеников. 40% из них — девочки. Сколько девочек в классе?", 
+                        options: ["10", "15", "5"], 
+                        correct: "10",
+                        help: "40% = 0,4. Умножь общее количество на 0,4.",
+                        solution: "25 * 0,4 = 10 девочек."
+                    },
+                    { 
+                        q: "Чему равен объем параллелепипеда (2 см, 5 см, 10 см)?", 
+                        options: ["100 см³", "70 см³", "17 см³"], 
+                        correct: "100 см³",
+                        help: "Объем V = длина * ширина * высота.",
+                        solution: "2 * 5 * 10 = 100 см³."
                     }
                 ]
-            }
-            // И так далее для всех классов...
+            },
+            // ЗАГЛУШКИ ДЛЯ ДРУГИХ КЛАССОВ
+            "6": { generalTheory: "Теория для 6 класса загружается...", questions: [{q: "Тест", options:["1"], correct:"1", help: "...", solution:"..."}] },
+            "7": { generalTheory: "Теория для 7 класса загружается...", questions: [{q: "Тест", options:["1"], correct:"1", help: "...", solution:"..."}] },
+            "8": { generalTheory: "Теория для 8 класса загружается...", questions: [{q: "Тест", options:["1"], correct:"1", help: "...", solution:"..."}] },
+            "9": { generalTheory: "Теория для 9 класса загружается...", questions: [{q: "Тест", options:["1"], correct:"1", help: "...", solution:"..."}] },
+            "10": { generalTheory: "Теория для 10 класса загружается...", questions: [{q: "Тест", options:["1"], correct:"1", help: "...", solution:"..."}] },
+            "11": { generalTheory: "Теория для 11 класса загружается...", questions: [{q: "Тест", options:["1"], correct:"1", help: "...", solution:"..."}] }
         };
 
-        const stickers = ["https://cdn-icons-png.flaticon.com/512/2663/2663067.png", "https://cdn-icons-png.flaticon.com/512/3069/3069172.png"];
-        
+        // --- ЛОГИКА ---
+        const stickersDict = {
+            "kids": ["https://cdn-icons-png.flaticon.com/512/2663/2663067.png", "https://cdn-icons-png.flaticon.com/512/3069/3069172.png"],
+            "math": ["https://cdn-icons-png.flaticon.com/512/3771/3771278.png", "https://cdn-icons-png.flaticon.com/512/2933/2933895.png"]
+        };
+
         const urlParams = new URLSearchParams(window.location.search);
         const grade = urlParams.get('grade') || "5";
         document.body.classList.add('grade-' + grade);
@@ -171,10 +301,11 @@
         let currentQuestions = [];
         let currentIndex = 0;
 
-        // --- НАВИГАЦИЯ ---
         function showMainMenu() {
             hideAll();
             document.getElementById('main-menu').classList.add('active');
+            // Если мы вернулись в меню, можно заново запустить анимацию фона
+            spawnFloatingEmojis();
         }
 
         function showTheoryScreen() {
@@ -187,9 +318,9 @@
         function startPractice() {
             hideAll();
             currentIndex = 0;
-            currentQuestions = [...(gradeData[grade]?.questions || gradeData["5"].questions)];
-            // Перемешиваем вопросы
-            currentQuestions.sort(() => Math.random() - 0.5);
+            const data = gradeData[grade] || gradeData["5"];
+            currentQuestions = [...data.questions];
+            currentQuestions.sort(() => Math.random() - 0.5); // Перемешиваем
             document.getElementById('quiz-screen').classList.add('active');
             renderQuestion();
         }
@@ -198,7 +329,6 @@
             document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
         }
 
-        // --- ЛОГИКА ТЕСТА ---
         function renderQuestion() {
             const q = currentQuestions[currentIndex];
             document.getElementById('quiz-progress').innerText = `Вопрос ${currentIndex + 1} из ${currentQuestions.length}`;
@@ -209,7 +339,19 @@
             const container = document.getElementById('options-container');
             container.innerHTML = "";
             
-            q.options.forEach(opt => {
+            // Кнопка подсказки (есть или нет)
+            const helpBtn = document.getElementById('help-btn');
+            if (q.help) {
+                helpBtn.style.display = "inline-block";
+            } else {
+                helpBtn.style.display = "none";
+            }
+            
+            // Перемешиваем варианты ответов
+            let opts = [...q.options];
+            opts.sort(() => Math.random() - 0.5);
+
+            opts.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.innerText = opt;
                 btn.onclick = () => checkAnswer(btn, opt, q.correct, q.solution);
@@ -230,8 +372,7 @@
                 });
             }
 
-            // Показываем решение
-            document.getElementById('solution-text').innerText = solution;
+            document.getElementById('solution-text').innerText = solution || "Разбор готовится.";
             document.getElementById('solution-box').style.display = "block";
             document.getElementById('next-btn').style.display = "block";
         }
@@ -242,34 +383,40 @@
                 renderQuestion();
             } else {
                 hideAll();
-                document.getElementById('final-stat').innerText = "Тест пройден! Ты изучил разбор всех заданий.";
+                document.getElementById('final-stat').innerText = "Ты прошел все задания!";
                 document.getElementById('final-screen').classList.add('active');
             }
         };
 
-        // --- МОДАЛКА ---
+        // Модалка подсказки
         function showHelp() {
             const q = currentQuestions[currentIndex];
-            document.getElementById('help-text').innerHTML = q.help || "Вспомни базовые правила арифметики.";
+            document.getElementById('help-text').innerHTML = q.help || "Вспомни теорию!";
             document.getElementById('help-modal').style.display = "flex";
         }
         function closeHelp() { document.getElementById('help-modal').style.display = "none"; }
 
-        // Эффекты фона
-        function spawn() {
+        // Фон
+        function spawnFloatingEmojis() {
             const container = document.getElementById('floating-container');
-            const img = document.createElement('img');
-            img.src = stickers[Math.floor(Math.random()*stickers.length)];
-            img.className = 'floater';
-            img.style.left = Math.random()*90 + 'vw';
-            img.style.width = (30 + Math.random()*40) + 'px';
-            img.style.animationDuration = (10 + Math.random()*10) + 's';
-            container.appendChild(img);
-            setTimeout(() => img.remove(), 20000);
+            container.innerHTML = ""; // Очистка старых
+            const gradeNum = parseInt(grade);
+            let images = (gradeNum >= 9) ? stickersDict.math : stickersDict.kids;
+
+            for(let i=0; i<15; i++) {
+                const img = document.createElement('img');
+                img.src = images[Math.floor(Math.random() * images.length)];
+                img.className = 'floater';
+                img.style.left = Math.random() * 95 + 'vw';
+                img.style.width = (40 + Math.random() * 50) + 'px';
+                img.style.animationDuration = (12 + Math.random() * 10) + 's';
+                img.style.animationDelay = '-' + (Math.random() * 10) + 's';
+                container.appendChild(img);
+            }
         }
-        setInterval(spawn, 2000);
 
         showMainMenu();
+        spawnFloatingEmojis();
     </script>
 </body>
 </html>
