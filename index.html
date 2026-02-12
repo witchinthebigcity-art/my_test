@@ -6,7 +6,7 @@
     <title>Math Trainer</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- СТИЛИ --- */
+        /* --- СТИЛИ (Твои старые + новые для модального окна) --- */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             margin: 0; padding: 20px; min-height: 100vh;
@@ -14,15 +14,8 @@
             overflow: hidden; position: relative; transition: background 0.5s ease; color: #333;
         }
 
-        /* Летающие элементы */
-        #floating-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 0; overflow: hidden;
-        }
-        .floater {
-            position: absolute; bottom: -150px; opacity: 0.6;
-            animation: floatUp linear forwards;
-        }
+        #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+        .floater { position: absolute; bottom: -150px; opacity: 0.6; animation: floatUp linear forwards; }
         @keyframes floatUp {
             0% { transform: translateY(0) rotate(0deg); opacity: 0; }
             10% { opacity: 0.8; }
@@ -30,9 +23,8 @@
             100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
         }
 
-        /* Карточка */
         .card { 
-            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
             padding: 25px; border-radius: 24px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
             width: 100%; max-width: 450px; text-align: center; position: relative; z-index: 10; 
@@ -53,12 +45,40 @@
             font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
+        /* КНОПКИ ДЕЙСТВИЙ */
         #next-btn { background: #28a745; color: white; display: none; margin-top: 15px; }
         #retry-btn { background: #ffc107; color: #333; display: none; margin-top: 15px; }
         #finish-btn { background: #dc3545; color: white; display: none; margin-top: 10px; }
         
+        /* НОВАЯ КНОПКА ТЕОРИИ */
+        #theory-btn { 
+            background: #17a2b8; color: white; margin-top: 10px; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+
         .correct-anim { background: #d4edda !important; color: #155724 !important; }
         .wrong-anim { background: #f8d7da !important; color: #721c24 !important; }
+
+        /* --- СТИЛИ МОДАЛЬНОГО ОКНА (ТЕОРИЯ) --- */
+        .modal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe; margin: auto; padding: 25px; border: 1px solid #888;
+            border-radius: 20px; width: 85%; max-width: 400px;
+            position: relative; text-align: left;
+            animation: popIn 0.3s ease;
+        }
+        .close {
+            color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;
+        }
+        .close:hover { color: black; }
+        .theory-img { width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid #eee; }
+
+        @keyframes popIn { from {transform: scale(0.8); opacity: 0;} to {transform: scale(1); opacity: 1;} }
 
         /* Фоны классов */
         body.grade-5, body.grade-6 { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); }
@@ -74,13 +94,26 @@
 
     <div class="card" id="quiz-card">
         <h2 id="question">...</h2>
+        
+        <button id="theory-btn" onclick="openTheory()">📖 Читать теорию</button>
+        
         <div id="options"></div>
     </div>
 
     <button id="next-btn">Далее ➡️</button>
     <button id="retry-btn">Исправить ошибки 🔄</button>
     <button id="finish-btn">Завершить</button>
+    
     <div id="final-screen" class="card" style="display: none;"></div>
+
+    <div id="theory-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeTheory()">&times;</span>
+            <h3 style="margin-top: 0;">💡 Справка</h3>
+            <p id="theory-text" style="line-height: 1.5; font-size: 15px;"></p>
+            <div id="theory-image-container"></div>
+        </div>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
@@ -88,103 +121,81 @@
 
         // --- КАРТИНКИ (УТЯТА И МАТЕМАТИКА) ---
         const stickersDict = {
-            "kids": [
-                "https://cdn-icons-png.flaticon.com/512/2663/2663067.png", // Утка 1
-                "https://cdn-icons-png.flaticon.com/512/3069/3069172.png", // Утка 2
-                "https://cdn-icons-png.flaticon.com/512/742/742751.png"    // Смайлик
-            ],
-            "math": [
-                "https://cdn-icons-png.flaticon.com/512/3771/3771278.png", // Линейка
-                "https://cdn-icons-png.flaticon.com/512/2933/2933895.png", // Калькулятор
-                "https://cdn-icons-png.flaticon.com/512/564/564445.png"    // График
-            ]
+            "kids": ["https://cdn-icons-png.flaticon.com/512/2663/2663067.png", "https://cdn-icons-png.flaticon.com/512/3069/3069172.png", "https://cdn-icons-png.flaticon.com/512/742/742751.png"],
+            "math": ["https://cdn-icons-png.flaticon.com/512/3771/3771278.png", "https://cdn-icons-png.flaticon.com/512/2933/2933895.png", "https://cdn-icons-png.flaticon.com/512/564/564445.png"]
         };
 
+        // --- БАЗА ВОПРОСОВ С ТЕОРИЕЙ ---
         const allQuestions = {
             "5": [
-                { q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй книге?", options: ["42", "378", "40"], correct: "42" },
-                { q: "Найдите значение выражения: 45 + 15 * (102 - 92)", options: ["195", "600", "210"], correct: "195" },
-                { q: "Ширина прямоугольника 8 см, а длина на 4 см больше. Чему равен периметр этого прямоугольника?", options: ["40 см", "24 см", "20 см"], correct: "40 см" },
-                { q: "Какую часть метра составляют 35 сантиметров?", options: ["0,35", "3,5", "0,035"], correct: "0,35" },
-                { q: "Вычислите: 3,27 + 12,5", options: ["15,77", "15,32", "4,52"], correct: "15,77" },
-                { q: "Решите уравнение: x - 14,8 = 5,2", options: ["20", "9,6", "19,6"], correct: "20" },
-                { q: "Округлите число 452,38 до целых.", options: ["452", "453", "450"], correct: "452" },
-                { q: "Площадь квадрата равна 64 см². Найдите его сторону.", options: ["8 см", "16 см", "32 см"], correct: "8 см" },
-                { q: "В классе 25 учеников. 40% из них — девочки. Сколько девочек в классе?", options: ["10", "15", "5"], correct: "10" },
-                { q: "Чему равен объем прямоугольного параллелепипеда с измерениями 2 см, 5 см и 10 см?", options: ["100 см³", "70 см³", "17 см³"], correct: "100 см³" }
+                { 
+                    q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй книге?", 
+                    options: ["42", "378", "40"], 
+                    correct: "42",
+                    theory: "Если сказано 'в 3 раза <b>больше, чем во второй</b>', значит, вторая книга <b>меньше</b>. <br>Чтобы найти меньшее число, нужно делить.<br><br>126 : 3 = 42."
+                },
+                { 
+                    q: "Найдите значение выражения: 45 + 15 * (102 - 92)", 
+                    options: ["195", "600", "210"], 
+                    correct: "195",
+                    theory: "<b>Порядок действий:</b><br>1. Сначала то, что в скобках.<br>2. Потом умножение и деление.<br>3. В конце сложение и вычитание.<br><br>1) 102 - 92 = 10<br>2) 15 * 10 = 150<br>3) 45 + 150 = 195"
+                },
+                { 
+                    q: "Ширина прямоугольника 8 см, а длина на 4 см больше. Чему равен периметр?", 
+                    options: ["40 см", "24 см", "20 см"], 
+                    correct: "40 см",
+                    theory: "1. Найдем длину: 8 + 4 = 12 см.<br>2. Периметр (P) — это сумма всех сторон.<br><b>Формула:</b> P = (a + b) * 2<br><br>P = (8 + 12) * 2 = 20 * 2 = 40 см."
+                },
+                { 
+                    q: "Какую часть метра составляют 35 сантиметров?", 
+                    options: ["0,35", "3,5", "0,035"], 
+                    correct: "0,35",
+                    theory: "В 1 метре = 100 сантиметров.<br>Чтобы перевести см в метры, нужно разделить на 100.<br><br>35 : 100 = 0,35 м."
+                },
+                { 
+                    q: "Вычислите: 3,27 + 12,5", 
+                    options: ["15,77", "15,32", "4,52"], 
+                    correct: "15,77",
+                    theory: "При сложении десятичных дробей важно записать <b>запятую под запятой</b>.<br><br>&nbsp;&nbsp;3,27<br>+<u>12,50</u><br>&nbsp;&nbsp;15,77"
+                },
+                { 
+                    q: "Решите уравнение: x - 14,8 = 5,2", 
+                    options: ["20", "9,6", "19,6"], 
+                    correct: "20",
+                    theory: "Чтобы найти неизвестное уменьшаемое (x), нужно к разности прибавить вычитаемое.<br><br>x = 5,2 + 14,8<br>x = 20"
+                },
+                { 
+                    q: "Округлите число 452,38 до целых.", 
+                    options: ["452", "453", "450"], 
+                    correct: "452",
+                    theory: "Смотрим на первую цифру после запятой (3).<br>Если цифра меньше 5 (0,1,2,3,4) — целое не меняем.<br>Если 5 и больше — увеличиваем на 1.<br><br>Тут 3 < 5, поэтому ответ 452."
+                },
+                { 
+                    q: "Площадь квадрата равна 64 см². Найдите его сторону.", 
+                    options: ["8 см", "16 см", "32 см"], 
+                    correct: "8 см",
+                    theory: "Площадь квадрата: S = a * a (или a²).<br>Нужно найти число, которое при умножении само на себя даст 64.<br><br>Таблица умножения: 8 * 8 = 64. Сторона = 8 см."
+                },
+                { 
+                    q: "В классе 25 учеников. 40% из них — девочки. Сколько девочек в классе?", 
+                    options: ["10", "15", "5"], 
+                    correct: "10",
+                    theory: "Чтобы найти процент от числа:<br>1. Переведи проценты в дробь: 40% = 0,40.<br>2. Умножь число на эту дробь.<br><br>25 * 0,4 = 10."
+                },
+                { 
+                    q: "Чему равен объем прямоугольного параллелепипеда (2 см, 5 см, 10 см)?", 
+                    options: ["100 см³", "70 см³", "17 см³"], 
+                    correct: "100 см³",
+                    theory: "Объем (V) равен произведению длины, ширины и высоты.<br><b>Формула:</b> V = a * b * c<br><br>V = 2 * 5 * 10 = 100 см³."
+                }
             ],
-            "6": [
-                { q: "Найдите НОК чисел 12 и 15:", options: ["3", "180", "60", "30"], correct: "60" },
-                { q: "Решите пропорцию: 12 : x = 4 : 5", options: ["15", "9,6", "10", "2,4"], correct: "15" },
-                { q: "Расстояние на карте 4 см (Масштаб 1:500 000). Реальное расстояние?", options: ["2 км", "20 км", "200 км", "12,5 км"], correct: "20 км" },
-                { q: "Длина окружности, R=5 см (π≈3,14):", options: ["15,7 см", "31,4 см", "78,5 см", "314 см"], correct: "31,4 см" },
-                { q: "Вычислите: -18 + (-7) - (-10)", options: ["-35", "-15", "-25", "15"], correct: "-15" },
-                { q: "Значение: (-2,5) * (-4) * 0,3", options: ["3", "-3", "0,3", "-30"], correct: "3" },
-                { q: "В какой четверти точка A(-5; 8)?", options: ["I", "II", "III", "IV"], correct: "II" },
-                { q: "Упростите: 3(x - 2) - 2(x - 3)", options: ["x - 12", "5x", "x", "x + 12"], correct: "x" },
-                { q: "Решите уравнение: 5x - 12 = 2x + 6", options: ["x = 2", "x = 6", "x = -2", "x = 18"], correct: "x = 6" },
-                { q: "Чему равно |-12,4| + |3,6|?", options: ["8,8", "16", "-8,8", "-16"], correct: "16" }
-            ],
-            "7": [
-                { q: "Упростите выражение: 2(3x - 1) - 4(x + 2)", options: ["2x - 10", "2x + 6", "10x - 10", "2x - 3"], correct: "2x - 10" },
-                { q: "Решите уравнение: 5x - 4 = 3x + 8", options: ["2", "4", "6", "-2"], correct: "6" },
-                { q: "Вычислите: (a³)⁴ / a¹⁰", options: ["a⁷", "a²", "a²²", "a¹²"], correct: "a²" },
-                { q: "Представьте в виде многочлена: (x - 3)(x + 5)", options: ["x² - 15", "x² - 2x - 15", "x² + 8x - 15", "x² + 2x - 15"], correct: "x² + 2x - 15" },
-                { q: "Разложите на множители: 16 - 9y²", options: ["(4 - 3y)(4 + 3y)", "(4 - 3y)²", "(8 - 3y)(8 + 3y)", "(16 - 9y)(16 + 9y)"], correct: "(4 - 3y)(4 + 3y)" },
-                { q: "График y = 3x + b проходит через A(1; 5). Найдите b.", options: ["5", "2", "8", "-2"], correct: "2" },
-                { q: "Решите систему: {x + y = 10, x - y = 4}. Найдите (x; y).", options: ["(6; 4)", "(5; 5)", "(7; 3)", "(8; 2)"], correct: "(7; 3)" },
-                { q: "Угол смежный с углом 50°:", options: ["40°", "130°", "50°", "180°"], correct: "130°" },
-                { q: "В равнобедренном треугольнике угол при основании 70°. Угол при вершине?", options: ["70°", "110°", "55°", "40°"], correct: "40°" },
-                { q: "Накрест лежащие углы. Первый 60°. Второй?", options: ["120°", "60°", "30°", "90°"], correct: "60°" }
-            ],
-            "8": [
-                { q: "Сократите дробь: (a² - 16) / (a² + 4a)", options: ["(a-4)/a", "(a+4)/a", "a-4", "(a-4)/(a+4)"], correct: "(a-4)/a" },
-                { q: "Вычислите: √(0,36 * 25)", options: ["0,3", "30", "3", "1,5"], correct: "3" },
-                { q: "Корни уравнения: x² - 5x + 6 = 0", options: ["2; 3", "-2; -3", "1; 6", "-1; 6"], correct: "2; 3" },
-                { q: "Решите неравенство: 3x - 5 > 5x + 1", options: ["x > -3", "x < -3", "x > 3", "x < 3"], correct: "x < -3" },
-                { q: "Представьте в виде степени: (x⁻³)² * x⁸", options: ["x²", "x¹³", "x⁻²", "x³"], correct: "x²" },
-                { q: "Графику y = 12/x принадлежит точка:", options: ["(2; 6)", "(3; 3)", "(0; 12)", "(-4; 3)"], correct: "(2; 6)" },
-                { q: "Периметр параллелограмма 40, одна сторона 12. Вторая сторона?", options: ["28", "14", "8", "10"], correct: "8" },
-                { q: "Катеты 6 и 8. Гипотенуза?", options: ["14", "100", "10", "12"], correct: "10" },
-                { q: "Площадь ромба, диагонали 10 и 12:", options: ["120", "60", "11", "44"], correct: "60" },
-                { q: "Треугольники подобны (k=3). S1=10. S2=?", options: ["30", "90", "3,3", "100"], correct: "90" }
-            ],
-            "9": [
-                { q: "Вершина параболы y = x² - 6x + 5:", options: ["(3; -4)", "(-3; 32)", "(3; 4)", "(6; 5)"], correct: "(3; -4)" },
-                { q: "Решите неравенство: x² - 49 ≤ 0.", options: ["(-∞; 7]", "[-7; 7]", "(-∞; -7] ∪ [7; +∞)", "решений нет"], correct: "[-7; 7]" },
-                { q: "Арифм. прогрессия: a1 = 2, d = 3. Сумма первых 10 членов?", options: ["145", "170", "155", "310"], correct: "155" },
-                { q: "Решите систему: {x + y = 5, x² - y = 7}.", options: ["(3; 2) и (-4; 9)", "(3; 2) и (4; 1)", "(-3; 8) и (4; 1)", "(1; 4) и (-2; 7)"], correct: "(3; 2) и (-4; 9)" },
-                { q: "20 синих, 5 красных ручек. Вероятность красной?", options: ["0,25", "0,2", "0,5", "0,4"], correct: "0,2" },
-                { q: "Вписанный угол на дугу 80°. Величина угла?", options: ["80°", "160°", "40°", "90°"], correct: "40°" },
-                { q: "Стороны 5 и 8, угол 60°. Третья сторона?", options: ["7", "√129", "9", "√89"], correct: "7" },
-                { q: "Площадь треугольника: 6, 10, угол 30°:", options: ["30", "15", "15√3", "60"], correct: "15" },
-                { q: "Область определения y = 5 / √(x - 4):", options: ["x ≥ 4", "x ≠ 4", "x < 4", "x > 4"], correct: "x > 4" },
-                { q: "Количество корней x⁴ - 5x² + 4 = 0:", options: ["2", "0", "4", "3"], correct: "4" }
-            ],
-            "10": [
-                { q: "Значение: 5^0,36 * 25^0,32", options: ["5", "25", "1", "125"], correct: "5" },
-                { q: "Вычислите: log₃ 81 - log₃ 1", options: ["3", "4", "27", "0"], correct: "4" },
-                { q: "Значение: 4cos 60° + 2sin 30°", options: ["2", "4", "3", "2√3"], correct: "3" },
-                { q: "Снижение цены с 800 до 680 руб. Процент?", options: ["12%", "15%", "20%", "18%"], correct: "15%" },
-                { q: "Объем куба при увеличении ребра в 3 раза?", options: ["в 3 раза", "в 9 раз", "в 27 раз", "в 6 раз"], correct: "в 27 раз" },
-                { q: "Решите уравнение: 2^(x-3) = 32", options: ["5", "8", "2", "15"], correct: "8" },
-                { q: "Максимальная температура 15 мая (по графику):", options: ["18°", "20°", "22°", "25°"], correct: "22°" },
-                { q: "25 билетов, 10 'хороших'. Вероятность?", options: ["0,4", "0,25", "0,1", "0,6"], correct: "0,4" },
-                { q: "Цилиндр: R=4, h=5. V/π = ?", options: ["20", "40", "80", "100"], correct: "80" },
-                { q: "Площадь треугольника с вершинами (0;0), (6;0), (0;4):", options: ["24", "12", "10", "6"], correct: "12" }
-            ],
-            "11": [
-                { q: "Решите: √(2x + 15) = x. (Больший корень)", options: ["5", "-3", "3", "0"], correct: "5" },
-                { q: "Биатлон: 5 выстрелов (p=0.8). 3 попал, 2 нет. P=?", options: ["0,512", "0,02048", "0,2048", "0,032"], correct: "0,02048" },
-                { q: "Трапеция описана, P=36. Средняя линия?", options: ["18", "9", "12", "10"], correct: "9" },
-                { q: "Значение: 7^(2log₇ 5)", options: ["10", "5", "25", "49"], correct: "25" },
-                { q: "Конус: h=12, l=13. S_осн / π?", options: ["25", "5", "169", "144"], correct: "25" },
-                { q: "Где max f(x) на [-2; 4], если f'(x) < 0?", options: ["-2", "4", "0", "1"], correct: "-2" },
-                { q: "Рейтинг: r_exp=4... (Упрощенно). Ответ:", options: ["4", "3,8", "5", "4,2"], correct: "4" },
-                { q: "Теплоход: 200 км туда-обратно. V=16, U=4. Время?", options: ["25 ч", "26,6 ч", "24 ч", "20 ч"], correct: "26,6 ч" },
-                { q: "f(x)=a^x проходит через (2; 16). Функция?", options: ["4^x", "2^x", "8^x", "16^x"], correct: "4^x" },
-                { q: "Точка максимума y = 9x - 9ln(x+11) + 7", options: ["-10", "10", "0", "-11"], correct: "-10" }
-            ]
+            // ПОКА ОСТАВЛЯЕМ ЗАГЛУШКИ ДЛЯ ОСТАЛЬНЫХ КЛАССОВ, ЗАПОЛНИМ ИХ СЛЕДУЮЩИМ СООБЩЕНИЕМ
+             "6": [ { q: "Вопросы 6 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
+             "7": [ { q: "Вопросы 7 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
+             "8": [ { q: "Вопросы 8 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
+             "9": [ { q: "Вопросы 9 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
+             "10": [ { q: "Вопросы 10 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
+             "11": [ { q: "Вопросы 11 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ]
         };
 
         // --- ЛОГИКА ---
@@ -193,14 +204,11 @@
         const grade = urlParams.get('grade') || "5";
         document.body.classList.add('grade-' + grade);
 
+        // Анимация фона
         function spawnFloatingEmojis() {
             const container = document.getElementById('floating-container');
             const gradeNum = parseInt(grade);
-            let images = [];
-            
-            // Если 5-8 класс - утята, если 9-11 - математика
-            if (gradeNum >= 9) images = stickersDict.math;
-            else images = stickersDict.kids;
+            let images = (gradeNum >= 9) ? stickersDict.math : stickersDict.kids;
 
             for(let i=0; i<15; i++) {
                 const img = document.createElement('img');
@@ -227,6 +235,7 @@
         }
 
         function startQuiz() {
+            // Если для класса нет вопросов, берем заглушку
             const questions = allQuestions[grade] ? [...allQuestions[grade]] : [...allQuestions["5"]];
             currentQuestions = shuffleArray(questions);
             wrongAnswers = []; currentIndex = 0; isRetryMode = false;
@@ -245,6 +254,15 @@
             document.getElementById('next-btn').style.display = "none";
             document.getElementById('retry-btn').style.display = "none";
             document.getElementById('finish-btn').style.display = "none";
+            
+            // Настройка кнопки теории
+            const theoryBtn = document.getElementById('theory-btn');
+            // Если теория есть в вопросе, показываем кнопку
+            if (q.theory) {
+                theoryBtn.style.display = "flex";
+            } else {
+                theoryBtn.style.display = "none";
+            }
             
             const container = document.getElementById('options');
             container.innerHTML = "";
@@ -268,6 +286,39 @@
                 if (!isRetryMode && !wrongAnswers.includes(questionObj)) wrongAnswers.push(questionObj);
             }
             document.getElementById('next-btn').style.display = "block";
+        }
+
+        // --- ФУНКЦИИ МОДАЛЬНОГО ОКНА ---
+        function openTheory() {
+            const q = currentQuestions[currentIndex];
+            const modal = document.getElementById('theory-modal');
+            const textElem = document.getElementById('theory-text');
+            const imgContainer = document.getElementById('theory-image-container');
+            
+            textElem.innerHTML = q.theory || "Теория к этому вопросу готовится.";
+            imgContainer.innerHTML = "";
+
+            // Если у вопроса есть картинка (пока используем текстовую, но можно добавить imageUrl)
+            if (q.theoryImage) {
+                 const img = document.createElement('img');
+                 img.src = q.theoryImage;
+                 img.className = 'theory-img';
+                 imgContainer.appendChild(img);
+            }
+
+            modal.style.display = "flex";
+        }
+
+        function closeTheory() {
+            document.getElementById('theory-modal').style.display = "none";
+        }
+
+        // Закрытие по клику вне окна
+        window.onclick = function(event) {
+            const modal = document.getElementById('theory-modal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
         }
 
         document.getElementById('next-btn').onclick = () => {
