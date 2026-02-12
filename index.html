@@ -3,153 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: 5-6 классы</title>
+    <title>Math Universe: Game Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- ГЛОБАЛЬНЫЕ СТИЛИ --- */
+        :root {
+            --sky: #87CEEB; --lime: #32CD32; --orange: #FF8C00;
+            --turq: #00CED1; --purple: #4B0082; --coral: #FF7F50;
+            --dark: #1A1A2E; --gold: #FFD700; --red: #FF4500;
+        }
+
         * { box-sizing: border-box; }
         body { 
             margin: 0; padding: 20px; min-height: 100vh;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             overflow: hidden; position: relative; transition: all 0.5s ease;
-        }
-
-        /* --- ТЕМА 5 КЛАССА --- */
-        body.grade-5 {
             font-family: 'Nunito', sans-serif;
-            background: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 100%);
-            --accent: #FF8C00; /* Оранжевый */
-            --btn-ok: #32CD32; /* Лайм */
-            --text-main: #003366;
         }
 
-        /* --- ТЕМА 6 КЛАССА --- */
-        body.grade-6 {
-            font-family: 'Montserrat', sans-serif;
-            background: #1A1A2E;
-            background-image: radial-gradient(circle at 20% 30%, #2D142C 0%, transparent 40%),
-                              radial-gradient(circle at 80% 70%, #16213E 0%, transparent 40%);
-            --accent: #FF7F50; /* Коралловый */
-            --btn-ok: #00CED1; /* Бирюзовый */
-            --text-main: #E1E8F0;
+        /* ТЕМЫ */
+        body.grade-5 { background: linear-gradient(180deg, var(--sky) 0%, #E0F7FA 100%); --accent: var(--orange); --primary: var(--lime); }
+        body.grade-6 { font-family: 'Montserrat', sans-serif; background: var(--dark); color: #E1E8F0; --accent: var(--coral); --primary: var(--turq); }
+
+        /* HUD (Lives & Coins) */
+        #hud {
+            position: fixed; top: 10px; width: 90%; max-width: 400px;
+            display: flex; justify-content: space-between; z-index: 100;
+        }
+        .hud-item {
+            background: rgba(255, 255, 255, 0.9); padding: 8px 15px;
+            border-radius: 20px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex; align-items: center; gap: 8px; color: #333;
         }
 
-        /* --- ОБЩИЕ ЭЛЕМЕНТЫ ИНТЕРФЕЙСА --- */
         .card { 
             background: white; border-radius: 30px; padding: 25px;
-            box-shadow: 0 10px 0 rgba(0,0,0,0.1); width: 100%; max-width: 420px;
+            box-shadow: 0 10px 0 rgba(0,0,0,0.1); width: 100%; max-width: 440px;
             text-align: center; position: relative; z-index: 10; display: none;
-            max-height: 85vh; overflow-y: auto; border: 4px solid #333;
+            max-height: 80vh; overflow-y: auto; border: 4px solid #333;
         }
-        body.grade-6 .card { background: rgba(26, 26, 46, 0.95); border-color: #00CED1; color: white; }
-        body.grade-5 .card { color: #003366; }
+        body.grade-6 .card { background: rgba(26, 26, 46, 0.95); border-color: var(--turq); color: white; }
 
-        .active { display: block; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .active { display: block; animation: bounce 0.4s ease; }
+        @keyframes bounce { 0% {transform: scale(0.8); opacity:0;} 100% {transform: scale(1); opacity:1;} }
 
         button { 
-            border: none; padding: 18px; border-radius: 20px; width: 100%; margin: 8px 0;
-            font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.2s;
-            box-shadow: 0 5px 0 rgba(0,0,0,0.2); font-family: inherit;
+            font-family: inherit; border: none; padding: 18px; border-radius: 20px; 
+            width: 100%; margin: 8px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
+            transition: 0.2s; box-shadow: 0 5px 0 rgba(0,0,0,0.2);
         }
         button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+        .btn-main { background: var(--accent); color: white; }
+        .btn-sec { background: var(--primary); color: white; }
 
-        .btn-theory { background: var(--accent); color: white; }
-        .btn-practice { background: var(--btn-ok); color: white; }
-        .btn-block { background: #f0faff; color: #333; border: 2px solid #ddd; }
-        body.grade-6 .btn-block { background: #252545; color: white; border-color: #00CED1; }
-
-        .helper-icon { font-size: 65px; margin-bottom: 10px; }
-        .theory-box { 
-            text-align: left; padding: 15px; border-radius: 20px; 
-            border: 3px dashed var(--accent); font-size: 16px; line-height: 1.5; margin-bottom: 10px;
+        /* МАГАЗИН */
+        .shop-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.05); padding: 15px; border-radius: 15px; margin-bottom: 10px;
+            border: 2px solid transparent; transition: 0.3s;
         }
+        body.grade-6 .shop-item { background: rgba(255,255,255,0.05); border-color: rgba(0,206,209,0.2); }
+        .shop-item.locked { opacity: 0.5; cursor: not-allowed; }
+
+        .theory-box { text-align: left; padding: 15px; border-radius: 20px; border: 3px dashed var(--accent); margin-bottom: 10px; }
+        #solution-box { display: none; padding: 15px; border-radius: 20px; margin-top: 15px; text-align: left; border: 3px solid var(--primary); }
+        .formula-display { font-size: 1.3em; text-align: center; margin: 10px 0; color: var(--primary); }
 
         #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        .floater { position: absolute; bottom: -100px; opacity: 0.4; animation: floatUp linear forwards; }
+        .floater { position: absolute; bottom: -100px; opacity: 0.3; animation: floatUp linear forwards; }
         @keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-120vh); } }
-
-        #solution-box { 
-            display: none; padding: 15px; border-radius: 20px; margin-top: 15px;
-            text-align: left; border: 3px solid var(--btn-ok); font-size: 15px;
-        }
     </style>
 </head>
 <body class="grade-5">
 
+    <div id="hud">
+        <div class="hud-item" style="border: 2px solid var(--red);">❤️ <span id="lives-count">5</span></div>
+        <div class="hud-item" style="border: 2px solid var(--gold);">💰 <span id="coins-count">0</span></div>
+    </div>
+
     <div id="floating-container"></div>
 
     <div id="main-menu" class="card active">
-        <div id="menu-helper" class="helper-icon">🐱🚀</div>
-        <h2 id="menu-title">Загрузка...</h2>
-        <button class="btn-theory" onclick="showTheoryMenu()">📖 Секреты знаний</button>
-        <button class="btn-practice" onclick="startPractice()">📝 Миссия: Практика</button>
+        <div id="hero-icon" class="helper-icon">🐱🚀</div>
+        <h2 id="hero-name">Кот-космонавт</h2>
+        <p>Готов заработать монеты своими знаниями?</p>
+        <button class="btn-main" onclick="showTheoryMenu()">📖 База Данных</button>
+        <button class="btn-sec" onclick="startPractice()">🚀 Начать Миссию</button>
+        <button onclick="showShop()" style="background: var(--gold); color: #333;">🛒 Магазин (Beta)</button>
     </div>
 
     <div id="theory-menu" class="card">
-        <div id="theory-helper" class="helper-icon">🐶🔍</div>
-        <h3>База данных:</h3>
+        <h3>Модули обучения:</h3>
         <div id="theory-btns-container"></div>
-        <button onclick="showMainMenu()" style="background:#6c757d; color:white; font-size:14px;">⬅️ Назад</button>
+        <button onclick="showMainMenu()" style="background:#6c757d; color:white;">⬅️ Назад</button>
     </div>
 
     <div id="theory-view" class="card">
-        <h3 id="view-title" style="color: var(--accent);"></h3>
+        <h3 id="view-title"></h3>
         <div id="view-content" class="theory-box"></div>
-        <button class="btn-theory" onclick="showTheoryMenu()">💪 Усвоено!</button>
+        <button class="btn-main" onclick="showTheoryMenu()">Принято!</button>
+    </div>
+
+    <div id="shop-screen" class="card">
+        <h2 style="color: var(--gold);">🛒 Звездный Рынок</h2>
+        <p style="font-size: 14px;">Статус: Синхронизация... (Неактивно)</p>
+        <div class="shop-item locked">
+            <span>💉 Аптечка (+1 ❤️)</span>
+            <button style="width: 80px; padding: 5px; font-size: 12px; background: var(--gold);">50 💰</button>
+        </div>
+        <div class="shop-item locked">
+            <span>🛡️ Щит (Защита жизни)</span>
+            <button style="width: 80px; padding: 5px; font-size: 12px; background: var(--gold);">100 💰</button>
+        </div>
+        <button onclick="showMainMenu()" style="background:#6c757d; color:white;">⬅️ Выход</button>
     </div>
 
     <div id="quiz-screen" class="card">
-        <div id="q-progress" style="font-weight: 900; font-size: 14px; margin-bottom: 10px; opacity: 0.7;"></div>
-        <h2 id="q-text" style="font-size: 18px; margin-bottom: 20px;"></h2>
+        <div id="q-progress" style="font-weight: 900; opacity: 0.7;"></div>
+        <h2 id="q-text" style="font-size: 1.1em; margin: 20px 0;"></h2>
         <div id="options-container"></div>
         <div id="solution-box">
-            <b id="solution-hero">🤖 Анализ:</b><br>
+            <b id="sol-hero">Анализ:</b><br>
             <span id="solution-text"></span>
         </div>
-        <button id="next-btn" class="btn-practice" style="display:none; margin-top:15px;">Следующий этап ➡️</button>
+        <button id="next-btn" class="btn-sec" style="display:none; margin-top:15px;">Дальше ➡️</button>
+    </div>
+
+    <div id="final-screen" class="card">
+        <h2 id="final-title">Миссия Завершена!</h2>
+        <div class="theory-box" id="final-stats" style="text-align: center;"></div>
+        <button class="btn-sec" onclick="showMainMenu()">В главное меню</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        let gameState = { lives: 5, coins: 0, lostLives: 0 };
+
         const gradeData = {
             "5": {
-                name: "5 класс",
-                helper: "🐱🚀",
-                helperName: "Кот-космонавт",
+                name: "5 класс", hero: "🐱🚀", heroName: "Кот-космонавт",
                 theoryBlocks: [
-                    { title: "🔢 Числа и нули", text: "<b>Свойства нуля:</b> Любое число + 0 остается собой. Любое число * 0 превращается в ноль. <br><br><b>Метод Гаусса:</b> Складывай крайние числа в парах, чтобы быстро найти сумму ряда!" },
-                    { title: "📐 Геометрия", text: "<b>Периметр:</b> Длина забора вокруг фигуры. P = 2 * (a + b).<br><b>Площадь:</b> Сколько квадратов внутри. S = a * b." },
-                    { title: "🍰 Дроби", text: "<b>Числитель (верх):</b> Сколько кусков съели. <b>Знаменатель (низ):</b> На сколько частей резали. Складываем только верх!" }
+                    { title: "🔢 Натуральные числа", text: "Чтобы найти меньшее число, когда одно 'в несколько раз больше' другого — используй деление!" },
+                    { title: "📐 Периметр и Площадь", text: "<b>Периметр:</b> P = 2 * (длина + ширина). <br><b>Площадь:</b> S = a * a (для квадрата) или S = a * b." },
+                    { title: "🍰 Дроби и Проценты", text: "<b>Проценты:</b> Чтобы найти 40% от числа, умножь его на 0,4. <br><b>Дроби:</b> 35 см = 35/100 метра." }
                 ],
                 questions: [
-                    { q: "Ширина 8 см, длина на 4 см больше. Найди периметр.", options: ["40 см", "24 см", "20 см"], correct: "40 см", sol: "Длина = 12. P = (8+12)*2 = 40." },
-                    { q: "Вычисли: 3,27 + 12,5", options: ["15,77", "15,32", "15,52"], correct: "15,77", sol: "Считаем запятую под запятой: 3,27 + 12,50 = 15,77." }
+                    { q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько во второй?", options: ["42", "378", "123", "40"], correct: "42", sol: "126 / 3 = 42." },
+                    { q: "Вычисли: 45 + 15 * (102 - 92)", options: ["195", "600", "150", "160"], correct: "195", sol: "45 + 15 * 10 = 45 + 150 = 195." },
+                    { q: "Ширина 8 см, длина на 4 см больше. Найди периметр.", options: ["40 см", "24 см", "96 см", "32 см"], correct: "40 см", sol: "Длина = 12. P = (8+12)*2 = 40." },
+                    { q: "Какую часть метра составляют 35 сантиметров?", options: ["35/100", "35/10", "100/35", "3/5"], correct: "35/100", sol: "В 1 метре 100 см, значит 35/100." },
+                    { q: "Вычисли: 3,27 + 12,5", options: ["15,77", "15,32", "4,52", "157,7"], correct: "15,77", sol: "3.27 + 12.50 = 15.77." },
+                    { q: "Реши уравнение: x - 14,8 = 5,2", options: ["20", "9,6", "20,10", "19,6"], correct: "20", sol: "x = 5.2 + 14.8 = 20." },
+                    { q: "Округли число 452,38 до целых.", options: ["452", "453", "450", "452,4"], correct: "452", sol: "Так как первая цифра после запятой 3, округляем вниз." },
+                    { q: "Площадь квадрата равна 64 см². Найди его сторону.", options: ["8 см", "16 см", "32 см", "4 см"], correct: "8 см", sol: "8 * 8 = 64, значит сторона 8." },
+                    { q: "В классе 25 учеников. 40% из них — девочки. Сколько их?", options: ["10", "15", "4", "5"], correct: "10", sol: "25 * 0,4 = 10." },
+                    { q: "Объем параллелепипеда с измерениями 2 см, 5 см и 10 см?", options: ["100 см³", "17 см³", "34 см³", "50 см³"], correct: "100 см³", sol: "2 * 5 * 10 = 100." }
                 ]
             },
             "6": {
-                name: "6 класс",
-                helper: "🤖🛰️",
-                helperName: "Робот-аналитик",
+                name: "6 класс", hero: "🤖🛰️", heroName: "Робот-аналитик",
                 theoryBlocks: [
-                    { title: "🔬 Теория чисел", text: "<b>НОК:</b> Наименьшее число, которое делится на оба заданных. <br><b>Разложение:</b> Представление числа в виде произведения простых 'цифровых ДНК'." },
-                    { title: "⚖️ Пропорции", text: "<b>Главное правило:</b> Произведение крайних членов равно произведению средних. Если a/b = c/d, то a*d = b*c." },
-                    { title: "🗺️ Масштаб и Координаты", text: "<b>Масштаб:</b> Показывает, во сколько раз реальность сжата на карте. <br><b>Координаты:</b> Точка A(x;y). Сначала идем по горизонтали (X), потом по вертикали (Y)." }
+                    { title: "🔬 Теория чисел", code: "n = p_1^{a} \\cdot p_2^{b} \\dots", text: "Любое число можно разложить на простые множители — его ДНК." },
+                    { title: "➕ Сложение дробей", code: "\\frac{a}{b} \\pm \\frac{c}{d} = \\frac{ad \\pm cb}{bd}", text: "Приводим к общему знаменателю (НОК) и считаем." },
+                    { title: "⚖️ Пропорции", code: "\\frac{a}{b} = \\frac{c}{d} \\iff ad = bc", text: "Главное правило пропорции: произведение крайних равно произведению средних." },
+                    { title: "📏 Модуль", code: "|a| = \\begin{cases} a, a \\ge 0 \\\\ -a, a < 0 \\end{cases}", text: "Модуль — это всегда положительное расстояние до нуля." }
                 ],
                 questions: [
-                    { q: "Найдите НОК чисел 12 и 15:", options: ["3", "180", "60", "30"], correct: "60", sol: "Число 60 делится и на 12 (5), и на 15 (4)." },
-                    { q: "Решите пропорцию: 12 : x = 4 : 5", options: ["15", "9,6", "10", "2,4"], correct: "15", sol: "4x = 12 * 5 -> 4x = 60 -> x = 15." },
-                    { q: "Карта 1:500 000. На карте 4 см. Реальное расстояние?", options: ["2 км", "20 км", "200 км", "12,5 км"], correct: "20 км", sol: "1 см = 5 км. 4 см * 5 = 20 км." },
-                    { q: "Длина окружности (R=5, π≈3,14):", options: ["15,7 см", "31,4 см", "78,5 см", "314 см"], correct: "31,4 см", sol: "C = 2 * π * R = 2 * 3.14 * 5 = 31.4." },
-                    { q: "Вычислите: -18 + (-7) - (-10)", options: ["-35", "-15", "-25", "15"], correct: "-15", sol: "-18 - 7 + 10 = -25 + 10 = -15." },
-                    { q: "Значение: (-2,5) * (-4) * 0,3", options: ["3", "-3", "0,3", "-30"], correct: "3", sol: "(-2.5 * -4) = 10. 10 * 0.3 = 3." },
-                    { q: "В какой четверти находится точка A(-5; 8)?", options: ["I", "II", "III", "IV"], correct: "II", sol: "X отрицательный, Y положительный — это вторая четверть." },
-                    { q: "Упростите: 3(x - 2) - 2(x - 3)", options: ["x - 12", "5x", "x", "x + 12"], correct: "x", sol: "3x - 6 - 2x + 6 = x." },
-                    { q: "Уравнение: 5x - 12 = 2x + 6", options: ["x=2", "x=6", "x=-2", "x=18"], correct: "x=6", sol: "3x = 18 -> x = 6." },
-                    { q: "Значение |-12,4| + |3,6|:", options: ["8,8", "16", "-8,8", "-16"], correct: "16", sol: "12.4 + 3.6 = 16." }
+                    { q: "Разложи 60 на простые множители:", options: ["2*2*3*5", "2*3*10", "4*15", "5*12"], correct: "2*2*3*5", sol: "60 = 2*2*3*5." },
+                    { q: "Вычисли: 1/4 + 1/6", options: ["5/12", "2/10", "1/10", "5/24"], correct: "5/12", sol: "Общий знаменатель 12: 3/12 + 2/12 = 5/12." }
                 ]
             }
         };
@@ -158,16 +183,17 @@
         const grade = urlParams.get('grade') || "5";
         const currentData = gradeData[grade] || gradeData["5"];
 
-        document.body.className = "grade-" + grade;
-        document.getElementById('menu-title').innerText = currentData.name;
-        document.getElementById('menu-helper').innerText = currentData.helper;
+        function updateHUD() {
+            document.getElementById('lives-count').innerText = gameState.lives;
+            document.getElementById('coins-count').innerText = gameState.coins;
+        }
 
         function hideAll() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
         function showMainMenu() { hideAll(); document.getElementById('main-menu').classList.add('active'); }
+        function showShop() { hideAll(); document.getElementById('shop-screen').classList.add('active'); }
 
         function showTheoryMenu() {
             hideAll();
-            document.getElementById('theory-helper').innerText = currentData.helper === "🐱🚀" ? "🐶🔍" : "🛸📡";
             const container = document.getElementById('theory-btns-container');
             container.innerHTML = "";
             currentData.theoryBlocks.forEach((b, i) => {
@@ -177,7 +203,10 @@
                 btn.onclick = () => {
                     hideAll();
                     document.getElementById('view-title').innerText = b.title;
-                    document.getElementById('view-content').innerHTML = b.text;
+                    let html = b.code ? `<div class="formula-display" id="math-view"></div>` : "";
+                    html += `<p>${b.text}</p>`;
+                    document.getElementById('view-content').innerHTML = html;
+                    if(b.code) setTimeout(() => katex.render(b.code, document.getElementById('math-view')), 100);
                     document.getElementById('theory-view').classList.add('active');
                 };
                 container.appendChild(btn);
@@ -185,22 +214,23 @@
             document.getElementById('theory-menu').classList.add('active');
         }
 
-        let curIdx = 0; let questions = [];
+        let curIdx = 0; let qs = [];
         function startPractice() {
             hideAll(); curIdx = 0;
-            questions = [...currentData.questions].sort(() => Math.random() - 0.5);
+            gameState.lives = 5; gameState.coins = 0; gameState.lostLives = 0;
+            updateHUD();
+            qs = [...currentData.questions].sort(() => Math.random() - 0.5);
             document.getElementById('quiz-screen').classList.add('active');
             renderQ();
         }
 
         function renderQ() {
-            const q = questions[curIdx];
-            document.getElementById('q-progress').innerText = `ЭТАП ${curIdx + 1} / ${questions.length}`;
+            if (gameState.lives <= 0) { endMission(false); return; }
+            const q = qs[curIdx];
+            document.getElementById('q-progress').innerText = `ЭТАП ${curIdx + 1} / ${qs.length}`;
             document.getElementById('q-text').innerText = q.q;
             document.getElementById('solution-box').style.display = "none";
             document.getElementById('next-btn').style.display = "none";
-            document.getElementById('solution-hero').innerText = currentData.helperName + " объясняет:";
-            
             const cont = document.getElementById('options-container');
             cont.innerHTML = "";
             q.options.forEach(opt => {
@@ -210,39 +240,61 @@
                     const all = cont.querySelectorAll('button');
                     all.forEach(b => b.disabled = true);
                     if (opt === q.correct) {
-                        btn.style.background = "#32CD32"; btn.style.color = "white";
+                        btn.style.background = "#32CD32"; gameState.coins += 5;
                     } else {
-                        btn.style.background = "#FF4500"; btn.style.color = "white";
-                        all.forEach(b => { if(b.innerText === q.correct) b.style.background = "#32CD32"; b.style.color = "white"; });
+                        btn.style.background = "#FF4500"; gameState.lives -= 1; gameState.lostLives += 1;
+                        all.forEach(b => { if(b.innerText === q.correct) b.style.background = "#32CD32"; });
                     }
+                    updateHUD();
                     document.getElementById('solution-text').innerText = q.sol;
                     document.getElementById('solution-box').style.display = "block";
                     document.getElementById('next-btn').style.display = "block";
+                    if(gameState.lives <= 0) document.getElementById('next-btn').innerText = "Посмотреть итог 💀";
                 };
                 cont.appendChild(btn);
             });
         }
 
         document.getElementById('next-btn').onclick = () => {
+            if (gameState.lives <= 0) { endMission(false); return; }
             curIdx++;
-            if (curIdx < questions.length) renderQ();
-            else showMainMenu();
+            if (curIdx < qs.length) renderQ();
+            else endMission(true);
         };
+
+        function endMission(success) {
+            hideAll();
+            const screen = document.getElementById('final-screen');
+            const title = document.getElementById('final-title');
+            const stats = document.getElementById('final-stats');
+            
+            title.innerText = success ? "🎉 Миссия Выполнена!" : "💀 Поражение";
+            title.style.color = success ? "var(--lime)" : "var(--red)";
+            
+            stats.innerHTML = `
+                <p>Заработано: <b style="color:var(--gold);">${gameState.coins} 💰</b></p>
+                <p>Осталось жизней: <b>${gameState.lives} / 5 ❤️</b></p>
+                <p>Ошибок допущено: <b>${gameState.lostLives}</b></p>
+            `;
+            screen.classList.add('active');
+        }
 
         function spawn() {
             const container = document.getElementById('floating-container');
             const item = document.createElement('div');
             item.className = 'floater';
-            const icons = grade === "5" ? ["🐱","🚀","⭐","📐"] : ["🤖","🛸","👾","💠"];
+            const icons = grade === "5" ? ["🐱","💰","❤️","⭐"] : ["🤖","🛰️","💠","💾"];
             item.innerText = icons[Math.floor(Math.random()*icons.length)];
             item.style.left = Math.random() * 95 + 'vw';
-            item.style.fontSize = (20 + Math.random() * 30) + 'px';
-            item.style.animationDuration = (6 + Math.random() * 10) + 's';
+            item.style.animationDuration = (8 + Math.random() * 5) + 's';
             container.appendChild(item);
-            setTimeout(() => item.remove(), 15000);
+            setTimeout(() => item.remove(), 10000);
         }
-        setInterval(spawn, 1500);
+        setInterval(spawn, 2000);
 
+        document.body.className = "grade-" + grade;
+        document.getElementById('hero-icon').innerText = currentData.helper || currentData.hero;
+        document.getElementById('hero-name').innerText = currentData.heroName;
         showMainMenu();
     </script>
 </body>
