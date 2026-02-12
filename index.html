@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Trainer</title>
+    <title>Math Learning App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* --- СТИЛИ (Твои старые + новые для модального окна) --- */
+        /* --- БАЗОВЫЕ СТИЛИ --- */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             margin: 0; padding: 20px; min-height: 100vh;
@@ -18,8 +18,6 @@
         .floater { position: absolute; bottom: -150px; opacity: 0.6; animation: floatUp linear forwards; }
         @keyframes floatUp {
             0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.8; }
-            90% { opacity: 0.8; }
             100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
         }
 
@@ -28,7 +26,10 @@
             padding: 25px; border-radius: 24px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
             width: 100%; max-width: 450px; text-align: center; position: relative; z-index: 10; 
+            display: none; /* Скрыты по умолчанию, включаются скриптом */
         }
+
+        .active { display: block; animation: popIn 0.3s ease; }
 
         h2 { font-size: 1.3em; margin-bottom: 20px; color: #222; }
         
@@ -36,47 +37,37 @@
             border: none; padding: 18px; border-radius: 16px; width: 100%; margin: 8px 0; 
             font-weight: 700; font-size: 16px; cursor: pointer; 
             background: #ffffff; color: #333; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: all 0.2s;
         }
         button:active { transform: scale(0.96); }
 
-        #progress { 
-            position: relative; z-index: 10; background: rgba(255,255,255,0.9);
-            padding: 8px 16px; border-radius: 20px; margin-bottom: 20px;
-            font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        /* Кнопки меню */
+        .menu-btn-theory { background: linear-gradient(135deg, #17a2b8, #117a8b); color: white; }
+        .menu-btn-practice { background: linear-gradient(135deg, #28a745, #218838); color: white; }
+
+        /* Служебные кнопки */
+        #next-btn { background: #007bff; color: white; display: none; }
+        #back-to-menu { background: #6c757d; color: white; margin-top: 20px; }
+
+        /* Стили ответа */
+        .correct-anim { background: #d4edda !important; color: #155724 !important; border: 2px solid #28a745; }
+        .wrong-anim { background: #f8d7da !important; color: #721c24 !important; border: 2px solid #dc3545; }
+
+        /* Блок решения (появляется после ответа) */
+        #solution-box { 
+            margin-top: 15px; padding: 15px; border-radius: 12px; 
+            background: #e9ecef; text-align: left; font-size: 14px; display: none;
         }
 
-        /* КНОПКИ ДЕЙСТВИЙ */
-        #next-btn { background: #28a745; color: white; display: none; margin-top: 15px; }
-        #retry-btn { background: #ffc107; color: #333; display: none; margin-top: 15px; }
-        #finish-btn { background: #dc3545; color: white; display: none; margin-top: 10px; }
-        
-        /* НОВАЯ КНОПКА ТЕОРИИ */
-        #theory-btn { 
-            background: #17a2b8; color: white; margin-top: 10px; margin-bottom: 10px;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-
-        .correct-anim { background: #d4edda !important; color: #155724 !important; }
-        .wrong-anim { background: #f8d7da !important; color: #721c24 !important; }
-
-        /* --- СТИЛИ МОДАЛЬНОГО ОКНА (ТЕОРИЯ) --- */
+        /* Модальное окно */
         .modal {
-            display: none; /* Скрыто по умолчанию */
-            position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
-            overflow: auto; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
-            align-items: center; justify-content: center;
+            display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; justify-content: center;
         }
         .modal-content {
-            background-color: #fefefe; margin: auto; padding: 25px; border: 1px solid #888;
-            border-radius: 20px; width: 85%; max-width: 400px;
-            position: relative; text-align: left;
-            animation: popIn 0.3s ease;
+            background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px;
+            text-align: left; animation: popIn 0.3s ease; max-height: 80vh; overflow-y: auto;
         }
-        .close {
-            color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;
-        }
-        .close:hover { color: black; }
-        .theory-img { width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid #eee; }
 
         @keyframes popIn { from {transform: scale(0.8); opacity: 0;} to {transform: scale(1); opacity: 1;} }
 
@@ -90,28 +81,49 @@
 <body>
 
     <div id="floating-container"></div>
-    <div id="progress">Загрузка...</div>
 
-    <div class="card" id="quiz-card">
-        <h2 id="question">...</h2>
-        
-        <button id="theory-btn" onclick="openTheory()">📖 Читать теорию</button>
-        
-        <div id="options"></div>
+    <div id="main-menu" class="card active">
+        <h2 id="menu-title">Математика</h2>
+        <p>Выбери режим обучения:</p>
+        <button class="menu-btn-theory" onclick="showTheoryScreen()">📖 Изучить теорию</button>
+        <button class="menu-btn-practice" onclick="startPractice()">📝 Перейти к практике</button>
     </div>
 
-    <button id="next-btn">Далее ➡️</button>
-    <button id="retry-btn">Исправить ошибки 🔄</button>
-    <button id="finish-btn">Завершить</button>
-    
-    <div id="final-screen" class="card" style="display: none;"></div>
+    <div id="theory-screen" class="card">
+        <h2>📖 Теория по программе</h2>
+        <div id="theory-content" style="text-align: left; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+            </div>
+        <button id="back-to-menu" onclick="showMainMenu()">⬅️ В меню</button>
+    </div>
 
-    <div id="theory-modal" class="modal">
+    <div id="quiz-screen" class="card">
+        <div id="quiz-progress" style="font-size: 12px; color: #666; margin-bottom: 10px;"></div>
+        <h2 id="question-text">...</h2>
+        
+        <button id="help-btn" style="background: #17a2b8; color: white; padding: 10px; font-size: 14px;" onclick="showHelp()">💡 Вспомнить правило</button>
+        
+        <div id="options-container"></div>
+
+        <div id="solution-box">
+            <b style="color: #222;">🔬 Разбор:</b>
+            <p id="solution-text"></p>
+        </div>
+
+        <button id="next-btn">Далее ➡️</button>
+    </div>
+
+    <div id="final-screen" class="card">
+        <div style="font-size: 50px;">🏆</div>
+        <h2>Результаты</h2>
+        <p id="final-stat"></p>
+        <button class="menu-btn-practice" onclick="showMainMenu()">В главное меню</button>
+    </div>
+
+    <div id="help-modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeTheory()">&times;</span>
-            <h3 style="margin-top: 0;">💡 Справка</h3>
-            <p id="theory-text" style="line-height: 1.5; font-size: 15px;"></p>
-            <div id="theory-image-container"></div>
+            <h3 id="help-title">💡 Правило</h3>
+            <p id="help-text"></p>
+            <button onclick="closeHelp()">Понятно</button>
         </div>
     </div>
 
@@ -119,238 +131,145 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- КАРТИНКИ (УТЯТА И МАТЕМАТИКА) ---
-        const stickersDict = {
-            "kids": ["https://cdn-icons-png.flaticon.com/512/2663/2663067.png", "https://cdn-icons-png.flaticon.com/512/3069/3069172.png", "https://cdn-icons-png.flaticon.com/512/742/742751.png"],
-            "math": ["https://cdn-icons-png.flaticon.com/512/3771/3771278.png", "https://cdn-icons-png.flaticon.com/512/2933/2933895.png", "https://cdn-icons-png.flaticon.com/512/564/564445.png"]
+        // --- ДАННЫЕ (Структура для заполнения) ---
+        const gradeData = {
+            "5": {
+                generalTheory: "В 5 классе мы изучаем натуральные числа, действия с ними и основы геометрии. Запомни: в выражениях со скобками они всегда решаются первыми!",
+                questions: [
+                    { 
+                        q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй книге?", 
+                        options: ["42", "378", "40"], 
+                        correct: "42",
+                        help: "Если одно число в несколько раз больше другого, то другое — во столько же раз меньше. Используй деление.",
+                        solution: "Так как в первой книге страниц больше, во второй их меньше. 126 ÷ 3 = 42."
+                    },
+                    // Тут будут остальные 9 вопросов...
+                ]
+            },
+            "7": {
+                generalTheory: "Алгебра 7 класса — это формулы сокращенного умножения, степени и линейные уравнения. Это фундамент!",
+                questions: [
+                    {
+                        q: "Представьте в виде многочлена: (x - 3)(x + 5)",
+                        options: ["x² - 15", "x² - 2x - 15", "x² + 2x - 15", "x² + 8x - 15"],
+                        correct: "x² + 2x - 15",
+                        help: "Используй правило фонтанчика: умножь каждое слагаемое первой скобки на каждое слагаемое второй.",
+                        solution: "(x - 3)(x + 5) = x*x + x*5 - 3*x - 3*5 = x² + 5x - 3x - 15 = x² + 2x - 15."
+                    }
+                ]
+            }
+            // И так далее для всех классов...
         };
 
-        // --- БАЗА ВОПРОСОВ С ТЕОРИЕЙ ---
-        const allQuestions = {
-            "5": [
-                { 
-                    q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй книге?", 
-                    options: ["42", "378", "40"], 
-                    correct: "42",
-                    theory: "Если сказано 'в 3 раза <b>больше, чем во второй</b>', значит, вторая книга <b>меньше</b>. <br>Чтобы найти меньшее число, нужно делить.<br><br>126 : 3 = 42."
-                },
-                { 
-                    q: "Найдите значение выражения: 45 + 15 * (102 - 92)", 
-                    options: ["195", "600", "210"], 
-                    correct: "195",
-                    theory: "<b>Порядок действий:</b><br>1. Сначала то, что в скобках.<br>2. Потом умножение и деление.<br>3. В конце сложение и вычитание.<br><br>1) 102 - 92 = 10<br>2) 15 * 10 = 150<br>3) 45 + 150 = 195"
-                },
-                { 
-                    q: "Ширина прямоугольника 8 см, а длина на 4 см больше. Чему равен периметр?", 
-                    options: ["40 см", "24 см", "20 см"], 
-                    correct: "40 см",
-                    theory: "1. Найдем длину: 8 + 4 = 12 см.<br>2. Периметр (P) — это сумма всех сторон.<br><b>Формула:</b> P = (a + b) * 2<br><br>P = (8 + 12) * 2 = 20 * 2 = 40 см."
-                },
-                { 
-                    q: "Какую часть метра составляют 35 сантиметров?", 
-                    options: ["0,35", "3,5", "0,035"], 
-                    correct: "0,35",
-                    theory: "В 1 метре = 100 сантиметров.<br>Чтобы перевести см в метры, нужно разделить на 100.<br><br>35 : 100 = 0,35 м."
-                },
-                { 
-                    q: "Вычислите: 3,27 + 12,5", 
-                    options: ["15,77", "15,32", "4,52"], 
-                    correct: "15,77",
-                    theory: "При сложении десятичных дробей важно записать <b>запятую под запятой</b>.<br><br>&nbsp;&nbsp;3,27<br>+<u>12,50</u><br>&nbsp;&nbsp;15,77"
-                },
-                { 
-                    q: "Решите уравнение: x - 14,8 = 5,2", 
-                    options: ["20", "9,6", "19,6"], 
-                    correct: "20",
-                    theory: "Чтобы найти неизвестное уменьшаемое (x), нужно к разности прибавить вычитаемое.<br><br>x = 5,2 + 14,8<br>x = 20"
-                },
-                { 
-                    q: "Округлите число 452,38 до целых.", 
-                    options: ["452", "453", "450"], 
-                    correct: "452",
-                    theory: "Смотрим на первую цифру после запятой (3).<br>Если цифра меньше 5 (0,1,2,3,4) — целое не меняем.<br>Если 5 и больше — увеличиваем на 1.<br><br>Тут 3 < 5, поэтому ответ 452."
-                },
-                { 
-                    q: "Площадь квадрата равна 64 см². Найдите его сторону.", 
-                    options: ["8 см", "16 см", "32 см"], 
-                    correct: "8 см",
-                    theory: "Площадь квадрата: S = a * a (или a²).<br>Нужно найти число, которое при умножении само на себя даст 64.<br><br>Таблица умножения: 8 * 8 = 64. Сторона = 8 см."
-                },
-                { 
-                    q: "В классе 25 учеников. 40% из них — девочки. Сколько девочек в классе?", 
-                    options: ["10", "15", "5"], 
-                    correct: "10",
-                    theory: "Чтобы найти процент от числа:<br>1. Переведи проценты в дробь: 40% = 0,40.<br>2. Умножь число на эту дробь.<br><br>25 * 0,4 = 10."
-                },
-                { 
-                    q: "Чему равен объем прямоугольного параллелепипеда (2 см, 5 см, 10 см)?", 
-                    options: ["100 см³", "70 см³", "17 см³"], 
-                    correct: "100 см³",
-                    theory: "Объем (V) равен произведению длины, ширины и высоты.<br><b>Формула:</b> V = a * b * c<br><br>V = 2 * 5 * 10 = 100 см³."
-                }
-            ],
-            // ПОКА ОСТАВЛЯЕМ ЗАГЛУШКИ ДЛЯ ОСТАЛЬНЫХ КЛАССОВ, ЗАПОЛНИМ ИХ СЛЕДУЮЩИМ СООБЩЕНИЕМ
-             "6": [ { q: "Вопросы 6 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
-             "7": [ { q: "Вопросы 7 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
-             "8": [ { q: "Вопросы 8 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
-             "9": [ { q: "Вопросы 9 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
-             "10": [ { q: "Вопросы 10 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ],
-             "11": [ { q: "Вопросы 11 класса скоро будут обновлены с теорией...", options: ["Ок"], correct: "Ок", theory: "Скоро тут будет теория!" } ]
-        };
-
-        // --- ЛОГИКА ---
-        let currentQuestions = []; let wrongAnswers = []; let currentIndex = 0; let isRetryMode = false;
+        const stickers = ["https://cdn-icons-png.flaticon.com/512/2663/2663067.png", "https://cdn-icons-png.flaticon.com/512/3069/3069172.png"];
+        
         const urlParams = new URLSearchParams(window.location.search);
         const grade = urlParams.get('grade') || "5";
         document.body.classList.add('grade-' + grade);
+        document.getElementById('menu-title').innerText = grade + " класс: Математика";
 
-        // Анимация фона
-        function spawnFloatingEmojis() {
-            const container = document.getElementById('floating-container');
-            const gradeNum = parseInt(grade);
-            let images = (gradeNum >= 9) ? stickersDict.math : stickersDict.kids;
+        let currentQuestions = [];
+        let currentIndex = 0;
 
-            for(let i=0; i<15; i++) {
-                const img = document.createElement('img');
-                img.src = images[Math.floor(Math.random() * images.length)];
-                img.className = 'floater';
-                const left = Math.random() * 95;
-                const size = 40 + Math.random() * 60;
-                const duration = 10 + Math.random() * 10;
-                const delay = Math.random() * 10;
-                img.style.left = left + 'vw';
-                img.style.width = size + 'px';
-                img.style.animationDuration = duration + 's';
-                img.style.animationDelay = '-' + delay + 's'; 
-                container.appendChild(img);
-            }
+        // --- НАВИГАЦИЯ ---
+        function showMainMenu() {
+            hideAll();
+            document.getElementById('main-menu').classList.add('active');
         }
 
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
+        function showTheoryScreen() {
+            hideAll();
+            const screen = document.getElementById('theory-screen');
+            document.getElementById('theory-content').innerHTML = gradeData[grade]?.generalTheory || "Теория для этого класса скоро появится.";
+            screen.classList.add('active');
         }
 
-        function startQuiz() {
-            // Если для класса нет вопросов, берем заглушку
-            const questions = allQuestions[grade] ? [...allQuestions[grade]] : [...allQuestions["5"]];
-            currentQuestions = shuffleArray(questions);
-            wrongAnswers = []; currentIndex = 0; isRetryMode = false;
-            spawnFloatingEmojis();
+        function startPractice() {
+            hideAll();
+            currentIndex = 0;
+            currentQuestions = [...(gradeData[grade]?.questions || gradeData["5"].questions)];
+            // Перемешиваем вопросы
+            currentQuestions.sort(() => Math.random() - 0.5);
+            document.getElementById('quiz-screen').classList.add('active');
             renderQuestion();
         }
 
+        function hideAll() {
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+        }
+
+        // --- ЛОГИКА ТЕСТА ---
         function renderQuestion() {
             const q = currentQuestions[currentIndex];
-            const total = currentQuestions.length;
-            let progressText = isRetryMode ? `🔥 Ошибки: ${currentIndex + 1} / ${total}` : `Вопрос ${currentIndex + 1} из ${total}`;
-            document.getElementById('progress').innerText = progressText;
-            document.getElementById('question').innerText = q.q;
-            document.getElementById('quiz-card').style.display = "block";
-            document.getElementById('final-screen').style.display = "none";
+            document.getElementById('quiz-progress').innerText = `Вопрос ${currentIndex + 1} из ${currentQuestions.length}`;
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('solution-box').style.display = "none";
             document.getElementById('next-btn').style.display = "none";
-            document.getElementById('retry-btn').style.display = "none";
-            document.getElementById('finish-btn').style.display = "none";
             
-            // Настройка кнопки теории
-            const theoryBtn = document.getElementById('theory-btn');
-            // Если теория есть в вопросе, показываем кнопку
-            if (q.theory) {
-                theoryBtn.style.display = "flex";
-            } else {
-                theoryBtn.style.display = "none";
-            }
-            
-            const container = document.getElementById('options');
+            const container = document.getElementById('options-container');
             container.innerHTML = "";
-            const shuffledOptions = shuffleArray([...q.options]);
-            shuffledOptions.forEach(opt => {
+            
+            q.options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.innerText = opt;
-                btn.onclick = () => checkAnswer(btn, opt, q.correct, q);
+                btn.onclick = () => checkAnswer(btn, opt, q.correct, q.solution);
                 container.appendChild(btn);
             });
         }
 
-        function checkAnswer(btn, selected, correct, questionObj) {
-            const allBtns = document.getElementById('options').querySelectorAll('button');
+        function checkAnswer(btn, selected, correct, solution) {
+            const allBtns = document.getElementById('options-container').querySelectorAll('button');
             allBtns.forEach(b => b.disabled = true);
+
             if (selected === correct) {
                 btn.classList.add('correct-anim');
             } else {
                 btn.classList.add('wrong-anim');
-                allBtns.forEach(b => { if (b.innerText === correct) b.classList.add('correct-anim'); });
-                if (!isRetryMode && !wrongAnswers.includes(questionObj)) wrongAnswers.push(questionObj);
+                allBtns.forEach(b => {
+                    if (b.innerText === correct) b.classList.add('correct-anim');
+                });
             }
+
+            // Показываем решение
+            document.getElementById('solution-text').innerText = solution;
+            document.getElementById('solution-box').style.display = "block";
             document.getElementById('next-btn').style.display = "block";
-        }
-
-        // --- ФУНКЦИИ МОДАЛЬНОГО ОКНА ---
-        function openTheory() {
-            const q = currentQuestions[currentIndex];
-            const modal = document.getElementById('theory-modal');
-            const textElem = document.getElementById('theory-text');
-            const imgContainer = document.getElementById('theory-image-container');
-            
-            textElem.innerHTML = q.theory || "Теория к этому вопросу готовится.";
-            imgContainer.innerHTML = "";
-
-            // Если у вопроса есть картинка (пока используем текстовую, но можно добавить imageUrl)
-            if (q.theoryImage) {
-                 const img = document.createElement('img');
-                 img.src = q.theoryImage;
-                 img.className = 'theory-img';
-                 imgContainer.appendChild(img);
-            }
-
-            modal.style.display = "flex";
-        }
-
-        function closeTheory() {
-            document.getElementById('theory-modal').style.display = "none";
-        }
-
-        // Закрытие по клику вне окна
-        window.onclick = function(event) {
-            const modal = document.getElementById('theory-modal');
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
         }
 
         document.getElementById('next-btn').onclick = () => {
             currentIndex++;
-            if (currentIndex < currentQuestions.length) renderQuestion();
-            else showResults();
-        };
-
-        function showResults() {
-            document.getElementById('quiz-card').style.display = "none";
-            document.getElementById('next-btn').style.display = "none";
-            document.getElementById('progress').innerText = "";
-            const finalDiv = document.getElementById('final-screen');
-            finalDiv.style.display = "block";
-            if (wrongAnswers.length > 0) {
-                finalDiv.innerHTML = `<h2>🏁 Итоги</h2><p>Ошибок: <b>${wrongAnswers.length}</b></p><p>Давай исправим!</p>`;
-                document.getElementById('retry-btn').style.display = "block";
-                document.getElementById('finish-btn').style.display = "block";
+            if (currentIndex < currentQuestions.length) {
+                renderQuestion();
             } else {
-                finalDiv.innerHTML = `<div style="font-size: 50px; margin-bottom: 20px;">🏆</div><h2>Победа!</h2><p>Ты полностью готов.</p>`;
-                setTimeout(() => tg.close(), 4000);
+                hideAll();
+                document.getElementById('final-stat').innerText = "Тест пройден! Ты изучил разбор всех заданий.";
+                document.getElementById('final-screen').classList.add('active');
             }
-        }
-
-        document.getElementById('retry-btn').onclick = () => {
-            currentQuestions = shuffleArray([...wrongAnswers]);
-            wrongAnswers = []; currentIndex = 0; isRetryMode = true; renderQuestion();
         };
 
-        document.getElementById('finish-btn').onclick = () => tg.close();
+        // --- МОДАЛКА ---
+        function showHelp() {
+            const q = currentQuestions[currentIndex];
+            document.getElementById('help-text').innerHTML = q.help || "Вспомни базовые правила арифметики.";
+            document.getElementById('help-modal').style.display = "flex";
+        }
+        function closeHelp() { document.getElementById('help-modal').style.display = "none"; }
 
-        startQuiz();
+        // Эффекты фона
+        function spawn() {
+            const container = document.getElementById('floating-container');
+            const img = document.createElement('img');
+            img.src = stickers[Math.floor(Math.random()*stickers.length)];
+            img.className = 'floater';
+            img.style.left = Math.random()*90 + 'vw';
+            img.style.width = (30 + Math.random()*40) + 'px';
+            img.style.animationDuration = (10 + Math.random()*10) + 's';
+            container.appendChild(img);
+            setTimeout(() => img.remove(), 20000);
+        }
+        setInterval(spawn, 2000);
+
+        showMainMenu();
     </script>
 </body>
 </html>
