@@ -3,73 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Game Edition</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <title>Math Universe: Triple Threat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Roboto:wght@400;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --sky: #87CEEB; --lime: #32CD32; --orange: #FF8C00;
-            --turq: #00CED1; --purple: #4B0082; --coral: #FF7F50;
-            --dark: #1A1A2E; --gold: #FFD700; --red: #FF4500;
+            --sky: #87CEEB; --lime: #32CD32; --orange: #FF8C00; /* Grade 5 */
+            --turq: #00CED1; --purple: #4B0082; --coral: #FF7F50; /* Grade 6 */
+            --neon: #00ff41; --cyber-blue: #0d0221; --cyber-purple: #240046; /* Grade 7 */
+            --gold: #FFD700; --red: #FF4500;
         }
 
         * { box-sizing: border-box; }
         body { 
             margin: 0; padding: 20px; min-height: 100vh;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            overflow: hidden; position: relative; transition: all 0.5s ease;
-            font-family: 'Nunito', sans-serif;
+            overflow: hidden; position: relative; transition: 0.5s; font-family: 'Roboto', sans-serif;
         }
 
-        /* ТЕМЫ */
-        body.grade-5 { background: linear-gradient(180deg, var(--sky) 0%, #E0F7FA 100%); --accent: var(--orange); --primary: var(--lime); }
-        body.grade-6 { font-family: 'Montserrat', sans-serif; background: var(--dark); color: #E1E8F0; --accent: var(--coral); --primary: var(--turq); }
+        /* --- ТЕМЫ --- */
+        body.grade-5 { background: linear-gradient(180deg, var(--sky) 0%, #E0F7FA 100%); font-family: 'Nunito', sans-serif; --acc: var(--orange); --btn: var(--lime); --txt: #003366; }
+        body.grade-6 { background: #1A1A2E; background-image: radial-gradient(circle at 20% 30%, #2D142C 0%, transparent 40%); font-family: 'Montserrat', sans-serif; color: #E1E8F0; --acc: var(--coral); --btn: var(--turq); --txt: #fff; }
+        body.grade-7 { background: var(--cyber-blue); color: var(--neon); font-family: 'Roboto', sans-serif; --acc: #9d00ff; --btn: var(--neon); --txt: #00ff41; }
+        body.grade-7 h2 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; text-shadow: 0 0 10px var(--neon); }
 
-        /* HUD (Lives & Coins) */
-        #hud {
-            position: fixed; top: 10px; width: 90%; max-width: 400px;
-            display: flex; justify-content: space-between; z-index: 100;
-        }
-        .hud-item {
-            background: rgba(255, 255, 255, 0.9); padding: 8px 15px;
-            border-radius: 20px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            display: flex; align-items: center; gap: 8px; color: #333;
-        }
+        /* HUD */
+        #hud { position: fixed; top: 10px; width: 90%; max-width: 400px; display: flex; justify-content: space-between; z-index: 100; }
+        .hud-item { background: rgba(255, 255, 255, 0.9); padding: 8px 15px; border-radius: 20px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        body.grade-7 .hud-item { background: #1a1a1a; color: var(--neon); border: 1px solid var(--neon); }
 
         .card { 
             background: white; border-radius: 30px; padding: 25px;
             box-shadow: 0 10px 0 rgba(0,0,0,0.1); width: 100%; max-width: 440px;
             text-align: center; position: relative; z-index: 10; display: none;
-            max-height: 80vh; overflow-y: auto; border: 4px solid #333;
+            max-height: 80vh; overflow-y: auto; border: 4px solid #333; color: #333;
         }
         body.grade-6 .card { background: rgba(26, 26, 46, 0.95); border-color: var(--turq); color: white; }
+        body.grade-7 .card { background: rgba(13, 2, 33, 0.9); border-color: var(--neon); color: var(--neon); box-shadow: 0 0 20px var(--neon); }
 
-        .active { display: block; animation: bounce 0.4s ease; }
-        @keyframes bounce { 0% {transform: scale(0.8); opacity:0;} 100% {transform: scale(1); opacity:1;} }
+        .active { display: block; animation: pop 0.4s ease; }
+        @keyframes pop { 0% {transform: scale(0.8); opacity:0;} 100% {transform: scale(1); opacity:1;} }
 
         button { 
-            font-family: inherit; border: none; padding: 18px; border-radius: 20px; 
-            width: 100%; margin: 8px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
-            transition: 0.2s; box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+            font-family: inherit; border: none; padding: 18px; border-radius: 15px; 
+            width: 100%; margin: 8px 0; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.2s;
         }
-        button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
-        .btn-main { background: var(--accent); color: white; }
-        .btn-sec { background: var(--primary); color: white; }
+        button:active { transform: translateY(2px); }
+        .btn-acc { background: var(--acc); color: white; }
+        .btn-ok { background: var(--btn); color: white; }
+        body.grade-7 .btn-ok { background: transparent; color: var(--neon); border: 2px solid var(--neon); }
+        body.grade-7 .btn-ok:hover { background: var(--neon); color: black; }
 
-        /* МАГАЗИН */
-        .shop-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.05); padding: 15px; border-radius: 15px; margin-bottom: 10px;
-            border: 2px solid transparent; transition: 0.3s;
-        }
-        body.grade-6 .shop-item { background: rgba(255,255,255,0.05); border-color: rgba(0,206,209,0.2); }
-        .shop-item.locked { opacity: 0.5; cursor: not-allowed; }
-
-        .theory-box { text-align: left; padding: 15px; border-radius: 20px; border: 3px dashed var(--accent); margin-bottom: 10px; }
-        #solution-box { display: none; padding: 15px; border-radius: 20px; margin-top: 15px; text-align: left; border: 3px solid var(--primary); }
-        .formula-display { font-size: 1.3em; text-align: center; margin: 10px 0; color: var(--primary); }
+        .theory-box { text-align: left; padding: 15px; border-radius: 20px; border: 2px dashed var(--acc); margin-bottom: 10px; font-size: 15px; line-height: 1.5; }
+        #solution-box { display: none; padding: 15px; border-radius: 20px; margin-top: 15px; text-align: left; border: 2px solid var(--btn); background: rgba(0,0,0,0.1); }
+        .formula-display { font-size: 1.3em; text-align: center; margin: 15px 0; }
 
         #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
         .floater { position: absolute; bottom: -100px; opacity: 0.3; animation: floatUp linear forwards; }
@@ -79,223 +68,253 @@
 <body class="grade-5">
 
     <div id="hud">
-        <div class="hud-item" style="border: 2px solid var(--red);">❤️ <span id="lives-count">5</span></div>
-        <div class="hud-item" style="border: 2px solid var(--gold);">💰 <span id="coins-count">0</span></div>
+        <div class="hud-item">❤️ <span id="lives">5</span></div>
+        <div class="hud-item">💰 <span id="coins">0</span></div>
     </div>
 
     <div id="floating-container"></div>
 
     <div id="main-menu" class="card active">
-        <div id="hero-icon" class="helper-icon">🐱🚀</div>
-        <h2 id="hero-name">Кот-космонавт</h2>
-        <p>Готов заработать монеты своими знаниями?</p>
-        <button class="btn-main" onclick="showTheoryMenu()">📖 База Данных</button>
-        <button class="btn-sec" onclick="startPractice()">🚀 Начать Миссию</button>
-        <button onclick="showShop()" style="background: var(--gold); color: #333;">🛒 Магазин (Beta)</button>
+        <div id="hero" class="floater-icon" style="font-size: 70px;">🐱🚀</div>
+        <h2 id="grade-title">Математика</h2>
+        <p>Изучай теорию и зарабатывай монеты!</p>
+        <button class="btn-acc" onclick="showTheoryMenu()">📖 База Знаний</button>
+        <button class="btn-ok" onclick="startPractice()">🚀 Начать Тест</button>
+        <button onclick="showShop()" style="background: var(--gold); color: #000;">🛒 Магазин</button>
     </div>
 
     <div id="theory-menu" class="card">
-        <h3>Модули обучения:</h3>
-        <div id="theory-btns-container"></div>
+        <h3>Модули:</h3>
+        <div id="theory-list"></div>
         <button onclick="showMainMenu()" style="background:#6c757d; color:white;">⬅️ Назад</button>
     </div>
 
     <div id="theory-view" class="card">
         <h3 id="view-title"></h3>
         <div id="view-content" class="theory-box"></div>
-        <button class="btn-main" onclick="showTheoryMenu()">Принято!</button>
+        <button class="btn-acc" onclick="showTheoryMenu()">Понятно!</button>
     </div>
 
-    <div id="shop-screen" class="card">
-        <h2 style="color: var(--gold);">🛒 Звездный Рынок</h2>
-        <p style="font-size: 14px;">Статус: Синхронизация... (Неактивно)</p>
-        <div class="shop-item locked">
-            <span>💉 Аптечка (+1 ❤️)</span>
-            <button style="width: 80px; padding: 5px; font-size: 12px; background: var(--gold);">50 💰</button>
-        </div>
-        <div class="shop-item locked">
-            <span>🛡️ Щит (Защита жизни)</span>
-            <button style="width: 80px; padding: 5px; font-size: 12px; background: var(--gold);">100 💰</button>
-        </div>
-        <button onclick="showMainMenu()" style="background:#6c757d; color:white;">⬅️ Выход</button>
+    <div id="shop" class="card">
+        <h2 style="color: var(--gold);">🛒 Магазин</h2>
+        <p>Интерфейс в разработке...</p>
+        <div style="border: 1px solid #ccc; padding: 10px; border-radius: 10px; margin-bottom: 5px; opacity: 0.6;">📦 Секретный бокс (100 💰)</div>
+        <div style="border: 1px solid #ccc; padding: 10px; border-radius: 10px; opacity: 0.6;">💊 Аптечка (50 💰)</div>
+        <button onclick="showMainMenu()" style="background:#6c757d; color:white; margin-top: 15px;">⬅️ Выход</button>
     </div>
 
-    <div id="quiz-screen" class="card">
-        <div id="q-progress" style="font-weight: 900; opacity: 0.7;"></div>
-        <h2 id="q-text" style="font-size: 1.1em; margin: 20px 0;"></h2>
-        <div id="options-container"></div>
+    <div id="quiz" class="card">
+        <div id="progress" style="font-size: 14px; margin-bottom: 10px; font-weight: bold;"></div>
+        <h2 id="q-text" style="font-size: 1.1em;"></h2>
+        <div id="options"></div>
         <div id="solution-box">
-            <b id="sol-hero">Анализ:</b><br>
-            <span id="solution-text"></span>
+            <b>🔬 Разбор:</b><br><span id="solution-text"></span>
         </div>
-        <button id="next-btn" class="btn-sec" style="display:none; margin-top:15px;">Дальше ➡️</button>
+        <button id="next-btn" class="btn-ok" style="display:none; margin-top:15px;">Дальше ➡️</button>
     </div>
 
-    <div id="final-screen" class="card">
-        <h2 id="final-title">Миссия Завершена!</h2>
-        <div class="theory-box" id="final-stats" style="text-align: center;"></div>
-        <button class="btn-sec" onclick="showMainMenu()">В главное меню</button>
+    <div id="final" class="card">
+        <h2>Итоги Миссии</h2>
+        <div id="stats" class="theory-box" style="text-align: center;"></div>
+        <div id="retry-area"></div>
+        <button class="btn-ok" onclick="showMainMenu()">В главное меню</button>
+        <button onclick="showShop()" style="background: var(--gold); color: #000;">🛒 Перейти в магазин</button>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        const tg = window.Telegram.WebApp; tg.expand();
+        let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], errorsByBlock: {} };
 
-        let gameState = { lives: 5, coins: 0, lostLives: 0 };
-
-        const gradeData = {
+        const data = {
             "5": {
-                name: "5 класс", hero: "🐱🚀", heroName: "Кот-космонавт",
-                theoryBlocks: [
-                    { title: "🔢 Натуральные числа", text: "Чтобы найти меньшее число, когда одно 'в несколько раз больше' другого — используй деление!" },
-                    { title: "📐 Периметр и Площадь", text: "<b>Периметр:</b> P = 2 * (длина + ширина). <br><b>Площадь:</b> S = a * a (для квадрата) или S = a * b." },
-                    { title: "🍰 Дроби и Проценты", text: "<b>Проценты:</b> Чтобы найти 40% от числа, умножь его на 0,4. <br><b>Дроби:</b> 35 см = 35/100 метра." }
+                name: "5 Класс", hero: "🐱🚀",
+                theory: [
+                    { title: "📚 Натуральные числа", text: "Чтобы найти число, которое в 3 раза меньше, используй деление: 126 / 3 = 42." },
+                    { title: "📐 Геометрия", text: "Периметр прямоугольника: P = (a + b) * 2. <br>Объем: V = a * b * c." }
                 ],
                 questions: [
-                    { q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько во второй?", options: ["42", "378", "123", "40"], correct: "42", sol: "126 / 3 = 42." },
-                    { q: "Вычисли: 45 + 15 * (102 - 92)", options: ["195", "600", "150", "160"], correct: "195", sol: "45 + 15 * 10 = 45 + 150 = 195." },
-                    { q: "Ширина 8 см, длина на 4 см больше. Найди периметр.", options: ["40 см", "24 см", "96 см", "32 см"], correct: "40 см", sol: "Длина = 12. P = (8+12)*2 = 40." },
-                    { q: "Какую часть метра составляют 35 сантиметров?", options: ["35/100", "35/10", "100/35", "3/5"], correct: "35/100", sol: "В 1 метре 100 см, значит 35/100." },
-                    { q: "Вычисли: 3,27 + 12,5", options: ["15,77", "15,32", "4,52", "157,7"], correct: "15,77", sol: "3.27 + 12.50 = 15.77." },
-                    { q: "Реши уравнение: x - 14,8 = 5,2", options: ["20", "9,6", "20,10", "19,6"], correct: "20", sol: "x = 5.2 + 14.8 = 20." },
-                    { q: "Округли число 452,38 до целых.", options: ["452", "453", "450", "452,4"], correct: "452", sol: "Так как первая цифра после запятой 3, округляем вниз." },
-                    { q: "Площадь квадрата равна 64 см². Найди его сторону.", options: ["8 см", "16 см", "32 см", "4 см"], correct: "8 см", sol: "8 * 8 = 64, значит сторона 8." },
-                    { q: "В классе 25 учеников. 40% из них — девочки. Сколько их?", options: ["10", "15", "4", "5"], correct: "10", sol: "25 * 0,4 = 10." },
-                    { q: "Объем параллелепипеда с измерениями 2 см, 5 см и 10 см?", options: ["100 см³", "17 см³", "34 см³", "50 см³"], correct: "100 см³", sol: "2 * 5 * 10 = 100." }
+                    { q: "В одной книге 126 стр, в 3 раза больше другой. Сколько во второй?", opt: ["42", "378", "123", "40"], cor: "42", sol: "126 / 3 = 42", bId: "Натуральные числа" },
+                    { q: "Вычисли: 45 + 15 * (102 - 92)", opt: ["195", "600", "150", "160"], cor: "195", sol: "45 + 15 * 10 = 195", bId: "Натуральные числа" },
+                    { q: "Ширина 8 см, длина на 4 см больше. Периметр?", opt: ["40 см", "24 см", "96 см", "32 см"], cor: "40 см", sol: "(8 + 12) * 2 = 40", bId: "Геометрия" },
+                    { q: "Какую часть метра составляют 35 см?", opt: ["35/100", "35/10", "100/35", "3/5"], cor: "35/100", sol: "В 1м - 100см. Ответ 35/100.", bId: "Дроби" },
+                    { q: "Вычисли: 3,27 + 12,5", opt: ["15,77", "15,32", "4,52", "157,7"], cor: "15,77", sol: "Складываем запятую под запятой.", bId: "Дроби" },
+                    { q: "Реши: x - 14,8 = 5,2", opt: ["20", "9,6", "20,10", "19,6"], cor: "20", sol: "x = 5.2 + 14.8 = 20", bId: "Уравнения" },
+                    { q: "Округли 452,38 до целых:", opt: ["452", "453", "450", "452,4"], cor: "452", sol: "Первая цифра после запятой 3 (<5), округляем вниз.", bId: "Дроби" },
+                    { q: "Площадь квадрата 64 см2. Сторона?", opt: ["8 см", "16 см", "32 см", "4 см"], cor: "8 см", sol: "8 * 8 = 64.", bId: "Геометрия" },
+                    { q: "В классе 25 чел. 40% девочки. Сколько их?", opt: ["10", "15", "4", "5"], cor: "10", sol: "25 * 0,4 = 10.", bId: "Проценты" },
+                    { q: "Объем (2см, 5см, 10см):", opt: ["100 см3", "17 см3", "34 см3", "50 см3"], cor: "100 см3", sol: "2 * 5 * 10 = 100.", bId: "Геометрия" }
                 ]
             },
             "6": {
-                name: "6 класс", hero: "🤖🛰️", heroName: "Робот-аналитик",
-                theoryBlocks: [
-                    { title: "🔬 Теория чисел", code: "n = p_1^{a} \\cdot p_2^{b} \\dots", text: "Любое число можно разложить на простые множители — его ДНК." },
-                    { title: "➕ Сложение дробей", code: "\\frac{a}{b} \\pm \\frac{c}{d} = \\frac{ad \\pm cb}{bd}", text: "Приводим к общему знаменателю (НОК) и считаем." },
-                    { title: "⚖️ Пропорции", code: "\\frac{a}{b} = \\frac{c}{d} \\iff ad = bc", text: "Главное правило пропорции: произведение крайних равно произведению средних." },
-                    { title: "📏 Модуль", code: "|a| = \\begin{cases} a, a \\ge 0 \\\\ -a, a < 0 \\end{cases}", text: "Модуль — это всегда положительное расстояние до нуля." }
+                name: "6 Класс", hero: "🤖🛰️",
+                theory: [
+                    { title: "🔬 Делимость", code: "n = p_1^a \\cdot p_2^b", text: "Каждое число — это уникальный набор простых множителей." },
+                    { title: "⚖️ Пропорции", code: "\\frac{a}{b} = \\frac{c}{d} \\implies ad = bc", text: "Метод креста позволяет найти X в любой пропорции." }
                 ],
                 questions: [
-                    { q: "Разложи 60 на простые множители:", options: ["2*2*3*5", "2*3*10", "4*15", "5*12"], correct: "2*2*3*5", sol: "60 = 2*2*3*5." },
-                    { q: "Вычисли: 1/4 + 1/6", options: ["5/12", "2/10", "1/10", "5/24"], correct: "5/12", sol: "Общий знаменатель 12: 3/12 + 2/12 = 5/12." }
+                    { q: "Найдите НОК(12, 15):", opt: ["3", "180", "60", "30"], cor: "60", sol: "60 делится на 12 и на 15.", bId: "Делимость" },
+                    { q: "Пропорция 12:x = 4:5", opt: ["15", "9.6", "10", "2.4"], cor: "15", sol: "4x = 60 -> x = 15", bId: "Пропорции" },
+                    { q: "Карта 1:500 000, на карте 4см. Реальность?", opt: ["2 км", "20 км", "200 км", "12.5 км"], cor: "20 км", sol: "4 * 5км = 20км.", bId: "Масштаб" },
+                    { q: "Длина окружности (R=5, π≈3.14):", opt: ["15.7", "31.4", "78.5", "314"], cor: "31.4", sol: "2 * 3.14 * 5 = 31.4", bId: "Геометрия" },
+                    { q: "Вычисли: -18 + (-7) - (-10)", opt: ["-35", "-15", "-25", "15"], cor: "-15", sol: "-18-7+10 = -15", bId: "Отрицательные" },
+                    { q: "В какой четверти точка A(-5; 8)?", opt: ["I", "II", "III", "IV"], cor: "II", sol: "x < 0, y > 0 -> II четверть", bId: "Координаты" },
+                    { q: "Упростите: 3(x-2) - 2(x-3)", opt: ["x-12", "5x", "x", "x+12"], cor: "x", sol: "3x-6-2x+6 = x", bId: "Алгебра" },
+                    { q: "Уравнение: 5x - 12 = 2x + 6", opt: ["x=2", "x=6", "x=-2", "x=18"], cor: "x=6", sol: "3x = 18 -> x = 6", bId: "Алгебра" },
+                    { q: "Значение: |-12,4| + |3,6|", opt: ["8.8", "16", "-8.8", "-16"], cor: "16", sol: "12.4 + 3.6 = 16", bId: "Модуль" },
+                    { q: "Раздели 3/5 на 2/7:", opt: ["21/10", "6/35", "5/12", "10/21"], cor: "21/10", sol: "3/5 * 7/2 = 21/10", bId: "Дроби" }
+                ]
+            },
+            "7": {
+                name: "7 Класс", hero: "👩🏻‍🎤⚡",
+                theory: [
+                    { title: "⚡ Свойства степеней", code: "a^n \\cdot a^m = a^{n+m}", text: "При умножении — складываем, при делении — вычитаем. Степень в степень — умножаем!" },
+                    { title: "📈 Линейная функция", code: "y = kx + b", text: "k — наклон, b — пересечение с осью Y." },
+                    { title: "💠 ФСУ", code: "(a-b)(a+b) = a^2 - b^2", text: "Разность квадратов раскладывается на две скобки." }
+                ],
+                questions: [
+                    { q: "Упростите: 2(3x-1) - 4(x+2)", opt: ["2x-10", "2x+6", "10x-10", "2x-3"], cor: "2x-10", sol: "6x-2-4x-8 = 2x-10", bId: "Алгебра" },
+                    { q: "Уравнение: 5x - 4 = 3x + 8", opt: ["2", "4", "6", "-2"], cor: "6", sol: "2x = 12 -> x = 6", bId: "Алгебра" },
+                    { q: "Вычислите: (a^3)^4 / a^10", opt: ["a^7", "a^2", "a^22", "a^12"], cor: "a^2", sol: "a^12 / a^10 = a^2", bId: "Свойства степеней" },
+                    { q: "Произведение: (x-3)(x+5)", opt: ["x^2-15", "x^2-2x-15", "x^2+8x-15", "x^2+2x-15"], cor: "x^2+2x-15", sol: "x^2+5x-3x-15", bId: "Алгебра" },
+                    { q: "Разложите: 16 - 9y^2", opt: ["(4-3y)(4+3y)", "(4-3y)^2", "(8-3y)(8+3y)", "(16-9y)"], cor: "(4-3y)(4+3y)", sol: "Разность квадратов 4^2 - (3y)^2", bId: "ФСУ" },
+                    { q: "y = 3x + b через A(1; 5). b?", opt: ["5", "2", "8", "-2"], cor: "2", sol: "5 = 3*1 + b -> b = 2", bId: "Линейная функция" },
+                    { q: "Система: x+y=10, x-y=4. Ответ?", opt: ["(6;4)", "(5;5)", "(7;3)", "(8;2)"], cor: "(7;3)", sol: "Сложим: 2x=14, x=7. y=3.", bId: "Системы" },
+                    { q: "Смежный углу 50°:", opt: ["40", "130", "50", "180"], cor: "130", sol: "180 - 50 = 130", bId: "Геометрия" },
+                    { q: "Угол при основании 70°. Вершина?", opt: ["70", "110", "55", "40"], cor: "40", sol: "180 - 70*2 = 40", bId: "Геометрия" },
+                    { q: "Параллельные прямые. Накрест лежащий к 60°?", opt: ["120", "60", "30", "90"], cor: "60", sol: "Накрест лежащие углы равны.", bId: "Геометрия" }
                 ]
             }
         };
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const grade = urlParams.get('grade') || "5";
-        const currentData = gradeData[grade] || gradeData["5"];
+        const params = new URLSearchParams(window.location.search);
+        const grade = params.get('grade') || "5";
+        const curData = data[grade] || data["5"];
 
-        function updateHUD() {
-            document.getElementById('lives-count').innerText = gameState.lives;
-            document.getElementById('coins-count').innerText = gameState.coins;
+        function init() {
+            document.body.className = "grade-" + grade;
+            document.getElementById('grade-title').innerText = curData.name;
+            document.getElementById('hero').innerText = curData.hero;
+            showMainMenu();
+            spawnFloating();
         }
 
-        function hideAll() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
-        function showMainMenu() { hideAll(); document.getElementById('main-menu').classList.add('active'); }
-        function showShop() { hideAll(); document.getElementById('shop-screen').classList.add('active'); }
+        function showMainMenu() { hide(); document.getElementById('main-menu').classList.add('active'); }
+        function showShop() { hide(); document.getElementById('shop').classList.add('active'); }
+        function hide() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
 
         function showTheoryMenu() {
-            hideAll();
-            const container = document.getElementById('theory-btns-container');
-            container.innerHTML = "";
-            currentData.theoryBlocks.forEach((b, i) => {
-                const btn = document.createElement('button');
-                btn.className = "btn-block";
-                btn.innerText = b.title;
-                btn.onclick = () => {
-                    hideAll();
-                    document.getElementById('view-title').innerText = b.title;
-                    let html = b.code ? `<div class="formula-display" id="math-view"></div>` : "";
-                    html += `<p>${b.text}</p>`;
-                    document.getElementById('view-content').innerHTML = html;
-                    if(b.code) setTimeout(() => katex.render(b.code, document.getElementById('math-view')), 100);
+            hide();
+            const list = document.getElementById('theory-list');
+            list.innerHTML = "";
+            curData.theory.forEach((t, i) => {
+                const b = document.createElement('button');
+                b.className = "btn-ok"; b.style.background = "#eee"; b.style.color = "#333";
+                b.innerText = t.title;
+                b.onclick = () => {
+                    hide();
+                    document.getElementById('view-title').innerText = t.title;
+                    document.getElementById('view-content').innerHTML = (t.code ? `<div class="formula-display" id="f-${i}"></div>` : "") + `<p>${t.text}</p>`;
+                    if(t.code) setTimeout(() => katex.render(t.code, document.getElementById(`f-${i}`)), 50);
                     document.getElementById('theory-view').classList.add('active');
                 };
-                container.appendChild(btn);
+                list.appendChild(b);
             });
             document.getElementById('theory-menu').classList.add('active');
         }
 
-        let curIdx = 0; let qs = [];
-        function startPractice() {
-            hideAll(); curIdx = 0;
-            gameState.lives = 5; gameState.coins = 0; gameState.lostLives = 0;
+        function startPractice(filterBlock = null) {
+            hide();
+            state.lives = 5; state.coins = 0; state.currentIdx = 0; state.errorsByBlock = {};
+            state.questions = filterBlock ? curData.questions.filter(q => q.bId === filterBlock) : [...curData.questions].sort(() => Math.random() - 0.5);
             updateHUD();
-            qs = [...currentData.questions].sort(() => Math.random() - 0.5);
-            document.getElementById('quiz-screen').classList.add('active');
+            document.getElementById('quiz').classList.add('active');
             renderQ();
         }
 
+        function updateHUD() {
+            document.getElementById('lives').innerText = state.lives;
+            document.getElementById('coins').innerText = state.coins;
+        }
+
         function renderQ() {
-            if (gameState.lives <= 0) { endMission(false); return; }
-            const q = qs[curIdx];
-            document.getElementById('q-progress').innerText = `ЭТАП ${curIdx + 1} / ${qs.length}`;
+            if(state.lives <= 0) { finish(false); return; }
+            const q = state.questions[state.currentIdx];
+            document.getElementById('progress').innerText = `Задание ${state.currentIdx + 1} / ${state.questions.length}`;
             document.getElementById('q-text').innerText = q.q;
             document.getElementById('solution-box').style.display = "none";
             document.getElementById('next-btn').style.display = "none";
-            const cont = document.getElementById('options-container');
-            cont.innerHTML = "";
-            q.options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.innerText = opt;
-                btn.onclick = () => {
-                    const all = cont.querySelectorAll('button');
-                    all.forEach(b => b.disabled = true);
-                    if (opt === q.correct) {
-                        btn.style.background = "#32CD32"; gameState.coins += 5;
+            const optCont = document.getElementById('options');
+            optCont.innerHTML = "";
+            q.opt.forEach(o => {
+                const b = document.createElement('button');
+                b.innerText = o;
+                b.style.background = "#f9f9f9";
+                b.onclick = () => {
+                    const all = optCont.querySelectorAll('button');
+                    all.forEach(btn => btn.disabled = true);
+                    if(o === q.cor) {
+                        b.style.background = "#32CD32"; b.style.color = "white"; state.coins += 5;
                     } else {
-                        btn.style.background = "#FF4500"; gameState.lives -= 1; gameState.lostLives += 1;
-                        all.forEach(b => { if(b.innerText === q.correct) b.style.background = "#32CD32"; });
+                        b.style.background = "#FF4500"; b.style.color = "white"; state.lives--;
+                        state.errorsByBlock[q.bId] = (state.errorsByBlock[q.bId] || 0) + 1;
+                        all.forEach(btn => { if(btn.innerText === q.cor) { btn.style.background = "#32CD32"; btn.style.color = "white"; } });
                     }
                     updateHUD();
                     document.getElementById('solution-text').innerText = q.sol;
                     document.getElementById('solution-box').style.display = "block";
                     document.getElementById('next-btn').style.display = "block";
-                    if(gameState.lives <= 0) document.getElementById('next-btn').innerText = "Посмотреть итог 💀";
                 };
-                cont.appendChild(btn);
+                optCont.appendChild(b);
             });
         }
 
         document.getElementById('next-btn').onclick = () => {
-            if (gameState.lives <= 0) { endMission(false); return; }
-            curIdx++;
-            if (curIdx < qs.length) renderQ();
-            else endMission(true);
+            state.currentIdx++;
+            if(state.currentIdx < state.questions.length && state.lives > 0) renderQ();
+            else finish(state.lives > 0);
         };
 
-        function endMission(success) {
-            hideAll();
-            const screen = document.getElementById('final-screen');
-            const title = document.getElementById('final-title');
-            const stats = document.getElementById('final-stats');
+        function finish(win) {
+            hide();
+            const f = document.getElementById('final');
+            f.classList.add('active');
+            const stats = document.getElementById('stats');
+            stats.innerHTML = `<h3>${win ? 'Миссия Выполнена!' : 'Жизни закончились!'}</h3><p>Монеты: ${state.coins} 💰</p>`;
             
-            title.innerText = success ? "🎉 Миссия Выполнена!" : "💀 Поражение";
-            title.style.color = success ? "var(--lime)" : "var(--red)";
+            const retryArea = document.getElementById('retry-area');
+            retryArea.innerHTML = "";
             
-            stats.innerHTML = `
-                <p>Заработано: <b style="color:var(--gold);">${gameState.coins} 💰</b></p>
-                <p>Осталось жизней: <b>${gameState.lives} / 5 ❤️</b></p>
-                <p>Ошибок допущено: <b>${gameState.lostLives}</b></p>
-            `;
-            screen.classList.add('active');
+            let failedBlocks = Object.keys(state.errorsByBlock).filter(b => state.errorsByBlock[b] >= 1);
+            if(failedBlocks.length > 0) {
+                failedBlocks.forEach(b => {
+                    const rb = document.createElement('button');
+                    rb.className = "btn-acc"; rb.innerText = `Пересдать: ${b}`;
+                    rb.onclick = () => startPractice(b);
+                    retryArea.appendChild(rb);
+                });
+            } else if (!win) {
+                const rb = document.createElement('button');
+                rb.className = "btn-acc"; rb.innerText = "Попробовать снова";
+                rb.onclick = () => startPractice();
+                retryArea.appendChild(rb);
+            }
         }
 
         function spawn() {
-            const container = document.getElementById('floating-container');
-            const item = document.createElement('div');
-            item.className = 'floater';
-            const icons = grade === "5" ? ["🐱","💰","❤️","⭐"] : ["🤖","🛰️","💠","💾"];
-            item.innerText = icons[Math.floor(Math.random()*icons.length)];
-            item.style.left = Math.random() * 95 + 'vw';
-            item.style.animationDuration = (8 + Math.random() * 5) + 's';
-            container.appendChild(item);
-            setTimeout(() => item.remove(), 10000);
+            const c = document.getElementById('floating-container');
+            const d = document.createElement('div');
+            d.className = 'floater';
+            const icons = grade === "5" ? ["🐱","⭐","📐"] : (grade === "6" ? ["🤖","🛰️","💠"] : ["⚡","🎤","💎"]);
+            d.innerText = icons[Math.floor(Math.random()*icons.length)];
+            d.style.left = Math.random()*95 + "vw";
+            d.style.fontSize = (20+Math.random()*30) + "px";
+            d.style.animationDuration = (8+Math.random()*10) + "s";
+            c.appendChild(d);
+            setTimeout(() => d.remove(), 15000);
         }
-        setInterval(spawn, 2000);
+        function spawnFloating() { setInterval(spawn, 1500); }
 
-        document.body.className = "grade-" + grade;
-        document.getElementById('hero-icon').innerText = currentData.helper || currentData.hero;
-        document.getElementById('hero-name').innerText = currentData.heroName;
-        showMainMenu();
+        init();
     </script>
 </body>
 </html>
