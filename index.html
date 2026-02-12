@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Game Edition</title>
+    <title>Math Universe: Fixed Edition</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Roboto:wght@400;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <style>
         :root {
             --sky: #87CEEB; --lime: #32CD32; --orange: #FF8C00;
@@ -15,51 +18,58 @@
             --neon: #00ff41; --cyber-blue: #0d0221; --gold: #FFD700; --red: #FF4500;
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body { 
             margin: 0; padding: 20px; min-height: 100vh;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            overflow: hidden; position: relative; transition: 0.5s; font-family: 'Roboto', sans-serif;
+            overflow: hidden; position: relative; transition: 0.5s;
+            font-family: 'Roboto', sans-serif;
         }
 
-        /* --- ТЕМЫ --- */
+        /* ТЕМЫ */
         body.grade-5 { background: linear-gradient(180deg, var(--sky) 0%, #E0F7FA 100%); font-family: 'Nunito', sans-serif; --acc: var(--orange); --btn: var(--lime); }
-        body.grade-6 { background: #1A1A2E; background-image: radial-gradient(circle at 20% 30%, #2D142C 0%, transparent 40%); font-family: 'Montserrat', sans-serif; color: #E1E8F0; --acc: var(--coral); --btn: var(--turq); }
+        body.grade-6 { background: #1A1A2E; font-family: 'Montserrat', sans-serif; color: #E1E8F0; --acc: var(--coral); --btn: var(--turq); }
         body.grade-7 { background: var(--cyber-blue); color: var(--neon); font-family: 'Roboto', sans-serif; --acc: #9d00ff; --btn: var(--neon); }
-        body.grade-7 h2 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; text-shadow: 0 0 10px var(--neon); }
+        body.grade-7 h2 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; }
 
         /* HUD */
-        #hud { position: fixed; top: 10px; width: 90%; max-width: 400px; display: flex; justify-content: space-between; z-index: 100; }
-        .hud-item { background: rgba(255, 255, 255, 0.9); padding: 8px 15px; border-radius: 20px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        #hud { position: fixed; top: 15px; width: 90%; max-width: 400px; display: flex; justify-content: space-between; z-index: 100; }
+        .hud-item { background: white; padding: 10px 18px; border-radius: 25px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         body.grade-7 .hud-item { background: #1a1a1a; color: var(--neon); border: 1px solid var(--neon); }
 
+        /* КАРТОЧКИ */
         .card { 
-            background: white; border-radius: 30px; padding: 25px;
-            box-shadow: 0 10px 0 rgba(0,0,0,0.1); width: 100%; max-width: 440px;
+            background: white; border-radius: 35px; padding: 30px;
+            box-shadow: 0 12px 0 rgba(0,0,0,0.1); width: 100%; max-width: 440px;
             text-align: center; position: relative; z-index: 10; display: none;
-            max-height: 80vh; overflow-y: auto; border: 4px solid #333; color: #333;
+            max-height: 82vh; overflow-y: auto; border: 4px solid #333; color: #333;
         }
-        body.grade-6 .card { background: rgba(26, 26, 46, 0.95); border-color: var(--turq); color: white; }
-        body.grade-7 .card { background: rgba(13, 2, 33, 0.9); border-color: var(--neon); color: var(--neon); box-shadow: 0 0 20px var(--neon); }
+        body.grade-6 .card { background: rgba(26, 26, 46, 0.98); border-color: var(--turq); color: white; }
+        body.grade-7 .card { background: rgba(13, 2, 33, 0.95); border-color: var(--neon); color: var(--neon); box-shadow: 0 0 25px var(--neon); }
 
-        .active { display: block; animation: pop 0.4s ease; }
-        @keyframes pop { 0% {transform: scale(0.8); opacity:0;} 100% {transform: scale(1); opacity:1;} }
+        .active { display: block; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from {transform: scale(0.8); opacity:0;} to {transform: scale(1); opacity:1;} }
 
+        /* КНОПКИ (Исправленные размеры) */
         button { 
-            font-family: inherit; border: none; padding: 18px; border-radius: 15px; 
-            width: 100%; margin: 8px 0; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.2s;
+            font-family: inherit; border: none; padding: 18px 10px; border-radius: 20px; 
+            width: 100%; margin: 10px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
+            transition: 0.2s; box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+            display: flex; align-items: center; justify-content: center;
         }
-        button:active { transform: translateY(2px); }
+        button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
         .btn-acc { background: var(--acc); color: white; }
         .btn-ok { background: var(--btn); color: white; }
-        body.grade-7 .btn-ok { background: transparent; color: var(--neon); border: 2px solid var(--neon); }
 
-        .theory-box { text-align: left; padding: 15px; border-radius: 20px; border: 3px dashed var(--acc); margin-bottom: 10px; font-size: 15px; }
-        #solution-box { display: none; padding: 15px; border-radius: 20px; margin-top: 15px; text-align: left; border: 2px solid var(--btn); background: rgba(0,0,0,0.05); }
+        /* ТЕОРИЯ И РАЗБОР */
+        .theory-box { text-align: left; padding: 20px; border-radius: 25px; border: 3px dashed var(--acc); margin-bottom: 15px; font-size: 17px; line-height: 1.5; }
+        #solution-box { display: none; padding: 20px; border-radius: 25px; margin-top: 20px; text-align: left; border: 3px solid var(--btn); background: rgba(0,0,0,0.05); }
+
+        /* ВЫРАВНИВАНИЕ KATEX ВНУТРИ ТЕКСТА */
+        .katex-display { margin: 10px 0 !important; }
+        .katex { font-size: 1.1em !important; }
         
-        /* Стили для математических контейнеров */
-        .math-container { display: inline-block; padding: 2px; }
-
         #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
         .floater { position: absolute; bottom: -100px; opacity: 0.3; animation: floatUp linear forwards; }
         @keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-120vh); } }
@@ -75,9 +85,8 @@
     <div id="floating-container"></div>
 
     <div id="main-menu" class="card active">
-        <div id="hero" style="font-size: 70px;">🐱🚀</div>
-        <h2 id="grade-title">Математика</h2>
-        <p>Выбирай путь знаний и наград!</p>
+        <div id="hero" style="font-size: 75px; margin-bottom: 10px;">🐱🚀</div>
+        <h2 id="grade-title" style="font-size: 28px; margin: 10px 0;">Математика</h2>
         <button class="btn-acc" onclick="showTheoryMenu()">📖 База Знаний</button>
         <button class="btn-ok" onclick="startPractice()">🚀 Начать Тест</button>
         <button onclick="showShop()" style="background: var(--gold); color: #000;">🛒 Магазин</button>
@@ -90,101 +99,96 @@
     </div>
 
     <div id="theory-view" class="card">
-        <h3 id="view-title"></h3>
+        <h3 id="view-title" style="font-size: 22px; color: var(--acc);"></h3>
         <div id="view-content" class="theory-box"></div>
         <button class="btn-acc" onclick="showTheoryMenu()">Понятно!</button>
     </div>
 
     <div id="shop" class="card">
         <h2 style="color: var(--gold);">🛒 Магазин</h2>
-        <p>Синхронизация... (Магазин в разработке)</p>
-        <button onclick="showMainMenu()" style="background:#6c757d; color:white; margin-top: 15px;">⬅️ Выход</button>
+        <p>Синхронизация ресурсов...</p>
+        <button onclick="showMainMenu()" style="background:#6c757d; color:white; margin-top: 15px;">⬅️ Назад</button>
     </div>
 
     <div id="quiz" class="card">
-        <div id="progress" style="font-size: 14px; margin-bottom: 10px; font-weight: bold;"></div>
-        <h2 id="q-text" style="font-size: 1.1em;"></h2>
+        <div id="progress" style="font-size: 15px; margin-bottom: 15px; font-weight: 900; opacity: 0.6;"></div>
+        <div id="q-text" style="font-size: 20px; font-weight: 700; margin-bottom: 25px; line-height: 1.4;"></div>
         <div id="options"></div>
         <div id="solution-box">
-            <b>🔬 Разбор:</b><br><span id="solution-text"></span>
+            <b style="font-size: 18px;">🔬 Разбор:</b><br>
+            <div id="solution-text" style="margin-top: 10px;"></div>
         </div>
-        <button id="next-btn" class="btn-ok" style="display:none; margin-top:15px;">Дальше ➡️</button>
+        <button id="next-btn" class="btn-ok" style="display:none; margin-top:20px;">Дальше ➡️</button>
     </div>
 
     <div id="final" class="card">
-        <h2>Итоги Миссии</h2>
-        <div id="stats" class="theory-box" style="text-align: center;"></div>
+        <h2 id="final-status">Итоги Миссии</h2>
+        <div id="stats" class="theory-box" style="text-align: center; font-size: 20px;"></div>
         <div id="retry-area"></div>
         <button class="btn-ok" onclick="showMainMenu()">В меню</button>
-        <button onclick="showShop()" style="background: var(--gold); color: #000;">🛒 В магазин</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
         let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], errorsByBlock: {} };
 
-        // Вспомогательная функция для рендеринга формул
-        function formatMath(text) {
-            // Заменяем ^2 на LaTeX формат, если он еще не там
-            return text.replace(/\^(\d+)/g, '^{$1}');
+        // Улучшенный рендерер математики
+        function renderMath(text, element, isDisplay = false) {
+            try {
+                // Если в тексте есть $, рендерим как смесь текста и математики
+                if (text.includes('$')) {
+                    element.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
+                        return katex.renderToString(formula, { throwOnError: false });
+                    });
+                } else {
+                    // Если базовая формула или система
+                    katex.render(text, element, { 
+                        displayMode: isDisplay, 
+                        throwOnError: false 
+                    });
+                }
+            } catch (e) { element.innerText = text; }
         }
 
         const data = {
             "5": {
                 name: "5 Класс", hero: "🐱🚀",
                 theory: [
-                    { title: "🔢 Натуральные числа", text: "Чтобы найти число, которое в $3$ раза меньше, используй деление: $126 : 3 = 42$." },
-                    { title: "📏 Периметр и Площадь", text: "Периметр прямоугольника: $P = (a + b) \\cdot 2$. Площадь квадрата: $S = a^2$." }
+                    { title: "🔢 Числа", text: "Чтобы найти число, которое в $3$ раза меньше, делим: $126 : 3 = 42$." },
+                    { title: "📐 Фигуры", text: "Периметр: $P = (a + b) \\cdot 2$. Площадь: $S = a^2$." }
                 ],
                 questions: [
                     { q: "В одной книге 126 стр, в 3 раза больше другой. Сколько во второй?", opt: ["42", "378", "123", "40"], cor: "42", sol: "126 : 3 = 42", bId: "Натуральные числа" },
-                    { q: "Найдите значение: 45 + 15 \\cdot (102 - 92)", opt: ["195", "600", "150", "160"], cor: "195", sol: "45 + 15 \\cdot 10 = 195", bId: "Порядок действий" },
-                    { q: "Ширина 8 см, длина на 4 см больше. Периметр?", opt: ["40 см", "24 см", "96 см", "32 см"], cor: "40 см", sol: "(8 + 12) \\cdot 2 = 40", bId: "Периметр" },
-                    { q: "Какую часть метра составляют 35 см?", opt: ["\\dfrac{35}{100}", "\\dfrac{35}{10}", "\\dfrac{100}{35}", "\\dfrac{3}{5}"], cor: "\\dfrac{35}{100}", sol: "В 1 м - 100 см.", bId: "Дроби" },
-                    { q: "Вычислите: 3,27 + 12,5", opt: ["15,77", "15,32", "4,52", "157,7"], cor: "15,77", sol: "Складываем по разрядам.", bId: "Десятичные дроби" },
-                    { q: "Решите: x - 14,8 = 5,2", opt: ["20", "9,6", "20,10", "19,6"], cor: "20", sol: "x = 5,2 + 14,8 = 20", bId: "Уравнения" },
-                    { q: "Округлите 452,38 до целых:", opt: ["452", "453", "450", "452,4"], cor: "452", sol: "3 < 5, округляем вниз.", bId: "Округление" },
-                    { q: "Площадь квадрата 64 см^2. Сторона?", opt: ["8 см", "16 см", "32 см", "4 см"], cor: "8 см", sol: "8 \\cdot 8 = 64", bId: "Квадрат" },
-                    { q: "В классе 25 чел. 40% девочки. Сколько их?", opt: ["10", "15", "4", "5"], cor: "10", sol: "25 \\cdot 0,4 = 10", bId: "Проценты" },
-                    { q: "Объем (2 см, 5 см, 10 см):", opt: ["100 см^3", "17 см^3", "34 см^3", "50 см^3"], cor: "100 см^3", sol: "2 \\cdot 5 \\cdot 10 = 100", bId: "Объем" }
+                    { q: "Найдите значение: $45 + 15 \\cdot (102 - 92)$", opt: ["195", "600", "150", "160"], cor: "195", sol: "$45 + 15 \\cdot 10 = 195$", bId: "Порядок действий" },
+                    { q: "Ширина 8 см, длина на 4 см больше. Периметр?", opt: ["40 см", "24 см", "96 см", "32 см"], cor: "40 см", sol: "$(8 + 12) \\cdot 2 = 40$ см", bId: "Периметр" },
+                    { q: "Какую часть метра составляют 35 см?", opt: ["35/100", "35/10", "100/35", "3/5"], cor: "35/100", sol: "В 1 м - 100 см. Значит $\\frac{35}{100}$", bId: "Дроби" },
+                    { q: "Вычислите: $3,27 + 12,5$", opt: ["15,77", "15,32", "4,52", "157,7"], cor: "15,77", sol: "$3,27 + 12,50 = 15,77$", bId: "Десятичные дроби" },
+                    { q: "Площадь квадрата 64 $см^2$. Сторона?", opt: ["8 см", "16 см", "32 см", "4 см"], cor: "8 см", sol: "$8 \\cdot 8 = 64$. Сторона равна 8.", bId: "Квадрат" },
+                    { q: "Объем (2 см, 5 см, 10 см):", opt: ["100 см^3", "17 см^3", "34 см^3", "50 см^3"], cor: "100 см^3", sol: "$2 \\cdot 5 \\cdot 10 = 100$ $см^3$", bId: "Объем" }
                 ]
             },
             "6": {
                 name: "6 Класс", hero: "🤖🛰️",
                 theory: [
-                    { title: "🔬 Делимость", code: "n = p_1^a \\cdot p_2^b", text: "Каждое число — это уникальный набор простых множителей." },
-                    { title: "⚖️ Пропорции", code: "\\dfrac{a}{b} = \\dfrac{c}{d} \\implies ad = bc", text: "Метод креста." }
+                    { title: "🔬 Делимость", text: "Разложение: $n = p_1^a \\cdot p_2^b$." }
                 ],
                 questions: [
-                    { q: "Найдите НОК(12, 15):", opt: ["3", "180", "60", "30"], cor: "60", sol: "60 делится на 12 и 15.", bId: "Делимость" },
-                    { q: "Пропорция 12 : x = 4 : 5", opt: ["15", "9,6", "10", "2,4"], cor: "15", sol: "4x = 60 \\implies x = 15", bId: "Пропорции" },
-                    { q: "Карта 1 : 500\\,000, 4 см. Реальность?", opt: ["2 км", "20 км", "200 км", "12,5 км"], cor: "20 км", sol: "4 \\cdot 5 = 20 км.", bId: "Масштаб" },
-                    { q: "Длина окружности (R=5, \\pi \\approx 3,14):", opt: ["15,7 см", "31,4 см", "78,5 см", "314 см"], cor: "31,4 см", sol: "C = 2\\pi R", bId: "Геометрия" },
-                    { q: "Вычислите: -18 + (-7) - (-10)", opt: ["-35", "-15", "-25", "15"], cor: "-15", sol: "-25 + 10 = -15", bId: "Рациональные числа" },
-                    { q: "Значение выраж.: (-2,5) \\cdot (-4) \\cdot 0,3", opt: ["3", "-3", "0,3", "-30"], cor: "3", sol: "10 \\cdot 0,3 = 3", bId: "Рациональные числа" },
-                    { q: "В какой четверти точка A(-5; 8)?", opt: ["I", "II", "III", "IV"], cor: "II", sol: "x < 0, y > 0", bId: "Координаты" },
-                    { q: "Упростите: 3(x - 2) - 2(x - 3)", opt: ["x - 12", "5x", "x", "x + 12"], cor: "x", sol: "3x - 6 - 2x + 6 = x", bId: "Упрощение" },
-                    { q: "Уравнение: 5x - 12 = 2x + 6", opt: ["x = 2", "x = 6", "x = -2", "x = 18"], cor: "x = 6", sol: "3x = 18", bId: "Уравнения" },
-                    { q: "Значение |-12,4| + |3,6|:", opt: ["8,8", "16", "-8,8", "-16"], cor: "16", sol: "12,4 + 3,6 = 16", bId: "Модуль" }
+                    { q: "Пропорция $12 : x = 4 : 5$. Найти x:", opt: ["15", "9,6", "10", "2,4"], cor: "15", sol: "$4x = 60 \\implies x = 15$", bId: "Пропорции" },
+                    { q: "Значение: $|-12,4| + |3,6|$", opt: ["8,8", "16", "-8,8", "-16"], cor: "16", sol: "$12,4 + 3,6 = 16$", bId: "Модуль" }
                 ]
             },
             "7": {
                 name: "7 Класс", hero: "👩🏻‍🎤⚡",
                 theory: [
-                    { title: "⚡ Свойства степеней", code: "a^n \\cdot a^m = a^{n+m}", text: "При умножении показатели складываются." },
-                    { title: "📈 Линейная функция", code: "y = kx + b", text: "График — прямая." }
+                    { title: "⚡ Степени", text: "$a^n \\cdot a^m = a^{n+m}$" },
+                    { title: "📈 Функции", text: "$y = kx + b$" }
                 ],
                 questions: [
-                    { q: "Упростите: 2(3x - 1) - 4(x + 2)", opt: ["2x - 10", "2x + 6", "10x - 10", "2x - 3"], cor: "2x - 10", sol: "6x - 2 - 4x - 8 = 2x - 10", bId: "Алгебра" },
-                    { q: "Решите уравнение: 5x - 4 = 3x + 8", opt: ["2", "4", "6", "-2"], cor: "6", sol: "2x = 12 \\implies x = 6", bId: "Алгебра" },
-                    { q: "Вычислите: \\dfrac{(a^3)^4}{a^{10}}", opt: ["a^7", "a^2", "a^{22}", "a^{12}"], cor: "a^2", sol: "a^{12} : a^{10} = a^2", bId: "Свойства степеней" },
-                    { q: "Представьте как многочлен: (x - 3)(x + 5)", opt: ["x^2 - 15", "x^2 - 2x - 15", "x^2 + 8x - 15", "x^2 + 2x - 15"], cor: "x^2 + 2x - 15", sol: "x^2 + 5x - 3x - 15", bId: "Алгебра" },
-                    { q: "Разложите: 16 - 9y^2", opt: ["(4 - 3y)(4 + 3y)", "(4 - 3y)^2", "(8 - 3y)(8 + 3y)", "(16 - 9y)(16 + 9y)"], cor: "(4 - 3y)(4 + 3y)", sol: "4^2 - (3y)^2", bId: "ФСУ" },
-                    { q: "y = 3x + b через A(1; 5). Найти b:", opt: ["5", "2", "8", "-2"], cor: "2", sol: "5 = 3 \\cdot 1 + b", bId: "Функция" },
-                    { q: "Система: x+y=10, x-y=4. Ответ:", opt: ["(6; 4)", "(5; 5)", "(7; 3)", "(8; 2)"], cor: "(7; 3)", sol: "2x = 14 \\implies x=7, y=3", bId: "Системы" },
-                    { q: "Угол смежный с углом 50^\\circ:", opt: ["40^\\circ", "130^\\circ", "50^\\circ", "180^\\circ"], cor: "130^\\circ", sol: "180 - 50 = 130", bId: "Геометрия" },
-                    { q: "Равнобедр. треуг. Угол при осн. 70^\\circ. Вершина?", opt: ["70^\\circ", "110^\\circ", "55^\\circ", "40^\\circ"], cor: "40^\\circ", sol: "180 - 2 \\cdot 70 = 40", bId: "Геометрия" },
-                    { q: "Параллельные прямые. Накрест лежащий к 60^\\circ:", opt: ["120^\\circ", "60^\\circ", "30^\\circ", "90^\\circ"], cor: "60^\\circ", sol: "Углы равны.", bId: "Геометрия" }
+                    { q: "Упростите: $2(3x - 1) - 4(x + 2)$", opt: ["2x - 10", "2x + 6", "10x - 10", "2x - 3"], cor: "2x - 10", sol: "$6x - 2 - 4x - 8 = 2x - 10$", bId: "Алгебра" },
+                    { q: "Вычислите: $\\frac{(a^3)^4}{a^{10}}$", opt: ["a^7", "a^2", "a^{22}", "a^{12}"], cor: "a^2", sol: "$a^{12} : a^{10} = a^2$", bId: "Свойства степеней" },
+                    { q: "Представьте как многочлен: $(x - 3)(x + 5)$", opt: ["x^2 - 15", "x^2 - 2x - 15", "x^2 + 8x - 15", "x^2 + 2x - 15"], cor: "x^2 + 2x - 15", sol: "$x^2 + 5x - 3x - 15 = x^2 + 2x - 15$", bId: "Алгебра" },
+                    { q: "Решите систему: $\\begin{cases} x + y = 10 \\\\ x - y = 4 \\end{cases}$", opt: ["(6; 4)", "(5; 5)", "(7; 3)", "(8; 2)"], cor: "(7; 3)", sol: "Сложим: $2x = 14 \\implies x=7$. Тогда $y=3$.", bId: "Системы" },
+                    { q: "Разложите: $16 - 9y^2$", opt: ["(4 - 3y)(4 + 3y)", "(4 - 3y)^2", "(8 - 3y)(8 + 3y)", "(16 - 9y)(16 + 9y)"], cor: "(4 - 3y)(4 + 3y)", sol: "$4^2 - (3y)^2 = (4-3y)(4+3y)$", bId: "ФСУ" }
                 ]
             }
         };
@@ -216,17 +220,9 @@
                 b.onclick = () => {
                     hide();
                     document.getElementById('view-title').innerText = t.title;
-                    document.getElementById('view-content').innerHTML = (t.code ? `<div id="f-${i}"></div>` : "") + `<p>${t.text}</p>`;
-                    if(t.code) setTimeout(() => katex.render(t.code, document.getElementById(`f-${i}`)), 50);
-                    // Рендерим инлайновую математику в тексте
-                    setTimeout(() => {
-                        const content = document.getElementById('view-content');
-                        content.innerHTML = content.innerHTML.replace(/\$([^$]+)\$/g, (m, g) => {
-                            const span = document.createElement('span');
-                            katex.render(g, span);
-                            return span.innerHTML;
-                        });
-                    }, 60);
+                    const contentArea = document.getElementById('view-content');
+                    contentArea.innerHTML = "";
+                    renderMath(t.text, contentArea);
                     document.getElementById('theory-view').classList.add('active');
                 };
                 list.appendChild(b);
@@ -253,12 +249,9 @@
             const q = state.questions[state.currentIdx];
             document.getElementById('progress').innerText = `Задание ${state.currentIdx + 1} / ${state.questions.length}`;
             
-            // Рендерим вопрос через KaTeX
-            const qText = document.getElementById('q-text');
-            qText.innerHTML = "";
-            const mathSpan = document.createElement('span');
-            katex.render(formatMath(q.q), mathSpan, { throwOnError: false });
-            qText.appendChild(mathSpan);
+            const qContainer = document.getElementById('q-text');
+            qContainer.innerHTML = "";
+            renderMath(q.q, qContainer, q.q.includes('begin{cases}'));
 
             document.getElementById('solution-box').style.display = "none";
             document.getElementById('next-btn').style.display = "none";
@@ -267,12 +260,7 @@
             optCont.innerHTML = "";
             q.opt.forEach(o => {
                 const b = document.createElement('button');
-                b.style.background = "#f9f9f9";
-                // Рендерим опцию через KaTeX
-                const optSpan = document.createElement('span');
-                katex.render(formatMath(o), optSpan, { throwOnError: false });
-                b.appendChild(optSpan);
-
+                renderMath(o, b);
                 b.onclick = () => {
                     const all = optCont.querySelectorAll('button');
                     all.forEach(btn => btn.disabled = true);
@@ -282,20 +270,15 @@
                         b.style.background = "#FF4500"; b.style.color = "white"; state.lives--;
                         state.errorsByBlock[q.bId] = (state.errorsByBlock[q.bId] || 0) + 1;
                         all.forEach(btn => { 
-                            // Проверка текста правильного ответа внутри span
                             if(btn.innerText === q.cor || btn.textContent === q.cor) {
                                 btn.style.background = "#32CD32"; btn.style.color = "white"; 
                             } 
                         });
                     }
                     updateHUD();
-                    // Рендерим разбор
-                    const solText = document.getElementById('solution-text');
-                    solText.innerHTML = "";
-                    const solSpan = document.createElement('span');
-                    katex.render(formatMath(q.sol), solSpan);
-                    solText.appendChild(solSpan);
-
+                    const solArea = document.getElementById('solution-text');
+                    solArea.innerHTML = "";
+                    renderMath(q.sol, solArea);
                     document.getElementById('solution-box').style.display = "block";
                     document.getElementById('next-btn').style.display = "block";
                 };
@@ -314,7 +297,6 @@
             document.getElementById('final').classList.add('active');
             const stats = document.getElementById('stats');
             stats.innerHTML = `<h3>${win ? 'Миссия Выполнена!' : 'Жизни закончились!'}</h3><p>Монеты: ${state.coins} 💰</p>`;
-            
             const retryArea = document.getElementById('retry-area');
             retryArea.innerHTML = "";
             let failedBlocks = Object.keys(state.errorsByBlock).filter(b => state.errorsByBlock[b] >= 1);
@@ -335,10 +317,10 @@
             const icons = grade === "5" ? ["🐱","⭐","📐"] : (grade === "6" ? ["🤖","🛰️","💠"] : ["⚡","🎤","💎"]);
             d.innerText = icons[Math.floor(Math.random()*icons.length)];
             d.style.left = Math.random()*95 + "vw";
-            d.style.fontSize = (20+Math.random()*30) + "px";
-            d.style.animationDuration = (8+Math.random()*10) + "s";
+            d.style.fontSize = (25+Math.random()*25) + "px";
+            d.style.animationDuration = (8+Math.random()*8) + "s";
             c.appendChild(d);
-            setTimeout(() => d.remove(), 15000);
+            setTimeout(() => d.remove(), 12000);
         }
         function spawnFloating() { setInterval(spawn, 1500); }
 
