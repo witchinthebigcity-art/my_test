@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Final Fixed</title>
+    <title>Math Universe: Full Edition</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Roboto:wght@400;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     
@@ -40,10 +40,10 @@
 
         /* КАРТОЧКИ */
         .card { 
-            background: white; border-radius: 35px; padding: 30px;
+            background: white; border-radius: 35px; padding: 25px;
             box-shadow: 0 12px 0 rgba(0,0,0,0.1); width: 100%; max-width: 440px;
             text-align: center; position: relative; z-index: 10; display: none;
-            max-height: 82vh; overflow-y: auto; border: 4px solid #333; color: #333;
+            max-height: 85vh; overflow-y: auto; border: 4px solid #333; color: #333;
         }
         body.grade-6 .card { background: rgba(26, 26, 46, 0.98); border-color: var(--turq); color: white; }
         body.grade-7 .card { background: rgba(13, 2, 33, 0.95); border-color: var(--neon); color: var(--neon); box-shadow: 0 0 25px var(--neon); }
@@ -53,8 +53,8 @@
 
         /* КНОПКИ */
         button { 
-            font-family: inherit; border: none; padding: 18px 10px; border-radius: 20px; 
-            width: 100%; margin: 10px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
+            font-family: inherit; border: none; padding: 16px 10px; border-radius: 20px; 
+            width: 100%; margin: 8px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
             transition: 0.2s; box-shadow: 0 6px 0 rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center;
         }
@@ -62,19 +62,20 @@
         .btn-acc { background: var(--acc); color: white; }
         .btn-ok { background: var(--btn); color: white; }
 
-        /* СПЕЦИАЛЬНЫЙ РАЗМЕР ШРИФТА ДЛЯ ЗАДАНИЙ 5 КЛАССА */
-        body.grade-5 #q-text { font-size: 18px !important; line-height: 1.3; }
-        body.grade-5 button { font-size: 16px; padding: 15px 5px; }
+        /* ИСПРАВЛЕНИЯ ТЕКСТА 5 КЛАССА */
+        body.grade-5 #q-text { font-size: 17px !important; line-height: 1.4; text-align: left; }
+        body.grade-5 button { font-size: 16px; }
 
-        /* ТЕКСТ ВОПРОСА ОБЩИЙ */
-        #q-text { font-size: 20px; font-weight: 700; margin-bottom: 25px; line-height: 1.4; }
+        /* ИСПРАВЛЕНИЯ ТЕКСТА 6 КЛАССА */
+        body.grade-6 #q-text { font-size: 18px; line-height: 1.5; }
 
-        .theory-box { text-align: left; padding: 20px; border-radius: 25px; border: 3px dashed var(--acc); margin-bottom: 15px; font-size: 17px; line-height: 1.5; }
+        /* ОБЩИЙ ТЕКСТ ВОПРОСА */
+        #q-text { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+
+        .theory-box { text-align: left; padding: 20px; border-radius: 25px; border: 3px dashed var(--acc); margin-bottom: 15px; font-size: 16px; line-height: 1.5; }
         #solution-box { display: none; padding: 20px; border-radius: 25px; margin-top: 20px; text-align: left; border: 3px solid var(--btn); background: rgba(0,0,0,0.05); }
 
-        /* СТИЛИ ДЛЯ МАТЕМАТИКИ */
-        .katex-display { margin: 10px 0 !important; }
-        .katex { font-size: 1.1em !important; }
+        .katex-display { margin: 5px 0 !important; }
         
         #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
         .floater { position: absolute; bottom: -100px; opacity: 0.3; animation: floatUp linear forwards; }
@@ -93,13 +94,13 @@
     <div id="main-menu" class="card active">
         <div id="hero" style="font-size: 75px; margin-bottom: 10px;">🐱🚀</div>
         <h2 id="grade-title" style="font-size: 28px; margin: 10px 0;">Математика</h2>
-        <button class="btn-acc" onclick="showTheoryMenu()">📖 База Знаний</button>
-        <button class="btn-ok" onclick="startPractice()">🚀 Начать Тест</button>
+        <button class="btn-acc" onclick="showTheoryMenu()">📖 Теория</button>
+        <button class="btn-ok" onclick="startPractice()">🚀 Практика</button>
         <button onclick="showShop()" style="background: var(--gold); color: #000;">🛒 Магазин</button>
     </div>
 
     <div id="theory-menu" class="card">
-        <h3>Модули обучения:</h3>
+        <h3>Темы:</h3>
         <div id="theory-list"></div>
         <button onclick="showMainMenu()" style="background:#6c757d; color:white;">⬅️ Назад</button>
     </div>
@@ -128,7 +129,7 @@
     </div>
 
     <div id="final" class="card">
-        <h2 id="final-status">Итоги Миссии</h2>
+        <h2 id="final-status">Итоги</h2>
         <div id="stats" class="theory-box" style="text-align: center; font-size: 20px;"></div>
         <div id="retry-area"></div>
         <button class="btn-ok" onclick="showMainMenu()">В меню</button>
@@ -138,7 +139,7 @@
         const tg = window.Telegram.WebApp; tg.expand();
         let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], errorsByBlock: {} };
 
-        // Рендерер (Обрабатывает и текст и формулы)
+        // Рендерер
         function renderMath(text, element, isDisplay = false) {
             try {
                 if (text.includes('$')) {
@@ -146,72 +147,84 @@
                         return katex.renderToString(formula, { throwOnError: false });
                     });
                 } else {
-                    katex.render(text, element, { 
-                        displayMode: isDisplay, 
-                        throwOnError: false 
-                    });
+                    katex.render(text, element, { displayMode: isDisplay, throwOnError: false });
                 }
-            } catch (e) { element.innerHTML = text; } // Используем innerHTML для поддержки <br>
+            } catch (e) { element.innerHTML = text; }
         }
 
         const data = {
             "5": {
                 name: "5 Класс", hero: "🐱🚀",
+                // ПОЛНАЯ ТЕОРИЯ 5 КЛАССА
                 theory: [
-                    { title: "🔢 Числа", text: "Чтобы найти число, которое в $3$ раза меньше, делим: $126 : 3 = 42$." },
-                    { title: "📐 Фигуры", text: "Периметр прямоугольника: $P = (a + b) \\cdot 2$. Площадь квадрата: $S = a^2$." }
+                    { title: "1. Натуральные числа", text: "Натуральные числа — это те, что мы используем для счета ($1, 2, 3...$). Ноль не является натуральным числом.<br><b>Свойства:</b><br>$a + 0 = a$<br>$a \\cdot 0 = 0$<br><b>Метод Гаусса</b> (сумма ряда): $\\frac{n(n+1)}{2}$." },
+                    { title: "2. Умножение и уравнения", text: "<b>Фонтанчик:</b> $a \\cdot (b + c) = ab + ac$.<br><b>Степень:</b><br>$a^2 = a \\cdot a$ (Квадрат)<br>$a^3 = a \\cdot a \\cdot a$ (Куб)<br>Уравнение — это весы, где левая часть равна правой." },
+                    { title: "3. Геометрия", text: "<b>Периметр:</b> $P = 2 \\cdot (a + b)$.<br><b>Площадь:</b> $S = a \\cdot b$.<br><b>Объем:</b> $V = a \\cdot b \\cdot c$.<br>Помни: $10^2 = 100$ (перевод квадратных единиц)." },
+                    { title: "4. Обыкновенные дроби", text: "Сложение (одинаковый низ): $\\frac{a}{c} + \\frac{b}{c} = \\frac{a+b}{c}$.<br>Сравнение (метод бабочки): перемножаем крест-накраст." },
+                    { title: "5. Десятичные дроби", text: "Умножение на 10, 100 $\\to$ запятая <b>вправо</b>.<br>Деление на 10, 100 $\\to$ запятая <b>влево</b>.<br>Среднее арифметическое: сумма всех чисел деленная на их количество." }
                 ],
-                // ИСПРАВЛЕНЫ ПРОБЕЛЫ ДЛЯ 5 КЛАССА
+                // ЗАДАНИЯ 5 КЛАССА (Сжатый текст)
                 questions: [
-                    { q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй книге?", opt: ["42", "378", "123", "40"], cor: "42", sol: "$126 : 3 = 42$.", bId: "Натуральные числа" },
-                    { q: "Найдите значение выражения:<br>$45 + 15 \\cdot (102 - 92)$", opt: ["195", "600", "150", "160"], cor: "195", sol: "1) $102 - 92 = 10$<br>2) $15 \\cdot 10 = 150$<br>3) $45 + 150 = 195$", bId: "Порядок действий" },
-                    { q: "Ширина прямоугольника 8 см, а длина на 4 см больше. Чему равен периметр?", opt: ["40 см", "24 см", "96 см", "32 см"], cor: "40 см", sol: "Длина: $8 + 4 = 12$.<br>Периметр: $(8 + 12) \\cdot 2 = 40$.", bId: "Периметр" },
-                    { q: "Какую часть метра составляют 35 сантиметров?", opt: ["\\dfrac{35}{100}", "\\dfrac{35}{10}", "\\dfrac{100}{35}", "\\dfrac{3}{5}"], cor: "\\dfrac{35}{100}", sol: "В 1 метре 100 см, значит $\\frac{35}{100}$.", bId: "Дроби" },
-                    { q: "Вычислите: $3,27 + 12,5$", opt: ["15,77", "15,32", "4,52", "157,7"], cor: "15,77", sol: "Записываем запятую под запятой:<br>$3,27 + 12,50 = 15,77$.", bId: "Десятичные дроби" },
-                    { q: "Решите уравнение: $x - 14,8 = 5,2$", opt: ["20", "9,6", "20,10", "19,6"], cor: "20", sol: "$x = 5,2 + 14,8 = 20$.", bId: "Уравнения" },
-                    { q: "Округлите число 452,38 до целых.", opt: ["452", "453", "450", "452,4"], cor: "452", sol: "Первая цифра после запятой 3 (< 5), округляем в меньшую сторону.", bId: "Округление" },
-                    { q: "Площадь квадрата равна 64 $см^2$. Найдите его сторону.", opt: ["8 см", "16 см", "32 см", "4 см"], cor: "8 см", sol: "$8 \\cdot 8 = 64$.", bId: "Квадрат" },
-                    { q: "В классе 25 учеников. 40% из них — девочки. Сколько девочек в классе?", opt: ["10", "15", "4", "5"], cor: "10", sol: "$25 \\cdot 0,4 = 10$.", bId: "Проценты" },
-                    { q: "Чему равен объем прямоугольного параллелепипеда (2 см, 5 см, 10 см)?", opt: ["100 $см^3$", "17 $см^3$", "34 $см^3$", "50 $см^3$"], cor: "100 $см^3$", sol: "$V = 2 \\cdot 5 \\cdot 10 = 100$.", bId: "Объем" }
+                    { q: "В первой книге 126 страниц, это в 3 раза больше, чем во второй. Сколько страниц во второй?", opt: ["42", "378", "123", "40"], cor: "42", sol: "$126 : 3 = 42$.", bId: "Натуральные числа" },
+                    { q: "Вычислите: $45 + 15 \\cdot (102 - 92)$", opt: ["195", "600", "150", "160"], cor: "195", sol: "1) $10$, 2) $150$, 3) $195$.", bId: "Порядок действий" },
+                    { q: "Ширина 8 см, длина на 4 см больше. Найди периметр прямоугольника.", opt: ["40 см", "24 см", "96 см", "32 см"], cor: "40 см", sol: "Длина $12$. $P=(8+12)\\cdot 2=40$.", bId: "Геометрия" },
+                    { q: "Какую часть метра составляют 35 см?", opt: ["\\dfrac{35}{100}", "\\dfrac{35}{10}", "\\dfrac{100}{35}", "\\dfrac{3}{5}"], cor: "\\dfrac{35}{100}", sol: "В метре 100 см $\\to \\frac{35}{100}$.", bId: "Дроби" },
+                    { q: "Сложите: $3,27 + 12,5$", opt: ["15,77", "15,32", "4,52", "157,7"], cor: "15,77", sol: "Запятая под запятой: $15,77$.", bId: "Десятичные дроби" },
+                    { q: "Решите: $x - 14,8 = 5,2$", opt: ["20", "9,6", "20,1", "19,6"], cor: "20", sol: "$x = 5,2 + 14,8 = 20$.", bId: "Уравнения" },
+                    { q: "Округлите до целых: 452,38", opt: ["452", "453", "450", "452,4"], cor: "452", sol: "Цифра 3 < 5 $\\to$ не меняем.", bId: "Округление" },
+                    { q: "Площадь квадрата 64 $см^2$. Сторона?", opt: ["8 см", "16 см", "32 см", "4 см"], cor: "8 см", sol: "$8 \\cdot 8 = 64$.", bId: "Квадрат" },
+                    { q: "В классе 25 чел. 40% девочки. Сколько их?", opt: ["10", "15", "4", "5"], cor: "10", sol: "$25 \\cdot 0,4 = 10$.", bId: "Проценты" },
+                    { q: "Объем (2 см, 5 см, 10 см):", opt: ["100 $см^3$", "17 $см^3$", "34 $см^3$", "50 $см^3$"], cor: "100 $см^3$", sol: "$2 \\cdot 5 \\cdot 10 = 100$.", bId: "Объем" }
                 ]
             },
             "6": {
                 name: "6 Класс", hero: "🤖🛰️",
+                // ПОЛНАЯ ТЕОРИЯ 6 КЛАССА
                 theory: [
-                    { title: "🔬 Делимость", text: "Разложение: $n = p_1^a \\cdot p_2^b$." }
+                    { title: "1. Теория чисел", text: "Любое число можно разложить на простые множители: $n = p_1^{a} \\cdot p_2^{b}$. Это «ДНК» числа для поиска НОК и НОД." },
+                    { title: "2. Сложение дробей", text: "<b>Нельзя</b> складывать дроби с разными знаменателями! Сначала ищем НОК, потом домножаем и складываем верхушки." },
+                    { title: "3. Умножение/Деление", text: "Умножение: числитель на числитель, низ на низ.<br>Деление: вторую дробь переворачиваем и умножаем." },
+                    { title: "4. Пропорции", text: "Правило креста: $\\frac{a}{b} = \\frac{c}{d} \\iff a \\cdot d = b \\cdot c$." },
+                    { title: "5. Отрицательные числа", text: "Модуль $|a|$ — это расстояние (всегда +).<br>Знаки: минус на минус = плюс. Разные знаки = минус." },
+                    { title: "6. Раскрытие скобок", text: "Минус перед скобкой меняет знаки внутри: $-(a-b) = -a+b$." }
                 ],
-                // НОВЫЕ ЗАДАНИЯ ДЛЯ 6 КЛАССА
+                // ЗАДАНИЯ 6 КЛАССА (С ИСПРАВЛЕННЫМИ ПРОБЕЛАМИ)
                 questions: [
-                    { q: "Найдите НОК чисел 12 и 15:", opt: ["3", "180", "60", "30"], cor: "60", sol: "НОК(12, 15) = 60.", bId: "Делимость" },
-                    { q: "Решите пропорцию:<br>$12 : x = 4 : 5$", opt: ["15", "9,6", "10", "2,4"], cor: "15", sol: "$4x = 12 \\cdot 5 \\implies 4x = 60 \\implies x = 15$.", bId: "Пропорции" },
-                    { q: "Карта 1 : 500 000, 4 см. Реальное расстояние?", opt: ["2 км", "20 км", "200 км", "12,5 км"], cor: "20 км", sol: "$4 \\cdot 500\\,000$ см = $20$ км.", bId: "Масштаб" },
-                    { q: "Длина окружности при $R=5$ ($\\pi \\approx 3,14$):", opt: ["15,7", "31,4", "78,5", "314"], cor: "31,4", sol: "$C = 2\\pi R = 2 \\cdot 3,14 \\cdot 5 = 31,4$.", bId: "Геометрия" },
-                    { q: "Вычислите:<br>$-18 + (-7) - (-10)$", opt: ["-35", "-15", "-25", "15"], cor: "-15", sol: "$-18 - 7 + 10 = -15$.", bId: "Рациональные числа" },
-                    { q: "Значение:<br>$(-2,5) \\cdot (-4) \\cdot 0,3$", opt: ["3", "-3", "0,3", "-30"], cor: "3", sol: "$10 \\cdot 0,3 = 3$.", bId: "Рациональные числа" },
-                    { q: "В какой четверти точка $A(-5; 8)$?", opt: ["I", "II", "III", "IV"], cor: "II", sol: "$x < 0, y > 0 \\implies$ II четверть.", bId: "Координаты" },
-                    { q: "Упростите:<br>$3(x - 2) - 2(x - 3)$", opt: ["x - 12", "5x", "x", "x + 12"], cor: "x", sol: "$3x - 6 - 2x + 6 = x$.", bId: "Упрощение" },
-                    { q: "Решите уравнение:<br>$5x - 12 = 2x + 6$", opt: ["2", "6", "-2", "18"], cor: "6", sol: "$3x = 18 \\implies x = 6$.", bId: "Уравнения" },
-                    { q: "Значение $|-12,4| + |3,6|$:", opt: ["8,8", "16", "-8,8", "-16"], cor: "16", sol: "$12,4 + 3,6 = 16$.", bId: "Модуль" }
+                    { q: "Найдите НОК (наименьшее общее кратное) чисел 12 и 15:", opt: ["3", "180", "60", "30"], cor: "60", sol: "60 делится и на 12, и на 15.", bId: "Теория чисел" },
+                    { q: "Решите пропорцию: $12 : x = 4 : 5$", opt: ["15", "9,6", "10", "2,4"], cor: "15", sol: "$4x = 12 \\cdot 5 \\implies x = 15$.", bId: "Пропорции" },
+                    { q: "Карта 1 : 500 000. На карте 4 см. Реальное расстояние?", opt: ["2 км", "20 км", "200 км", "12,5 км"], cor: "20 км", sol: "$4 \\cdot 5 = 20$ км.", bId: "Пропорции" },
+                    { q: "Длина окружности ($R=5, \\pi \\approx 3,14$):", opt: ["15,7", "31,4", "78,5", "314"], cor: "31,4", sol: "$C = 2 \\cdot 3,14 \\cdot 5 = 31,4$.", bId: "Геометрия" },
+                    { q: "Вычислите: $-18 + (-7) - (-10)$", opt: ["-35", "-15", "-25", "15"], cor: "-15", sol: "$-25 + 10 = -15$.", bId: "Отрицательные числа" },
+                    { q: "Значение: $(-2,5) \\cdot (-4) \\cdot 0,3$", opt: ["3", "-3", "0,3", "-30"], cor: "3", sol: "$10 \\cdot 0,3 = 3$.", bId: "Отрицательные числа" },
+                    { q: "В какой четверти точка $A(-5; 8)$?", opt: ["I", "II", "III", "IV"], cor: "II", sol: "$x < 0, y > 0 \\to$ II четверть.", bId: "Координаты" },
+                    { q: "Упростите: $3(x - 2) - 2(x - 3)$", opt: ["x - 12", "5x", "x", "x + 12"], cor: "x", sol: "$3x - 6 - 2x + 6 = x$.", bId: "Раскрытие скобок" },
+                    { q: "Решите: $5x - 12 = 2x + 6$", opt: ["2", "6", "-2", "18"], cor: "6", sol: "$3x = 18 \\implies x=6$.", bId: "Уравнения" },
+                    { q: "Значение $|-12,4| + |3,6|$:", opt: ["8,8", "16", "-8,8", "-16"], cor: "16", sol: "$12,4 + 3,6 = 16$.", bId: "Отрицательные числа" }
                 ]
             },
             "7": {
                 name: "7 Класс", hero: "👩🏻‍🎤⚡",
+                // ПОЛНАЯ ТЕОРИЯ 7 КЛАССА
                 theory: [
-                    { title: "⚡ Степени", text: "$a^n \\cdot a^m = a^{n+m}$" },
-                    { title: "📈 Функции", text: "$y = kx + b$" }
+                    { title: "1. Свойства степеней", text: "$a^n \\cdot a^m = a^{n+m}$<br>$(a^n)^m = a^{nm}$<br>При умножении показатели складываются, при возведении в степень — перемножаются." },
+                    { title: "2. Линейная функция", text: "$y = kx + b$.<br>$k$ — наклон прямой.<br>$b$ — точка пересечения с осью Y." },
+                    { title: "3. Умножение многочленов", text: "Правило фонтанчика: $(a+b)(c+d) = ac + ad + bc + bd$. Умножаем каждого на каждого." },
+                    { title: "4. Формулы ФСУ", text: "$(a+b)^2 = a^2 + 2ab + b^2$<br>$(a-b)(a+b) = a^2 - b^2$ (Разность квадратов)." },
+                    { title: "5. Системы уравнений", text: "Найти $x$ и $y$, которые подходят обоим уравнениям. Геометрически — это точка пересечения прямых." },
+                    { title: "6. Треугольники", text: "Признаки равенства: 1) СУС (2 стороны и угол), 2) УСУ (сторона и 2 угла), 3) ССС (3 стороны)." }
                 ],
-                // ИСПРАВЛЕННЫЙ РЕНДЕРИНГ 7 КЛАССА
+                // ЗАДАНИЯ 7 КЛАССА
                 questions: [
-                    { q: "Упростите выражение:<br>$2(3x - 1) - 4(x + 2)$", opt: ["2x - 10", "2x + 6", "10x - 10", "2x - 3"], cor: "2x - 10", sol: "$6x - 2 - 4x - 8 = 2x - 10$", bId: "Алгебра" },
-                    { q: "Вычислите: $\\dfrac{(a^3)^4}{a^{10}}$", opt: ["a^7", "a^2", "a^{22}", "a^{12}"], cor: "a^2", sol: "$a^{12} : a^{10} = a^2$", bId: "Свойства степеней" },
-                    { q: "Представьте как многочлен:<br>$(x - 3)(x + 5)$", opt: ["x^2 - 15", "x^2 - 2x - 15", "x^2 + 8x - 15", "x^2 + 2x - 15"], cor: "x^2 + 2x - 15", sol: "$x^2 + 5x - 3x - 15 = x^2 + 2x - 15$", bId: "Алгебра" },
-                    { q: "Решите систему:<br>$\\begin{cases} x + y = 10 \\\\ x - y = 4 \\end{cases}$", opt: ["(6; 4)", "(5; 5)", "(7; 3)", "(8; 2)"], cor: "(7; 3)", sol: "Сложим: $2x = 14 \\implies x=7$. Тогда $y=3$.", bId: "Системы" },
-                    { q: "Разложите: $16 - 9y^2$", opt: ["(4 - 3y)(4 + 3y)", "(4 - 3y)^2", "(8 - 3y)(8 + 3y)", "(16 - 9y)(16 + 9y)"], cor: "(4 - 3y)(4 + 3y)", sol: "$4^2 - (3y)^2 = (4-3y)(4+3y)$", bId: "ФСУ" },
-                    { q: "$y = 3x + b$ проходит через $A(1; 5)$.<br>Найдите $b$:", opt: ["5", "2", "8", "-2"], cor: "2", sol: "$5 = 3 \\cdot 1 + b \\implies b=2$", bId: "Функция" },
-                    { q: "Решите уравнение:<br>$5x - 4 = 3x + 8$", opt: ["2", "4", "6", "-2"], cor: "6", sol: "$2x = 12 \\implies x = 6$", bId: "Алгебра" },
-                    { q: "Угол, смежный с углом $50^\\circ$:", opt: ["40^\\circ", "130^\\circ", "50^\\circ", "180^\\circ"], cor: "130^\\circ", sol: "$180 - 50 = 130$", bId: "Геометрия" },
-                    { q: "Равнобедренный треуг.<br>Угол при основании $70^\\circ$. Вершина?", opt: ["70^\\circ", "110^\\circ", "55^\\circ", "40^\\circ"], cor: "40^\\circ", sol: "$180 - 2 \\cdot 70 = 40$", bId: "Геометрия" },
-                    { q: "Параллельные прямые.<br>Накрест лежащий к $60^\\circ$:", opt: ["120^\\circ", "60^\\circ", "30^\\circ", "90^\\circ"], cor: "60^\\circ", sol: "Углы равны.", bId: "Геометрия" }
+                    { q: "Упростите: $2(3x - 1) - 4(x + 2)$", opt: ["2x - 10", "2x + 6", "10x - 10", "2x - 3"], cor: "2x - 10", sol: "$6x - 2 - 4x - 8 = 2x - 10$", bId: "Алгебра" },
+                    { q: "Уравнение: $5x - 4 = 3x + 8$", opt: ["2", "4", "6", "-2"], cor: "6", sol: "$2x = 12 \\implies x = 6$", bId: "Алгебра" },
+                    { q: "Вычислите: $\\frac{(a^3)^4}{a^{10}}$", opt: ["a^7", "a^2", "a^{22}", "a^{12}"], cor: "a^2", sol: "$a^{12} : a^{10} = a^2$", bId: "Степени" },
+                    { q: "Многочлен: $(x - 3)(x + 5)$", opt: ["x^2 - 15", "x^2 - 2x - 15", "x^2 + 8x - 15", "x^2 + 2x - 15"], cor: "x^2 + 2x - 15", sol: "$x^2 + 5x - 3x - 15$.", bId: "Алгебра" },
+                    { q: "Разложите: $16 - 9y^2$", opt: ["(4-3y)(4+3y)", "(4-3y)^2", "(8-3y)(8+3y)", "(16-9y)(...)"], cor: "(4-3y)(4+3y)", sol: "Разность квадратов.", bId: "ФСУ" },
+                    { q: "$y = 3x + b$ через $A(1; 5)$. $b$?", opt: ["5", "2", "8", "-2"], cor: "2", sol: "$5 = 3 \\cdot 1 + b \\to b=2$.", bId: "Функции" },
+                    { q: "Система: $\\begin{cases} x+y=10 \\\\ x-y=4 \\end{cases}$", opt: ["(6; 4)", "(5; 5)", "(7; 3)", "(8; 2)"], cor: "(7; 3)", sol: "Сложим: $2x=14 \\to x=7$.", bId: "Системы" },
+                    { q: "Угол смежный с $50^\\circ$:", opt: ["40^\\circ", "130^\\circ", "50^\\circ", "180^\\circ"], cor: "130^\\circ", sol: "$180 - 50 = 130$.", bId: "Геометрия" },
+                    { q: "Равнобедр. треугольник Угол основания $70^\\circ$. Угол при вершине?", opt: ["70^\\circ", "110^\\circ", "55^\\circ", "40^\\circ"], cor: "40^\\circ", sol: "$180 - 70 - 70 = 40$.", bId: "Геометрия" },
+                    { q: "Параллельные прямые. Накрест лежащий к $60^\\circ$?", opt: ["120^\\circ", "60^\\circ", "30^\\circ", "90^\\circ"], cor: "60^\\circ", sol: "Углы равны.", bId: "Геометрия" }
                 ]
             }
         };
