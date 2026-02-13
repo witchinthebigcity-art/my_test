@@ -142,17 +142,16 @@
         
         let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], errorsByBlock: {} };
 
-        // Рендерер
+        // ИСПРАВЛЕННЫЙ Рендерер
         window.renderMath = function(text, element, isDisplay = false) {
             try {
-                if (text.includes('$')) {
-                    element.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
-                        return katex.renderToString(formula, { throwOnError: false });
-                    });
-                } else {
-                    katex.render(text, element, { displayMode: isDisplay, throwOnError: false });
-                }
-            } catch (e) { element.innerHTML = text; }
+                // Если есть $, рендерим математику. Если нет — оставляем обычный текст с пробелами.
+                element.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
+                    return katex.renderToString(formula, { throwOnError: false, displayMode: isDisplay });
+                });
+            } catch (e) { 
+                element.innerHTML = text; 
+            }
         };
 
         const data = {
