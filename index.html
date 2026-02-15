@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Stable</title>
+    <title>Math Universe: Fixed</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Orbitron:wght@700;900&family=Oswald:wght@700;900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     
@@ -72,7 +72,17 @@
         .btn-acc { background: var(--acc); color: white; }
         .btn-ok { background: var(--btn); color: #fff; }
         
-        body.grade-8 button { font-family: 'Oswald', sans-serif; border-radius: 0; border: 4px solid var(--black); box-shadow: 4px 4px 0 var(--black); background: var(--white); text-transform: uppercase; color: var(--black); }
+        /* СТИЛИ 8 КЛАССА */
+        body.grade-8 button { 
+            font-family: 'Oswald', sans-serif; 
+            border-radius: 0; 
+            border: 4px solid var(--black); 
+            box-shadow: 4px 4px 0 var(--black); 
+            background: var(--white); 
+            color: var(--black); 
+            /* ИСПРАВЛЕНИЕ: убрали uppercase, чтобы x и a были маленькими */
+            text-transform: none; 
+        }
         body.grade-8 button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--black); }
         body.grade-8 .btn-acc { background: var(--magenta); color: white; }
         body.grade-8 .btn-ok { background: var(--yellow); color: black; }
@@ -95,7 +105,6 @@
         body.grade-8 .floater { opacity: 0.15; font-weight: 900; }
         @keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-120vh); } }
         
-        /* Loading Error State */
         #error-msg { display: none; color: red; background: white; padding: 20px; border-radius: 10px; z-index: 999; position: relative; }
     </style>
 </head>
@@ -162,9 +171,10 @@
         
         let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], errorsByBlock: {} };
 
-        // ИСПРАВЛЕННЫЙ Рендерер (корректно обрабатывает степени и дроби)
+        // РЕНДЕРЕР (исправлен: теперь понимает и mathmode внутри $)
         window.renderMath = function(text, element, isDisplay = false) {
             try {
+                // Если есть $, рендерим математику. Если нет — оставляем текст
                 element.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
                     return katex.renderToString(formula, { throwOnError: false, displayMode: isDisplay });
                 });
@@ -268,7 +278,7 @@
         };
 
         const params = new URLSearchParams(window.location.search);
-        const grade = params.get('grade') || "5"; // Значение по умолчанию "5"
+        const grade = params.get('grade') || "5"; 
         const curData = data[grade] || data["5"];
 
         // ИНИЦИАЛИЗАЦИЯ
@@ -286,12 +296,24 @@
         }
 
         window.showMainMenu = function() { 
-            tg.MainButton.hide(); // Прячем Telegram кнопку в меню
+            tg.MainButton.hide(); 
             hide(); 
             document.getElementById('main-menu').classList.add('active'); 
+            
+            // Ручная установка текстов кнопок для 8 класса (чтобы был CAPS)
+            if(grade === "8") {
+                document.querySelector('#main-menu .btn-acc').innerText = "📖 ТЕОРИЯ";
+                document.querySelector('#main-menu .btn-ok').innerText = "🚀 ТЕСТ";
+                document.querySelector('#main-menu button:last-child').innerText = "🛒 МАГАЗИН";
+            }
         }
         
-        window.showShop = function() { hide(); document.getElementById('shop').classList.add('active'); }
+        window.showShop = function() { 
+            hide(); 
+            document.getElementById('shop').classList.add('active'); 
+            if(grade === "8") document.querySelector('#shop button').innerText = "⬅️ НАЗАД";
+        }
+
         window.hide = function() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
 
         window.showTheoryMenu = function() {
@@ -317,6 +339,10 @@
                 };
                 list.appendChild(b);
             });
+            // Кнопка назад для 8 класса
+            const backBtn = document.querySelector('#theory-menu button:last-child');
+            if(grade === "8") backBtn.innerText = "⬅️ НАЗАД";
+            
             document.getElementById('theory-menu').classList.add('active');
         }
 
@@ -363,8 +389,8 @@
                         b.style.background = "#FF4500"; b.style.color = "white"; state.lives--;
                         state.errorsByBlock[q.bId] = (state.errorsByBlock[q.bId] || 0) + 1;
                         all.forEach(btn => { 
-                            // Проверка текста с учетом KaTeX
-                            if(btn.innerText === q.cor || btn.textContent === q.cor || btn.innerHTML.includes(q.cor.replace(/\$/g, ''))) {
+                            // Простая проверка на совпадение
+                            if(btn.innerText.includes(q.cor.replace(/\$/g, '')) || btn.innerHTML.includes(q.cor.replace(/\$/g, ''))) {
                                 btn.style.background = "#32CD32"; btn.style.color = "white"; 
                             } 
                         });
@@ -374,7 +400,10 @@
                     solArea.innerHTML = "";
                     renderMath(q.sol, solArea);
                     document.getElementById('solution-box').style.display = "block";
-                    document.getElementById('next-btn').style.display = "block";
+                    
+                    const nextBtn = document.getElementById('next-btn');
+                    if(grade === "8") nextBtn.innerText = "ДАЛЬШЕ ➡️";
+                    nextBtn.style.display = "block";
                 };
                 optCont.appendChild(b);
             });
@@ -415,6 +444,10 @@
                     retryArea.appendChild(rb);
                 });
             }
+
+            // Кнопка в меню
+            const menuBtn = document.querySelector('#final > button');
+            if(grade === "8") menuBtn.innerText = "В МЕНЮ";
 
             // МАГИЯ ОТПРАВКИ В TELEGRAM
             const resultData = {
