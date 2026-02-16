@@ -286,244 +286,112 @@
         };
         
         // --- ЛОГИКА ПРОФИЛЯ ---
-        window.setGradeFromBtn = (g) => { document.getElementById('user-grade-input').value = g; };
+       window.setGradeFromBtn = (g) => { document.getElementById('user-grade-input').value = g; };
 
         window.saveFullProfile = function() {
-            const nameVal = document.getElementById('user-name-input').value.trim();
-            const gradeVal = document.getElementById('user-grade-input').value.trim();
-            
-            if (!nameVal || !gradeVal) {
-                alert("Пожалуйста, введи имя и выбери класс!");
-                return;
-            }
-            
-            state.name = nameVal;
-            localStorage.setItem('math_name', nameVal);
-            switchGrade(gradeVal);
+            const name = document.getElementById('user-name-input').value.trim();
+            const grade = document.getElementById('user-grade-input').value;
+            if(!name || !grade) return alert("Заполни все поля!");
+            state.name = name;
+            localStorage.setItem('math_name', name);
+            switchGrade(grade);
         };
 
-        // ЗАГРУЗКА ИЗ CSV
+        window.switchGrade = (g) => {
+            currentGrade = g; hideAll();
+            document.body.className = "grade-" + g;
+            const cur = data[g];
+            document.getElementById('grade-title').innerText = cur.name;
+            document.getElementById('hero').innerText = cur.hero;
+            document.getElementById('grade-desc').innerText = `Привет, ${state.name}! ${cur.desc}`;
+            document.getElementById('hud').style.display = 'flex';
+            showMainMenu();
+        };
+
         async function loadRemoteData() {
             try {
-                document.getElementById('loader-start').style.display = 'block';
-                const response = await fetch(SHEET_CSV_URL);
-                const dataText = await response.text();
-                
-                const rows = dataText.split('\n').slice(1); 
-                remoteDatabase = rows.map(row => {
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (cols.length < 7) return null;
-                    const options = [cols[2], cols[3], cols[4], cols[5]].map(s => s?.replace(/^"|"$/g, '').trim());
-                    const correctText = cols[6]?.trim();
-                    let finalCorrect = correctText;
-                    if (correctText?.includes("Вариант 1")) finalCorrect = options[0];
-                    else if (correctText?.includes("Вариант 2")) finalCorrect = options[1];
-                    else if (correctText?.includes("Вариант 3")) finalCorrect = options[2];
-                    else if (correctText?.includes("Вариант 4")) finalCorrect = options[3];
-
-                    return {
-                        grade: cols[0].trim(),
-                        q: cols[1].replace(/^"|"$/g, '').trim(),
-                        opt: options,
-                        cor: finalCorrect,
-                        sol: cols[7]?.replace(/^"|"$/g, '').trim() || "..."
-                    };
-                }).filter(item => item !== null);
-                
-                document.getElementById('loader-start').innerText = "✅ База загружена!";
-                setTimeout(() => document.getElementById('loader-start').style.display = 'none', 1000);
-            } catch (e) { document.getElementById('loader-start').innerText = "⚠️ Ошибка загрузки базы"; }
+                const res = await fetch(SHEET_CSV_URL);
+                const text = await res.text();
+                const rows = text.split('\n').slice(1);
+                remoteDatabase = rows.map(r => {
+                    const c = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if(c.length < 7) return null;
+                    const opt = [c[2], c[3], c[4], c[5]].map(s => s?.replace(/"/g, '').trim());
+                    let cor = c[6]?.trim();
+                    if(cor.includes("Вариант 1")) cor = opt[0];
+                    else if(cor.includes("Вариант 2")) cor = opt[1];
+                    else if(cor.includes("Вариант 3")) cor = opt[2];
+                    else if(cor.includes("Вариант 4")) cor = opt[3];
+                    return { grade: c[0].trim(), q: c[1].replace(/"/g, ''), opt, cor, sol: c[7] };
+                }).filter(i => i);
+            } catch(e) { console.error(e); }
         }
 
-        // --- ЛОГИКА ---
-        window.switchGrade = function(newGrade) {
-            currentGrade = newGrade;
-            hideAll();
-            document.body.className = "grade-" + newGrade;
-            
-            const curData = data[newGrade];
-            document.getElementById('grade-title').innerText = curData.name;
-            document.getElementById('hero').innerText = curData.hero;
-            document.getElementById('grade-desc').innerText = curData.desc || "";
-            
-            if (currentGrade === "8") document.getElementById('sol-hero').innerHTML = "📟💀 ГОВОРИТ:";
-            else document.getElementById('sol-hero').innerHTML = "🔬 Разбор:";
+        window.startPractice = async () => {
+            hideAll(); state.lives = 5; state.coins = 0; state.currentIdx = 0;
+            if (remoteDatabase.length === 0) await loadRemoteData();
+            let pool = remoteDatabase.filter(i => i.grade == currentGrade);
+            if(!pool.length) return alert("Задания еще грузятся...");
+            state.questions = pool.sort(() => Math.random()-0.5).slice(0, 10);
+            updateHUD(); document.getElementById('quiz').classList.add('active'); renderQ();
+        };
 
-            document.getElementById('hud').style.display = 'flex';
-            document.getElementById('main-menu').classList.add('active');
-        }
-
-        window.showGradeSelector = function() {
-            hideAll();
-            document.getElementById('hud').style.display = 'none';
-            document.getElementById('grade-selector').classList.add('active');
-        }
-
-        window.hideAll = function() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
-        window.showMainMenu = function() { hideAll(); document.getElementById('main-menu').classList.add('active'); }
-        window.showShop = function() { hideAll(); document.getElementById('shop').classList.add('active'); }
-
-        window.showTheoryMenu = function() {
-            hideAll();
-            const list = document.getElementById('theory-list');
-            list.innerHTML = "";
-            const curData = data[currentGrade];
-            curData.theory.forEach((t) => {
-                const b = document.createElement('button');
-                b.className = "btn-ok";
-                if(currentGrade==="10") b.style.borderRadius="15px";
-                if(parseInt(currentGrade)<=7) { b.style.background="#eee"; b.style.color="#333"; }
-                
-                b.innerText = t.title;
-                b.onclick = () => {
-                    hideAll();
-                    document.getElementById('view-title').innerText = t.title;
-                    const contentArea = document.getElementById('view-content');
-                    contentArea.innerHTML = "";
-                    renderMath(t.text, contentArea);
-                    document.getElementById('theory-view').classList.add('active');
-                };
-                list.appendChild(b);
-            });
-            document.getElementById('theory-menu').classList.add('active');
-        }
-
-        // ЗАПУСК ИГРЫ
-        window.startPractice = async function(retryMode = false) {
-            hideAll();
-            state.currentIdx = 0; 
-            
-            if (!retryMode) {
-                // ОБЫЧНЫЙ РЕЖИМ
-                state.lives = 5; 
-                state.coins = 0; 
-                state.errors = [];
-                
-                // Проверяем, загружена ли база
-                if (remoteDatabase.length === 0) await loadRemoteData();
-                
-                // Фильтруем по классу из ОБЩЕЙ базы
-                let pool = remoteDatabase.filter(item => item.grade == currentGrade);
-                
-                if (!pool || pool.length === 0) {
-                    alert("Задания для этого класса загружаются или отсутствуют. Проверьте Google Таблицу.");
-                    showMainMenu();
-                    return;
-                }
-                // Берем 10 случайных
-                state.questions = pool.sort(() => Math.random() - 0.5).slice(0, 10);
-            } else {
-                // РАБОТА НАД ОШИБКАМИ
-                state.questions = [...state.errors]; 
-                state.errors = [];
-            }
-
-            updateHUD();
-            document.getElementById('quiz').classList.add('active');
-            renderQ();
-        }
-
-        window.updateHUD = function() {
-            document.getElementById('lives').innerText = state.lives;
-            document.getElementById('coins').innerText = state.coins;
-        }
-
-        window.renderQ = function() {
-            if(state.lives <= 0) { finish(false); return; }
-            if(state.currentIdx >= state.questions.length) { finish(true); return; }
-
+        window.renderQ = () => {
+            if(state.lives <= 0) return finish(false);
+            if(state.currentIdx >= state.questions.length) return finish(true);
             const q = state.questions[state.currentIdx];
-            document.getElementById('progress').innerText = `Вопрос ${state.currentIdx + 1} / ${state.questions.length}`;
-            
-            const qContainer = document.getElementById('q-text');
-            qContainer.innerHTML = "";
-            renderMath(q.q, qContainer, q.q.includes('cases'));
-
-            document.getElementById('solution-box').style.display = "none";
-            document.getElementById('next-btn').style.display = "none";
-            
-            const optCont = document.getElementById('options');
-            optCont.innerHTML = "";
-            
-            let optionsShuffled = [...q.opt].sort(() => Math.random() - 0.5);
-
-            optionsShuffled.forEach(o => {
+            document.getElementById('progress').innerText = `Вопрос ${state.currentIdx+1}/10`;
+            renderMath(q.q, document.getElementById('q-text'));
+            const optCont = document.getElementById('options'); optCont.innerHTML = "";
+            q.opt.forEach(o => {
                 const b = document.createElement('button');
                 renderMath(o, b);
-                
-                if(currentGrade === "10") b.style.borderRadius = "20px";
-                if(currentGrade === "9") b.style.background = "#fff";
-
                 b.onclick = () => {
-                    const all = optCont.querySelectorAll('button');
-                    all.forEach(btn => btn.disabled = true);
-                    
-                    const normalize = (str) => str.replace(/\$/g, '').trim();
-                    const isCorrect = normalize(o) === normalize(q.cor);
-
-                    if(isCorrect) {
-                        b.style.background = "#32CD32"; b.style.color = "white"; state.coins += 5;
-                    } else {
-                        b.style.background = "#FF4500"; b.style.color = "white"; state.lives--;
-                        state.errors.push(q);
-                        
-                        all.forEach(btn => { 
-                            if(normalize(btn.innerText) === normalize(q.cor)) {
-                                btn.style.background = "#32CD32"; btn.style.color="white"; 
-                            } 
-                        });
-                    }
-                    updateHUD();
-                    const solArea = document.getElementById('solution-text');
-                    solArea.innerHTML = "";
-                    renderMath(q.sol, solArea);
-                    document.getElementById('solution-box').style.display = "block";
-                    document.getElementById('next-btn').style.display = "block";
+                    if(o === q.cor) { b.style.background="#32CD32"; state.coins+=5; }
+                    else { b.style.background="#FF4500"; state.lives--; }
+                    updateHUD(); renderMath(q.sol, document.getElementById('solution-text'));
+                    document.getElementById('solution-box').style.display="block";
+                    document.getElementById('next-btn').style.display="block";
+                    optCont.querySelectorAll('button').forEach(btn => btn.disabled=true);
                 };
                 optCont.appendChild(b);
             });
-        }
+            document.getElementById('next-btn').style.display="none"; document.getElementById('solution-box').style.display="none";
+        };
 
         document.getElementById('next-btn').onclick = () => { state.currentIdx++; renderQ(); };
+        window.finish = (win) => { hideAll(); document.getElementById('final').classList.add('active'); document.getElementById('final-status').innerText = win ? "ПОБЕДА!" : "НЕУДАЧА"; document.getElementById('stats').innerText = `Монеты: ${state.coins}`; };
+        window.hideAll = () => document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+        window.showMainMenu = () => { hideAll(); document.getElementById('main-menu').classList.add('active'); };
+        window.showGradeSelector = () => { hideAll(); document.getElementById('hud').style.display='none'; document.getElementById('grade-selector').classList.add('active'); };
+        window.updateHUD = () => { document.getElementById('lives').innerText = state.lives; document.getElementById('coins').innerText = state.coins; };
 
-        window.finish = function(win) {
+        window.showTheoryMenu = () => {
+            hideAll(); const list = document.getElementById('theory-list'); list.innerHTML = "";
+            data[currentGrade].theory.forEach(t => {
+                const b = document.createElement('button'); b.innerText = t.title;
+                b.onclick = () => { hideAll(); document.getElementById('view-title').innerText = t.title; renderMath(t.text, document.getElementById('view-content')); document.getElementById('theory-view').classList.add('active'); };
+                list.appendChild(b);
+            });
+            document.getElementById('theory-menu').classList.add('active');
+        };
+
+        function initApp() {
+            const saved = localStorage.getItem('math_name');
             hideAll();
-            document.getElementById('final').classList.add('active');
-            const stats = document.getElementById('stats');
-            
-            let title = win ? 'УРОВЕНЬ ПРОЙДЕН!' : 'ПОПЫТКИ ЗАКОНЧИЛИСЬ';
-            if (state.questions.length === 0) title = "ОШИБОК НЕТ!";
-
-            stats.innerHTML = `<h3>${title}</h3><p>Монеты: ${state.coins} 💰</p>`;
-            
-            const retryArea = document.getElementById('retry-area');
-            retryArea.innerHTML = "";
-            
-            if(state.errors.length > 0) {
-                const errBtn = document.createElement('button');
-                errBtn.className = "btn-acc";
-                errBtn.innerText = `⚠️ ПРОРАБОТАТЬ ОШИБКИ (${state.errors.length})`;
-                errBtn.onclick = () => startPractice(true);
-                retryArea.appendChild(errBtn);
-            }
+            if(!saved) document.getElementById('welcome-screen').classList.add('active');
+            else { state.name = saved; showGradeSelector(); }
+            loadRemoteData();
         }
+        initApp();
+        setInterval(() => {
+            const c = document.getElementById('floating-container'); const d = document.createElement('div');
+            d.className = 'floater'; d.innerText = "⚡"; d.style.left = Math.random()*95+"vw";
+            d.style.animationDuration = (6+Math.random()*6)+"s"; c.appendChild(d);
+            setTimeout(() => d.remove(), 10000);
+        }, 2000);
 
-        window.spawn = function() {
-            const c = document.getElementById('floating-container');
-            const d = document.createElement('div');
-            d.className = 'floater';
-            d.innerText = ["⚡","📚","📐","💡"][Math.floor(Math.random()*4)];
-            d.style.left = Math.random()*95 + "vw";
-            d.style.animationDuration = (6+Math.random()*6) + "s";
-            c.appendChild(d);
-            setTimeout(() => d.remove(), 12000);
-        }
-        setInterval(spawn, 1500);
-
-        // Инициализация
-        loadRemoteData();
-
-    } catch (e) { document.getElementById('error-msg').style.display = 'block'; }
+    } catch (e) { document.getElementById('error-msg').innerText = e; }
     </script>
 </body>
 </html>
