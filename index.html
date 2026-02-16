@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Fixed</title>
+    <title>Math Universe: Ultimate</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Orbitron:wght@700;900&family=Oswald:wght@700;900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Orbitron:wght@700;900&family=Oswald:wght@700;900&family=Roboto:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -15,9 +15,19 @@
         :root {
             --sky: #87CEEB; --lime: #32CD32; --orange: #FF8C00;
             --turq: #00CED1; --purple: #4B0082; --coral: #FF7F50;
-            --neon: #00ff41; --cyber-blue: #0d0221; --gold: #FFD700; --red: #FF4500;
-            /* Цвета 8 класса */
+            --neon: #00ff41; --cyber-blue: #0d0221; --gold: #FFD700;
+            
+            /* 8 класс */
             --yellow: #FFFF00; --magenta: #FF00FF; --black: #000000; --white: #FFFFFF;
+            
+            /* 9 класс (Functional) */
+            --func-blue: #007AFF; --func-orange: #FF9500; --func-bg: #F5F5F7;
+            
+            /* 10 класс (StudyCafe) */
+            --sage: #8DA399; --warm-white: #F9F7F2; --coffee: #4A403A;
+            
+            /* 11 класс (Deep Focus) */
+            --deep-bg: #121212; --deep-accent: #0A84FF; --deep-text: #E0E0E0;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -30,73 +40,90 @@
             background: #f0f0f0; 
         }
 
-        /* ТЕМЫ */
-        body.grade-5 { background: linear-gradient(180deg, var(--sky) 0%, #E0F7FA 100%); font-family: 'Nunito', sans-serif; --acc: var(--orange); --btn: var(--lime); }
-        body.grade-6 { background: #1A1A2E; font-family: 'Montserrat', sans-serif; color: #E1E8F0; --acc: var(--coral); --btn: var(--turq); }
-        body.grade-7 { background: var(--cyber-blue); color: var(--neon); font-family: 'Roboto', sans-serif; --acc: #9d00ff; --btn: var(--neon); }
+        /* --- СТИЛИ КЛАССОВ --- */
+        
+        /* 5-7 КЛАССЫ */
+        body.grade-5 { background: linear-gradient(180deg, var(--sky) 0%, #E0F7FA 100%); font-family: 'Nunito', sans-serif; --acc: var(--orange); --btn: var(--lime); --card-bg: white; --text-col: #333; }
+        body.grade-6 { background: #1A1A2E; font-family: 'Montserrat', sans-serif; color: #E1E8F0; --acc: var(--coral); --btn: var(--turq); --card-bg: rgba(26, 26, 46, 0.98); --text-col: #E1E8F0; }
+        body.grade-7 { background: var(--cyber-blue); color: var(--neon); font-family: 'Roboto', sans-serif; --acc: #9d00ff; --btn: var(--neon); --card-bg: rgba(13, 2, 33, 0.95); --text-col: var(--neon); }
         body.grade-7 h2 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; }
         
-        /* БРУТАЛЬНАЯ ТЕМА 8 КЛАССА */
-        body.grade-8 { background: var(--white); color: var(--black); font-family: 'Inter', sans-serif; --acc: var(--magenta); --btn: var(--yellow); }
+        /* 8 КЛАСС (BRUTAL) */
+        body.grade-8 { background: var(--white); color: var(--black); font-family: 'Inter', sans-serif; --acc: var(--magenta); --btn: var(--yellow); --card-bg: var(--white); --text-col: var(--black); }
         body.grade-8 h2, body.grade-8 h3 { font-family: 'Oswald', sans-serif; text-transform: uppercase; margin: 0 0 20px 0; line-height: 1.1; }
         body.grade-8 h2 { font-size: 32px; border-bottom: 6px solid var(--black); padding-bottom: 10px; }
+        body.grade-8 .card { border-radius: 0; border: 6px solid var(--black); box-shadow: 12px 12px 0 var(--magenta); }
+        body.grade-8 button { font-family: 'Oswald', sans-serif; border-radius: 0; border: 4px solid var(--black); box-shadow: 4px 4px 0 var(--black); text-transform: none; }
 
-        /* HUD */
+        /* 9 КЛАСС (FUNCTIONAL) */
+        body.grade-9 { background: var(--func-bg); color: #1D1D1F; font-family: 'Roboto', sans-serif; --acc: var(--func-blue); --btn: var(--func-orange); --card-bg: #FFFFFF; --text-col: #1D1D1F; }
+        body.grade-9 .card { border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: none; }
+        body.grade-9 button { border-radius: 8px; font-weight: 500; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        body.grade-9 .hud-item { background: #E5E5EA; color: #000; box-shadow: none; }
+
+        /* 10 КЛАСС (STUDY CAFE) */
+        body.grade-10 { background: var(--warm-white); color: var(--coffee); font-family: 'Merriweather', serif; --acc: var(--sage); --btn: #6B7F75; --card-bg: #FFFEFA; --text-col: var(--coffee); }
+        body.grade-10 .card { border-radius: 20px; border: 1px solid #E0DCD0; box-shadow: 5px 5px 0 var(--sage); }
+        body.grade-10 button { border-radius: 50px; font-family: 'Merriweather', serif; font-weight: 700; box-shadow: none; border: 2px solid var(--sage); }
+        body.grade-10 h2 { font-style: italic; }
+
+        /* 11 КЛАСС (DEEP FOCUS) */
+        body.grade-11 { background: var(--deep-bg); color: var(--deep-text); font-family: system-ui, -apple-system, sans-serif; --acc: var(--deep-accent); --btn: #30D158; --card-bg: #1C1C1E; --text-col: #E0E0E0; }
+        body.grade-11 .card { border-radius: 16px; border: 1px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        body.grade-11 button { border-radius: 10px; font-weight: 600; background: #2C2C2E; color: #FFF; border: 1px solid #444; }
+        body.grade-11 .btn-ok { background: var(--btn) !important; color: #000 !important; border: none; }
+        body.grade-11 .hud-item { background: #2C2C2E; color: #FFF; border: 1px solid #444; }
+
+        /* --- ОБЩИЕ ЭЛЕМЕНТЫ --- */
         #hud { position: fixed; top: 15px; width: 90%; max-width: 400px; display: flex; justify-content: space-between; z-index: 100; }
         .hud-item { background: white; padding: 10px 18px; border-radius: 25px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         body.grade-7 .hud-item { background: #1a1a1a; color: var(--neon); border: 1px solid var(--neon); }
         body.grade-8 .hud-item { background: var(--white); border-radius: 0; border: 4px solid var(--black); box-shadow: 4px 4px 0 var(--black); }
 
-        /* КАРТОЧКИ */
         .card { 
-            background: white; border-radius: 35px; padding: 30px;
-            box-shadow: 0 12px 0 rgba(0,0,0,0.1); width: 100%; max-width: 440px;
-            text-align: center; position: relative; z-index: 10; display: none;
-            max-height: 82vh; overflow-y: auto; border: 4px solid #333; color: #333;
+            background: var(--card-bg); border-radius: 35px; padding: 30px;
+            width: 100%; max-width: 440px; text-align: center; position: relative; z-index: 10; display: none;
+            max-height: 85vh; overflow-y: auto; color: var(--text-col);
+            box-shadow: 0 12px 0 rgba(0,0,0,0.1); border: 4px solid #333;
         }
-        body.grade-6 .card { background: rgba(26, 26, 46, 0.98); border-color: var(--turq); color: white; }
-        body.grade-7 .card { background: rgba(13, 2, 33, 0.95); border-color: var(--neon); color: var(--neon); box-shadow: 0 0 25px var(--neon); }
-        body.grade-8 .card { border-radius: 0; border: 6px solid var(--black); box-shadow: 12px 12px 0 var(--magenta); }
+        /* Сброс границ для старших классов где не нужно */
+        body.grade-9 .card, body.grade-10 .card, body.grade-11 .card { border: none; }
+        body.grade-10 .card { border: 1px solid #E0DCD0; } 
+        body.grade-11 .card { border: 1px solid #333; }
 
         .active { display: block; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes pop { from {transform: scale(0.8); opacity:0;} to {transform: scale(1); opacity:1;} }
+        @keyframes pop { from {transform: scale(0.95); opacity:0;} to {transform: scale(1); opacity:1;} }
 
-        /* КНОПКИ */
         button { 
             font-family: inherit; border: none; padding: 16px 10px; border-radius: 20px; 
             width: 100%; margin: 10px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
             transition: 0.2s; box-shadow: 0 6px 0 rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center;
         }
-        button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+        button:active { transform: translateY(3px); opacity: 0.8; }
+        
         .btn-acc { background: var(--acc); color: white; }
         .btn-ok { background: var(--btn); color: #fff; }
         
-        /* СТИЛИ 8 КЛАССА */
-        body.grade-8 button { 
-            font-family: 'Oswald', sans-serif; 
-            border-radius: 0; 
-            border: 4px solid var(--black); 
-            box-shadow: 4px 4px 0 var(--black); 
-            background: var(--white); 
-            color: var(--black); 
-            /* ИСПРАВЛЕНИЕ: убрали uppercase, чтобы x и a были маленькими */
-            text-transform: none; 
-        }
-        body.grade-8 button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--black); }
+        /* Стили кнопок 8 класса */
         body.grade-8 .btn-acc { background: var(--magenta); color: white; }
         body.grade-8 .btn-ok { background: var(--yellow); color: black; }
 
-        /* СПЕЦИАЛЬНЫЙ РАЗМЕР ШРИФТА */
+        /* ШРИФТ ЗАДАНИЯ */
         #q-text { font-size: 19px; font-weight: 700; margin-bottom: 20px; line-height: 1.6; text-align: left; }
         body.grade-5 #q-text { font-size: 18px; } 
         body.grade-8 #q-text { font-size: 20px; }
+        body.grade-10 #q-text { font-weight: 400; font-size: 18px; line-height: 1.8; }
 
         .theory-box { text-align: left; padding: 20px; border-radius: 25px; border: 3px dashed var(--acc); margin-bottom: 15px; font-size: 16px; line-height: 1.5; }
-        #solution-box { display: none; padding: 20px; border-radius: 25px; margin-top: 20px; text-align: left; border: 3px solid var(--btn); background: rgba(0,0,0,0.05); }
-
         body.grade-8 .theory-box { border-radius: 0; border: 4px solid var(--black); }
+        body.grade-9 .theory-box { border: 2px solid var(--acc); border-style: solid; border-radius: 8px; background: #F2F2F7; }
+        body.grade-10 .theory-box { border: 1px solid var(--sage); background: #F9F7F2; border-radius: 15px; }
+        body.grade-11 .theory-box { border: 1px solid #444; background: #2C2C2E; }
+
+        #solution-box { display: none; padding: 20px; border-radius: 25px; margin-top: 20px; text-align: left; border: 3px solid var(--btn); background: rgba(0,0,0,0.05); }
         body.grade-8 #solution-box { border-radius: 0; border: 4px solid var(--black); background: var(--yellow); }
+        body.grade-11 #solution-box { background: #121212; border-color: var(--deep-accent); color: #fff; }
 
         .katex-display { margin: 8px 0 !important; }
         
@@ -106,11 +133,12 @@
         @keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-120vh); } }
         
         #error-msg { display: none; color: red; background: white; padding: 20px; border-radius: 10px; z-index: 999; position: relative; }
+        #loading-indicator { display: none; font-size: 14px; opacity: 0.7; margin-top: 10px; }
     </style>
 </head>
 <body class="grade-5">
 
-    <div id="error-msg">Ошибка загрузки JS. Проверьте код.</div>
+    <div id="error-msg">Ошибка загрузки.</div>
 
     <div id="hud">
         <div class="hud-item">❤️ <span id="lives" style="color: inherit;">5</span></div>
@@ -123,13 +151,16 @@
         <div id="hero" style="font-size: 75px; margin-bottom: 10px;">🐱🚀</div>
         <h2 id="grade-title" style="font-size: 28px; margin: 10px 0;">Загрузка...</h2>
         <p id="grade-desc" style="font-size: 15px; margin-bottom: 20px; opacity: 0.8; font-weight: 700;"></p>
+        
+        <div id="loading-indicator">📥 Синхронизация с облаком...</div>
+
         <button class="btn-acc" onclick="showTheoryMenu()">📖 ТЕОРИЯ</button>
         <button class="btn-ok" onclick="startPractice()">🚀 ПРАКТИКА</button>
         <button onclick="showShop()" style="background: var(--gold); color: #000;">🛒 МАГАЗИН</button>
     </div>
 
     <div id="theory-menu" class="card">
-        <h3>Темы:</h3>
+        <h3>База Знаний</h3>
         <div id="theory-list"></div>
         <button onclick="showMainMenu()" style="background:#6c757d; color:white;">⬅️ НАЗАД</button>
     </div>
@@ -142,7 +173,7 @@
 
     <div id="shop" class="card">
         <h2 style="color: var(--gold);">🛒 МАГАЗИН</h2>
-        <p>Синхронизация ресурсов...</p>
+        <p>Магазин в разработке...</p>
         <button onclick="showMainMenu()" style="background:#6c757d; color:white; margin-top: 15px;">⬅️ НАЗАД</button>
     </div>
 
@@ -165,27 +196,28 @@
     </div>
 
     <script>
+    // ССЫЛКА НА ТВОЮ ТАБЛИЦУ (CSV)
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
+
     try {
         const tg = window.Telegram.WebApp; 
         tg.expand();
         
         let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], errorsByBlock: {} };
+        let remoteDatabase = []; 
 
-        // РЕНДЕРЕР (исправлен: теперь понимает и mathmode внутри $)
+        // РЕНДЕРЕР
         window.renderMath = function(text, element, isDisplay = false) {
             try {
-                // Если есть $, рендерим математику. Если нет — оставляем текст
                 element.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
                     return katex.renderToString(formula, { throwOnError: false, displayMode: isDisplay });
                 });
-            } catch (e) { 
-                element.innerHTML = text; 
-            }
+            } catch (e) { element.innerHTML = text; }
         };
 
         const data = {
             "5": {
-                name: "5 Класс", hero: "🐱🚀", desc: "Космическая математика начинается здесь!",
+                name: "5 Класс", hero: "🐱🚀", desc: "Космическая математика",
                 theory: [
                     { title: "1. Натуральные числа", text: "Натуральные числа — это те, что мы используем для счета ($1, 2, 3...$). Ноль не является натуральным числом.<br><b>Свойства:</b><br>$a + 0 = a$<br>$a \\cdot 0 = 0$<br><b>Метод Гаусса</b>: $\\frac{n(n+1)}{2}$." },
                     { title: "2. Умножение и уравнения", text: "<b>Фонтанчик:</b> $a \\cdot (b + c) = ab + ac$.<br><b>Степень:</b><br>$a^2 = a \\cdot a$ (Квадрат)<br>$a^3 = a \\cdot a \\cdot a$ (Куб)<br>Уравнение — это весы, где левая часть равна правой." },
@@ -207,7 +239,7 @@
                 ]
             },
             "6": {
-                name: "6 Класс", hero: "🤖🛰️", desc: "Дроби, проценты и пропорции ждут тебя!",
+                name: "6 Класс", hero: "🤖🛰️", desc: "Дроби, проценты и пропорции",
                 theory: [
                     { title: "1. Теория чисел", text: "Любое составное число можно разложить на простые множители: $n = p_1^{a} \\cdot p_2^{b}$. Это «ДНК» числа для поиска НОК и НОД." },
                     { title: "2. Сложение дробей", text: "<b>Нельзя</b> складывать дроби с разными знаменателями! Сначала ищем НОК, потом домножаем и складываем верхушки." },
@@ -253,7 +285,7 @@
                 ]
             },
             "8": {
-                name: "GRADE 8: BRUTAL", hero: "📟💀", desc: "Слушай сюда. Либо ты решаешь это, либо мой процессор сгорит от твоей тупости.",
+                name: "GRADE 8: BRUTAL", hero: "📟💀", desc: "Слушай сюда. Либо ты решаешь, либо процессор сгорит.",
                 theory: [
                     { title: "Квадратные корни", text: "Арифметический корень $\\sqrt{a}$ — число $\\ge 0$. <br>Запомни: $\\sqrt{a^2} = |a|$." },
                     { title: "Уравнения", text: "Дискриминант: $D = b^2 - 4ac$. <br>Если $D < 0$, корней нет. Иди учи правила." },
@@ -274,6 +306,31 @@
                     { q: "Найдите площадь ромба, диагонали которого 10 и 12 см.", opt: ["120 см$^2$", "60 см$^2$", "11 см$^2$", "44 см$^2$"], cor: "60 см$^2$", sol: "$(10 \\cdot 12) / 2 = 60$. Не забывай делить на два, умник.", bId: "Геометрия" },
                     { q: "Подобие $k=3, S_{ABC}=10$. Найди площадь $S_{A_1B_1C_1}$:", opt: ["30 см$^2$", "90 см$^2$", "3,3 см$^2$", "100 см$^2$"], cor: "90 см$^2$", sol: "$10 \\cdot k^2 = 10 \\cdot 9 = 90$. Квадрат коэффициента! Слышишь?", bId: "Подобие" }
                 ]
+            },
+            "9": {
+                name: "9 Класс: ОГЭ", hero: "👨‍🏫", desc: "Фундамент твоего успеха.",
+                theory: [
+                    { title: "Прогрессии", text: "<b>Арифметическая:</b> $a_n = a_1 + d(n-1)$<br>$S_n = \\frac{a_1+a_n}{2}n$<br><br><b>Геометрическая:</b> $b_n = b_1 \\cdot q^{n-1}$<br>$S_n = \\frac{b_1(q^n-1)}{q-1}$" },
+                    { title: "Геометрия", text: "<b>Т. Синусов:</b> $\\frac{a}{\\sin A} = 2R$<br><b>Т. Косинусов:</b> $a^2 = b^2+c^2 - 2bc\\cos A$<br><b>Площадь:</b> $S = \\frac{1}{2}ab\\sin\\gamma$" }
+                ],
+                questions: [] // Грузим из CSV
+            },
+            "10": {
+                name: "10 Grade · Study", hero: "☕🌿", desc: "Focus & Aesthetic Learning",
+                theory: [
+                    { title: "Тригонометрия", text: "$\\sin^2\\alpha + \\cos^2\\alpha = 1$<br>$\\sin 2\\alpha = 2\\sin\\alpha\\cos\\alpha$<br>$\\cos 2\\alpha = \\cos^2\\alpha - \\sin^2\\alpha$" },
+                    { title: "Логарифмы", text: "$\\log_a b = x \\iff a^x = b$<br>$\\log_a(xy) = \\log_a x + \\log_a y$<br>$\\log_a x^p = p\\log_a x$" }
+                ],
+                questions: [] // Грузим из CSV
+            },
+            "11": {
+                name: "GRADE 11 [FINAL]", hero: "📊🔥", desc: "System: Maximum Performance",
+                theory: [
+                    { title: "Производная", text: "<b>Смысл:</b> $f'(x_0) = \\text{tg}\\alpha$<br>$(x^n)' = nx^{n-1}$<br>$(\\sin x)' = \\cos x$" },
+                    { title: "Вероятность", text: "$P(A) = \\frac{m}{n}$<br>$P(A+B) = P(A)+P(B)$ (несовм.)<br>$P(AB) = P(A)P(B)$ (независ.)" },
+                    { title: "Объемы", text: "Призма: $S_{\\text{осн}}h$<br>Пирамида: $\\frac{1}{3}S_{\\text{осн}}h$<br>Шар: $\\frac{4}{3}\\pi R^3$" }
+                ],
+                questions: [] // Грузим из CSV
             }
         };
 
@@ -281,15 +338,53 @@
         const grade = params.get('grade') || "5"; 
         const curData = data[grade] || data["5"];
 
-        // ИНИЦИАЛИЗАЦИЯ
+        // ЗАГРУЗКА CSV
+        async function loadRemoteData() {
+            try {
+                document.getElementById('loading-indicator').style.display = 'block';
+                const response = await fetch(SHEET_CSV_URL);
+                const dataText = await response.text();
+                
+                const rows = dataText.split('\n').slice(1); 
+                remoteDatabase = rows.map(row => {
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if (cols.length < 7) return null;
+
+                    const options = [cols[2], cols[3], cols[4], cols[5]].map(s => s?.replace(/^"|"$/g, '').trim());
+                    const correctText = cols[6]?.trim();
+                    let finalCorrect = correctText;
+
+                    if (correctText?.includes("Вариант 1")) finalCorrect = options[0];
+                    else if (correctText?.includes("Вариант 2")) finalCorrect = options[1];
+                    else if (correctText?.includes("Вариант 3")) finalCorrect = options[2];
+                    else if (correctText?.includes("Вариант 4")) finalCorrect = options[3];
+
+                    return {
+                        grade: cols[0].trim(),
+                        q: cols[1].replace(/^"|"$/g, '').trim(),
+                        opt: options,
+                        cor: finalCorrect,
+                        sol: cols[7]?.replace(/^"|"$/g, '').trim() || "..."
+                    };
+                }).filter(item => item !== null);
+                
+                document.getElementById('loading-indicator').innerText = "✅ Облако подключено";
+                setTimeout(() => document.getElementById('loading-indicator').style.display = 'none', 2000);
+            } catch (e) {
+                document.getElementById('loading-indicator').innerText = "⚠️ Ошибка связи с облаком";
+            }
+        }
+
         window.init = function() {
             document.body.className = "grade-" + grade;
             document.getElementById('grade-title').innerText = curData.name;
             document.getElementById('hero').innerText = curData.hero;
             document.getElementById('grade-desc').innerText = curData.desc || "";
             
-            // Если это 8 класс, меняем заголовок разбора
             if (grade === "8") document.getElementById('sol-hero').innerHTML = "📟💀 ГОВОРИТ:";
+
+            // Если старшие классы - грузим базу
+            if (parseInt(grade) >= 9) loadRemoteData();
 
             showMainMenu();
             spawnFloating();
@@ -300,7 +395,7 @@
             hide(); 
             document.getElementById('main-menu').classList.add('active'); 
             
-            // Ручная установка текстов кнопок для 8 класса (чтобы был CAPS)
+            // Стилизация кнопок 8 класса (Caps)
             if(grade === "8") {
                 document.querySelector('#main-menu .btn-acc').innerText = "📖 ТЕОРИЯ";
                 document.querySelector('#main-menu .btn-ok').innerText = "🚀 ТЕСТ";
@@ -322,9 +417,10 @@
             list.innerHTML = "";
             curData.theory.forEach((t, i) => {
                 const b = document.createElement('button');
-                // Стили кнопки для 8 класса и остальных
-                if (grade === "8") {
-                    b.className = "btn-ok";
+                if (grade === "8" || grade === "11") {
+                    b.className = "btn-ok"; // Строгие кнопки
+                } else if (grade === "10") {
+                    b.className = "btn-ok"; b.style.borderRadius = "15px"; // Эстетика
                 } else {
                     b.className = "btn-ok"; b.style.background = "#eee"; b.style.color = "#333";
                 }
@@ -339,17 +435,34 @@
                 };
                 list.appendChild(b);
             });
-            // Кнопка назад для 8 класса
             const backBtn = document.querySelector('#theory-menu button:last-child');
             if(grade === "8") backBtn.innerText = "⬅️ НАЗАД";
-            
             document.getElementById('theory-menu').classList.add('active');
         }
 
-        window.startPractice = function(filterBlock = null) {
+        window.startPractice = async function(filterBlock = null) {
             hide();
             state.lives = 5; state.coins = 0; state.currentIdx = 0; state.errorsByBlock = {};
-            state.questions = filterBlock ? curData.questions.filter(q => q.bId === filterBlock) : [...curData.questions].sort(() => Math.random() - 0.5);
+            
+            let pool = [];
+
+            // ЛОГИКА ВЫБОРА ИСТОЧНИКА
+            if (parseInt(grade) >= 9) {
+                if (remoteDatabase.length === 0) await loadRemoteData();
+                pool = remoteDatabase.filter(item => item.grade == grade);
+            } else {
+                pool = curData.questions;
+            }
+
+            if (!pool || pool.length === 0) {
+                alert("Задания загружаются или отсутствуют. Попробуйте через секунду!");
+                showMainMenu();
+                return;
+            }
+
+            // Миксуем и берем 10 (или меньше если их мало)
+            state.questions = pool.sort(() => Math.random() - 0.5).slice(0, 10);
+            
             updateHUD();
             document.getElementById('quiz').classList.add('active');
             renderQ();
@@ -362,9 +475,10 @@
 
         window.renderQ = function() {
             if(state.lives <= 0) { finish(false); return; }
+            if(state.currentIdx >= state.questions.length) { finish(true); return; }
+
             const q = state.questions[state.currentIdx];
             
-            // Брутальный текст шага для 8 класса
             const stepText = grade === "8" ? `ЗАДАНИЕ ${state.currentIdx + 1}/${state.questions.length}` : `Задание ${state.currentIdx + 1} / ${state.questions.length}`;
             document.getElementById('progress').innerText = stepText;
             
@@ -380,17 +494,25 @@
             q.opt.forEach(o => {
                 const b = document.createElement('button');
                 renderMath(o, b);
+                
+                // Стиль кнопок вариантов
+                if(grade === "10") b.style.borderRadius = "20px";
+                if(grade === "9") b.style.background = "#fff";
+
                 b.onclick = () => {
                     const all = optCont.querySelectorAll('button');
                     all.forEach(btn => btn.disabled = true);
-                    if(o === q.cor) {
+                    
+                    const normalize = (str) => str.replace(/\$/g, '').trim();
+                    const isCorrect = normalize(o) === normalize(q.cor);
+
+                    if(isCorrect) {
                         b.style.background = "#32CD32"; b.style.color = "white"; state.coins += 5;
                     } else {
                         b.style.background = "#FF4500"; b.style.color = "white"; state.lives--;
-                        state.errorsByBlock[q.bId] = (state.errorsByBlock[q.bId] || 0) + 1;
+                        state.errorsByBlock[q.bId || "Общее"] = (state.errorsByBlock[q.bId || "Общее"] || 0) + 1;
                         all.forEach(btn => { 
-                            // Простая проверка на совпадение
-                            if(btn.innerText.includes(q.cor.replace(/\$/g, '')) || btn.innerHTML.includes(q.cor.replace(/\$/g, ''))) {
+                            if(normalize(btn.innerText) === normalize(q.cor)) {
                                 btn.style.background = "#32CD32"; btn.style.color = "white"; 
                             } 
                         });
@@ -411,8 +533,7 @@
 
         document.getElementById('next-btn').onclick = () => {
             state.currentIdx++;
-            if(state.currentIdx < state.questions.length && state.lives > 0) renderQ();
-            else finish(state.lives > 0);
+            renderQ();
         };
 
         window.finish = function(win) {
@@ -439,17 +560,15 @@
                     rb.innerText = grade === "8" ? `ПЕРЕСДАТЬ: ${b}` : `Пересдать: ${b}`;
                     rb.onclick = () => {
                         tg.MainButton.hide();
-                        startPractice(b);
+                        startPractice(null); 
                     };
                     retryArea.appendChild(rb);
                 });
             }
 
-            // Кнопка в меню
             const menuBtn = document.querySelector('#final > button');
             if(grade === "8") menuBtn.innerText = "В МЕНЮ";
 
-            // МАГИЯ ОТПРАВКИ В TELEGRAM
             const resultData = {
                 action: "quiz_finished",
                 grade: grade,
@@ -473,11 +592,13 @@
             const d = document.createElement('div');
             d.className = 'floater';
             
-            // Иконки под каждый класс
             let icons = ["🐱","⭐","📐"];
             if (grade === "6") icons = ["🤖","🛰️","💠"];
             if (grade === "7") icons = ["⚡","🎤","💎"];
             if (grade === "8") icons = ["📟","💀","√","X²","="];
+            if (grade === "9") icons = ["📐","📘","✏️"];
+            if (grade === "10") icons = ["☕","🌿","📚"];
+            if (grade === "11") icons = ["📊","📈","🔥"];
 
             d.innerText = icons[Math.floor(Math.random()*icons.length)];
             d.style.left = Math.random()*95 + "vw";
@@ -488,7 +609,6 @@
         }
         window.spawnFloating = function() { setInterval(spawn, 1500); }
 
-        // Запуск приложения
         init();
 
     } catch (e) {
