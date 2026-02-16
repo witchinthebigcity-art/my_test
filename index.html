@@ -94,6 +94,11 @@
         /* Сетка выбора */
         .grid-select { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
 
+        input {
+            width: 100%; padding: 15px; border-radius: 15px; border: 3px solid #333; 
+            font-size: 18px; margin-bottom: 10px; text-align: center; font-family: inherit;
+        }
+
         #q-text { font-size: 19px; font-weight: 700; margin-bottom: 20px; line-height: 1.6; text-align: left; }
         body.grade-5 #q-text { font-size: 18px; } 
         body.grade-8 #q-text { font-size: 20px; }
@@ -128,11 +133,29 @@
 
     <div id="floating-container"></div>
 
-    <div id="grade-selector" class="card active">
-        <h2>ВЫБЕРИ КЛАСС</h2>
-        <p>Единая база знаний «СуперТьютор»</p>
-        <div id="loader-start" style="display:none; margin-bottom:15px;">📥 Загрузка базы...</div>
-        <div class="grid-select" id="grade-buttons">
+    <div id="welcome-screen" class="card">
+        <div style="font-size: 65px;">👋</div>
+        <h2 style="font-family: 'Montserrat', sans-serif;">ПРИВЕТ!</h2>
+        <p>Добро пожаловать. Как нам тебя называть?</p>
+        <input type="text" id="user-name-input" placeholder="Твое имя...">
+        
+        <p style="margin-top: 15px;">Введи свой класс (5-11):</p>
+        <input type="number" id="user-grade-input" placeholder="Номер..." min="5" max="11">
+        
+        <p style="margin: 10px 0; opacity: 0.5;">— ИЛИ ВЫБЕРИ БЫСТРО —</p>
+        <div class="grid-select" style="grid-template-columns: repeat(4, 1fr); gap: 5px;">
+            <button onclick="document.getElementById('user-grade-input').value='5'" style="height: 40px; font-size: 14px; background: #87CEEB;">5</button>
+            <button onclick="document.getElementById('user-grade-input').value='6'" style="height: 40px; font-size: 14px; background: #1A1A2E; color:white;">6</button>
+            <button onclick="document.getElementById('user-grade-input').value='7'" style="height: 40px; font-size: 14px; background: #0d0221; color:#00ff41;">7</button>
+            <button onclick="document.getElementById('user-grade-input').value='8'" style="height: 40px; font-size: 14px; background: white; border:1px solid black; color:black;">8</button>
+        </div>
+        
+        <button class="btn-ok" style="margin-top: 20px;" onclick="saveFullProfile()">ПРОДОЛЖИТЬ</button>
+    </div>
+
+    <div id="grade-selector" class="card">
+        <h2>ВЫБЕРИ УРОВЕНЬ</h2>
+        <div class="grid-select">
             <button onclick="switchGrade('5')" style="background: #87CEEB;">5 КЛАСС</button>
             <button onclick="switchGrade('6')" style="background: #1A1A2E; color: white;">6 КЛАСС</button>
             <button onclick="switchGrade('7')" style="background: #0d0221; color: #00ff41;">7 КЛАСС</button>
@@ -211,59 +234,72 @@
             } catch (e) { element.innerHTML = text; }
         };
 
-        const data = {
-            "5": {
-                name: "5 Класс", hero: "🐱🚀", desc: "Арифметика и основы",
+        const data = "5": {
+                name: "5 Класс", hero: "🐱🚀", desc: "Натуральные числа и основы",
                 theory: [
-                    { title: "Натуральные числа и дроби", text: "<b>Разряды:</b> Единицы, тысячи, миллионы.<br><b>Обыкновенные дроби:</b><br>$\\frac{a}{b} = \\frac{a \\cdot n}{b \\cdot n}$ (Основное свойство).<br>$\\frac{a}{b} \\pm \\frac{c}{d} = \\frac{ad \\pm bc}{bd}$ (Сложение/Вычитание)." },
-                    { title: "Десятичные дроби", text: "При умножении на 10, 100, 1000 запятая переносится <b>вправо</b> на столько знаков, сколько нулей." }
+                    { title: "Натуральные числа и действия", text: "<b>Округление:</b> Если следующая цифра $5, 6, 7, 8, 9$ — округляем в большую сторону; если $0, 1, 2, 3, 4$ — в меньшую.<br><b>Порядок действий:</b> Сначала скобки, затем умножение/деление, в конце — сложение/вычитание.<br><b>Признаки делимости:</b><br>• На $2$: четное.<br>• На $3$ и $9$: сумма цифр делится на $3$ или $9$.<br>• На $5$: оканчивается на $0$ или $5$." },
+                    { title: "Обыкновенные дроби", text: "<b>Сравнение:</b> Чтобы сравнить дроби с разными знаменателями, их нужно привести к общему знаменателю.<br><b>Умножение:</b> Числитель $\\cdot$ числитель, знаменатель $\\cdot$ знаменатель.<br><b>Деление:</b> Первую дробь оставляем, вторую переворачиваем и умножаем." }
                 ]
             },
             "6": {
-                name: "6 Класс", hero: "🤖🛰️", desc: "Дроби, проценты и пропорции",
+                name: "6 Класс", hero: "🤖🛰️", desc: "Дроби и пропорции",
                 theory: [
-                    { title: "Пропорции и Модуль", text: "<b>Пропорция:</b> $\\frac{a}{b} = \\frac{c}{d}$. Основное свойство: $a \\cdot d = b \\cdot c$.<br><b>Модуль:</b> $|a| = a$, $|-a| = a$ (расстояние от нуля)." },
-                    { title: "Окружность и Круг", text: "Длина окружности: $C = 2\\pi R$.<br>Площадь круга: $S = \\pi R^2$." }
+                    { title: "Десятичные дроби", text: "<b>Запятая:</b><br>• Умножение: считаем общее кол-во знаков после запятой в обоих числах и отделяем столько же в ответе.<br>• Деление на $10, 100, 1000$: переносим запятую <b>влево</b> на $1, 2, 3$ знака." },
+                    { title: "Пропорции и Проценты", text: "<b>Основное свойство:</b> В пропорции $\\frac{a}{b} = \\frac{c}{d}$ произведение крайних членов равно произведению средних ($ad = bc$).<br><b>Нахождение процента:</b> Чтобы найти $p\\%$ от числа $A$, нужно $A \\cdot \\frac{p}{100}$." }
                 ]
             },
             "7": {
-                name: "7 Класс", hero: "👩🏻‍🎤⚡", desc: "Алгебра и Планиметрия",
+                name: "7 Класс", hero: "👩🏻‍🎤⚡", desc: "Алгебра и ФСУ",
                 theory: [
-                    { title: "Степени", text: "<b>Свойства:</b><br>$a^n \\cdot a^m = a^{n+m}$<br>$a^n : a^m = a^{n-m}$<br>$(a^n)^m = a^{n \\cdot m}$<br>$(ab)^n = a^n \\cdot b^n$" },
-                    { title: "ФСУ (Формулы сокр. умножения)", text: "Разность квадратов: $a^2 - b^2 = (a - b)(a + b)$<br>Квадрат суммы: $(a + b)^2 = a^2 + 2ab + b^2$<br>Квадрат разности: $(a - b)^2 = a^2 - 2ab + b^2$" }
+                    { title: "Степени", text: "<b>Свойства:</b><br>• $a^n \\cdot a^m = a^{n+m}$<br>• $(a^n)^m = a^{nm}$<br>• $(ab)^n = a^n b^n$<br>• $a^{-n} = \\frac{1}{a^n}$" },
+                    { title: "Формулы ФСУ", text: "• $(a \\pm b)^2 = a^2 \\pm 2ab + b^2$<br>• $a^2 - b^2 = (a - b)(a + b)$<br>• $a^3 \\pm b^3 = (a \\pm b)(a^2 \\mp ab + b^2)$" }
                 ]
             },
             "8": {
-                name: "8 КЛАСС", hero: "📟💀", desc: "Квадратные уравнения",
+                name: "8 КЛАСС", hero: "📟💀", desc: "Уравнения и Геометрия",
                 theory: [
-                    { title: "Квадратные уравнения", text: "$ax^2 + bx + c = 0$.<br><b>Дискриминант:</b> $D = b^2 - 4ac$.<br><b>Корни:</b> $x_{1,2} = \\frac{-b \\pm \\sqrt{D}}{2a}$ (при $D \\ge 0$).<br><b>Виет:</b> $x_1+x_2 = -b/a, \\quad x_1 \\cdot x_2 = c/a$." },
-                    { title: "Геометрия", text: "<b>Теорема Пифагора:</b> $a^2 + b^2 = c^2$<br><b>Трапеция:</b> $S = \\frac{a+b}{2} \\cdot h$<br><b>Ромб:</b> $S = \\frac{1}{2} d_1 \\cdot d_2$" }
+                    { title: "Квадратные уравнения", text: "<b>Дискриминант:</b> $D = b^2 - 4ac$.<br>• $D > 0$: два корня $x = \\frac{-b \\pm \\sqrt{D}}{2a}$.<br>• $D = 0$: один корень $x = \\frac{-b}{2a}$.<br>• $D < 0$: корней нет.<br><b>Виет:</b> Для $x^2 + px + q = 0$ сумма корней равна $-p$, произведение равно $q$." },
+                    { title: "Неравенства и Геометрия", text: "<b>Неравенства:</b> При умножении/делении на отрицательное число знак меняется!<br><b>Прямоугольный тр-к:</b> $\\sin \\alpha = \\frac{\\text{противолеж.}}{\\text{гипотенуза}}$, $\\cos \\alpha = \\frac{\\text{прилеж.}}{\\text{гипотенуза}}$." }
                 ]
             },
             "9": {
-                name: "9 Класс (ОГЭ)", hero: "👨‍🏫", desc: "Прогрессии и Векторы",
+                name: "9 Класс: ОГЭ", hero: "👨‍🏫", desc: "Прогрессии и Окружность",
                 theory: [
-                    { title: "Прогрессии", text: "<b>Арифметическая:</b> $a_n = a_1 + d(n-1)$; $S_n = \\frac{a_1 + a_n}{2} \\cdot n$<br><b>Геометрическая:</b> $b_n = b_1 \\cdot q^{n-1}$; $S_n = \\frac{b_1(q^n - 1)}{q - 1}$" },
-                    { title: "Векторы и Координаты", text: "<b>Вектор:</b> $\\vec{AB}(x_B - x_A; y_B - y_A)$<br><b>Длина:</b> $|\\vec{a}| = \\sqrt{x^2 + y^2}$<br><b>Ур. прямой:</b> $y = kx + b$<br><b>Ур. окружности:</b> $(x - x_0)^2 + (y - y_0)^2 = R^2$" }
+                    { title: "Прогрессии", text: "<b>Арифметическая:</b> $a_n = a_1 + d(n - 1)$; $S_n = \\frac{a_1 + a_n}{2} \\cdot n$.<br><b>Геометрическая:</b> $b_n = b_1 \\cdot q^{n-1}$; $S_n = \\frac{b_1(q^n - 1)}{q - 1}$." },
+                    { title: "Геометрия и Вероятность", text: "<b>Окружность:</b> Радиус в точку касания $\\perp$ касательной. Отрезки хорд: $a \\cdot b = c \\cdot d$. Вписанный угол = половине дуги.<br><b>Вероятность:</b> $P = \\frac{m}{n}$." }
                 ]
             },
             "10": {
-                name: "10 Класс", hero: "☕🌿", desc: "Тригонометрия и Логарифмы",
+                name: "10 Класс: PRO", hero: "☕🌿", desc: "Тригонометрия и Логарифмы",
                 theory: [
-                    { title: "Тригонометрия", text: "$\\sin^2 \\alpha + \\cos^2 \\alpha = 1$<br>$\\text{tg} \\alpha \\cdot \\text{ctg} \\alpha = 1$<br><b>Двойной угол:</b><br>$\\sin 2\\alpha = 2\\sin \\alpha \\cos \\alpha$<br>$\\cos 2\\alpha = \\cos^2 \\alpha - \\sin^2 \\alpha$" },
-                    { title: "Сложение (Тригонометрия)", text: "$\\sin(\\alpha \\pm \\beta) = \\sin \\alpha \\cos \\beta \\pm \\cos \\alpha \\sin \\beta$<br>$\\cos(\\alpha \\pm \\beta) = \\cos \\alpha \\cos \\beta \\mp \\sin \\alpha \\sin \\beta$" },
-                    { title: "Логарифмы", text: "$\\log_a b = x \\iff a^x = b$<br>$\\log_a (xy) = \\log_a x + \\log_a y$<br>$\\log_a (x/y) = \\log_a x - \\log_a y$<br>$\\log_a x^p = p \\cdot \\log_a x$" },
-                    { title: "Производная (Начало)", text: "<b>Таблица:</b><br>$(C)' = 0, \\quad (x)' = 1$<br>$(x^n)' = n \\cdot x^{n-1}$<br>$(\\sin x)' = \\cos x, \\quad (\\cos x)' = -\\sin x$<br><b>Правила:</b><br>$(uv)' = u'v + uv'$<br>$(u/v)' = \\frac{u'v - uv'}{v^2}$" }
+                    { title: "Тригонометрия", text: "<b>Основные:</b> $\\sin^2 \\alpha + \\cos^2 \\alpha = 1$.<br><b>Двойной угол:</b> $\\sin 2\\alpha = 2 \\sin \\alpha \\cos \\alpha$, $\\cos 2\\alpha = \\cos^2 \\alpha - \\sin^2 \\alpha$.<br><b>Сложение:</b> $\\sin(\\alpha \\pm \\beta) = \\sin \\alpha \\cos \\beta \\pm \\cos \\alpha \\sin \\beta$." },
+                    { title: "Логарифмы", text: "• $\\log_a (bc) = \\log_a b + \\log_a c$<br>• $\\log_a \\frac{b}{c} = \\log_a b - \\log_a c$<br>• $\\log_a b^n = n \\log_a b$<br>• $\\log_a b = \\frac{\\log_c b}{\\log_c a}$" }
                 ]
             },
             "11": {
-                name: "11 Класс (ЕГЭ)", hero: "📊🔥", desc: "Профиль и Стереометрия",
+                name: "11 Класс: ЕГЭ", hero: "📊🔥", desc: "Производная и Стереометрия",
                 theory: [
-                    { title: "Применение производной", text: "<b>Касательная:</b> $y = f(x_0) + f'(x_0)(x - x_0)$<br><b>Экстремум:</b> Если $f'(x) = 0$ и меняет знак с $+$ на $-$ — это максимум.<br><b>Геом. смысл:</b> $f'(x_0) = k = \\text{tg} \\alpha$" },
-                    { title: "Стереометрия", text: "<b>Призма/Цилиндр:</b> $V = S_{осн} \\cdot h$<br><b>Пирамида/Конус:</b> $V = \\frac{1}{3} S_{осн} \\cdot h$<br><b>Шар:</b> $V = \\frac{4}{3} \\pi R^3; \\quad S = 4\\pi R^2$" },
-                    { title: "Вероятность", text: "<b>Классическая:</b> $P(A) = \\frac{m}{n}$<br><b>Независимые:</b> $P(A \\cap B) = P(A) \\cdot P(B)$<br><b>Несовместные:</b> $P(A \\cup B) = P(A) + P(B)$" }
+                    { title: "Производная", text: "<b>Правила:</b> $(uv)' = u'v + uv'$, $(u/v)' = \\frac{u'v - uv'}{v^2}$.<br><b>Геом. смысл:</b> $f'(x_0) = \\text{tg} \\alpha = k$.<br><b>Исследование:</b> Смена знака $f'(x)$ с $+$ на $-$ — точка максимума." },
+                    { title: "Стереометрия и Экономика", text: "<b>Призма:</b> $V = S_{осн} h$. <b>Пирамида:</b> $V = \\frac{1}{3} S_{осн} h$. <b>Шар:</b> $V = \\frac{4}{3} \\pi R^3$.<br><b>Экономика:</b> Аннуитет $S = x \\cdot \\frac{(1+k)^n - 1}{k(1+k)^n}$." }
                 ]
             }
+        };
+        
+        // --- ЛОГИКА ПРОФИЛЯ ---
+        window.setGradeFromBtn = (g) => { document.getElementById('user-grade-input').value = g; };
+
+        window.saveFullProfile = function() {
+            const nameVal = document.getElementById('user-name-input').value.trim();
+            const gradeVal = document.getElementById('user-grade-input').value.trim();
+            
+            if (!nameVal || !gradeVal) {
+                alert("Пожалуйста, введи имя и выбери класс!");
+                return;
+            }
+            
+            state.name = nameVal;
+            localStorage.setItem('math_name', nameVal);
+            switchGrade(gradeVal);
         };
 
         // ЗАГРУЗКА ИЗ CSV
