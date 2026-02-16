@@ -2,373 +2,520 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Энциклопедия</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER-TUTOR | DATABASE v.2.077</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@400;600&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Nunito:wght@400;700&family=Open+Sans:wght@400;600&family=Orbitron:wght@700;900&family=Oswald:wght@500;700&family=Quicksand:wght@500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Roboto+Mono:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg-body: #f4f4f9;
-            /* Твои палитры */
-            --c5-main: #00b894; --c5-light: #55efc4; --c5-bg: #e3fdf5;
-            --c7-main: #fdcb6e; --c7-accent: #2d3436; --c7-bg: #fffce6;
-            --c9-main: #ff7675; --c9-dark: #d63031; --c9-bg: #fff0f0;
-            --c10-main: #0984e3; --c10-dark: #2c3e50; --c10-bg: #ecf6ff;
-            --c11-main: #636e72; --c11-dark: #2d3436; --c11-bg: #ffffff;
+            /* --- CYBER PALETTE --- */
+            --bg-dark: #050508;
+            --bg-panel: rgba(16, 18, 27, 0.7);
+            --text-primary: #e0e0e0;
+            --text-dim: #8a8a9b;
             
-            /* Системные цвета */
-            --deep-accent: #0A84FF;
+            /* Neon Accents per Class Level */
+            --neon-c5: #39ff14; /* Bio-Green */
+            --neon-c7: #00f3ff; /* Electric Blue */
+            --neon-c9: #bf00ff; /* Ultraviolet */
+            --neon-c10: #ff0055; /* Plasma Pink */
+            --neon-c11: #ffffff; /* Pure Energy White */
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; background: var(--bg-body); transition: 0.5s; font-family: 'Inter', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* --- СТИЛИ ДЛЯ ФОРМУЛ ИЗ ТВОЕГО МАКЕТА --- */
-        .formula { display: inline-flex; align-items: center; font-style: italic; background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 6px; margin: 2px 0; border: 1px solid rgba(0,0,0,0.05); }
-        .frac { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; margin: 0 4px; font-size: 0.85em; }
-        .frac .top { border-bottom: 1.5px solid currentColor; padding: 0 2px; display: block; line-height: 1.1; }
-        .frac .bottom { display: block; line-height: 1.1; }
+        body {
+            background-color: var(--bg-dark);
+            /* Абстрактный фон микросхемы */
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 243, 255, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(191, 0, 255, 0.1) 0%, transparent 20%),
+                linear-gradient(0deg, rgba(5, 5, 8, 1) 0%, rgba(10, 10, 16, 0.9) 100%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            font-family: 'Roboto Mono', monospace; /* Моноширинный шрифт для эффекта терминала */
+            line-height: 1.5;
+            overflow-x: hidden;
+            position: relative;
+        }
 
-        /* --- КОНТЕЙНЕРЫ КАРТОЧЕК --- */
-        .card { background: white; border-radius: 30px; padding: 25px; width: 100%; max-width: 440px; text-align: center; position: relative; z-index: 10; display: none; max-height: 85vh; overflow-y: auto; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 2px solid white; }
-        .active { display: block; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes pop { from {transform: scale(0.95); opacity:0;} to {transform: scale(1); opacity:1;} }
+        /* Эффект скан-линий ЭЛТ монитора поверх всего */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15) 0px,
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 999;
+        }
 
-        button { font-family: inherit; border: none; padding: 15px; border-radius: 18px; width: 100%; margin: 8px 0; font-weight: 700; font-size: 17px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
-        button:active { transform: translateY(2px); box-shadow: none; }
-        .btn-ok { background: #00b894; color: white; }
-        .btn-acc { background: #fdcb6e; color: #2d3436; }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
 
-        /* --- ДИЗАЙН СЕКЦИЙ ТЕОРИИ --- */
-        .theory-content-styled { text-align: left; }
+        /* --- TYPOGRAPHY & HEADERS --- */
+        h1.sys-header {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 2.5rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 60px;
+            color: transparent;
+            background: linear-gradient(90deg, var(--neon-c7), var(--neon-c9));
+            -webkit-background-clip: text;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+            position: relative;
+        }
+        h1.sys-header::after {
+            content: 'INITIALIZING CORE KNOWLEDGE BASE...';
+            display: block;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            margin-top: 10px;
+        }
+
+        h2.sector-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid;
+        }
+
+        h3.module-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin: 25px 0 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
         
-        /* 5-6 Класс */
-        .t-56 { font-family: 'Nunito', sans-serif; color: #2d3436; }
-        .divisibility-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .rule-bubble { background: var(--c5-bg); border: 2px solid var(--c5-light); padding: 10px; border-radius: 15px; text-align: center; font-size: 14px; }
-        .rule-bubble strong { color: var(--c5-main); display: block; font-size: 16px; }
+        /* --- CYBER PANELS (Glassmorphism) --- */
+        .cyber-panel {
+            background: var(--bg-panel);
+            /* Эффект матового стекла */
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px; /* Угловатые края для техно-стиля */
+            padding: 25px;
+            margin-bottom: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
 
-        /* 7-8 Класс */
-        .t-78 { font-family: 'Montserrat', sans-serif; }
-        .tech-box { border: 1px solid #636e72; padding: 15px; border-radius: 12px; background: #2d3436; color: #dfe6e9; margin: 10px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .tech-item { border-left: 3px solid var(--c7-main); padding-left: 8px; font-family: 'Orbitron', sans-serif; font-size: 13px; }
+        /* Декоративный "блик" на панели */
+        .cyber-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -50%; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+            animation: scan 5s infinite linear;
+        }
+        @keyframes scan { 0% { left: -50%; } 100% { left: 150%; } }
 
-        /* 9 Класс */
-        .t-9 { font-family: 'Roboto', sans-serif; }
-        .info-card { background: var(--c9-bg); padding: 15px; border-radius: 10px; border-left: 5px solid var(--c9-main); margin-bottom: 10px; }
+        /* --- DATA GRIDS & LISTS --- */
+        .data-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .data-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
 
-        /* 10 Класс */
-        .trig-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0; }
-        .trig-table td { padding: 10px; border-bottom: 1px solid #d1e7ff; background: white; }
+        .cyber-list {
+            list-style: none;
+            padding-left: 15px;
+        }
+        .cyber-list li {
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .cyber-list li::before {
+            content: '>';
+            position: absolute;
+            left: -15px;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
 
-        /* 11 Класс */
-        .ios-list { list-style: none; background: #f5f5f7; border-radius: 12px; padding: 5px 15px; }
-        .ios-list li { padding: 12px 0; border-bottom: 1px solid #e5e5e5; display: flex; justify-content: space-between; font-family: -apple-system, sans-serif; }
+        /* --- FORMULAS AS CODE --- */
+        .code-block {
+            background: rgba(0,0,0,0.3);
+            border-left: 2px solid var(--accent-color);
+            padding: 8px 12px;
+            margin: 5px 0;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.95em;
+            display: inline-block;
+            color: #fff;
+        }
+        .formula-row {
+            margin-bottom: 10px;
+        }
 
-        #hud { position: fixed; top: 15px; width: 90%; max-width: 400px; display: none; justify-content: space-between; z-index: 100; }
-        .hud-item { background: white; padding: 8px 15px; border-radius: 20px; font-weight: 800; border: 2px solid #2d3436; }
-        input { width: 100%; padding: 15px; border-radius: 15px; border: 3px solid #2d3436; font-size: 18px; margin-bottom: 10px; text-align: center; }
+        /* Стиль дробей внутри кода */
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            text-align: center;
+            vertical-align: middle;
+            margin: 0 2px;
+        }
+        .frac .top {
+            border-bottom: 1px solid var(--accent-color); /* Цветная линия дроби */
+            padding: 0 2px;
+            display: block;
+            line-height: 1;
+        }
+        .frac .bottom {
+            display: block;
+            line-height: 1;
+            padding-top: 2px;
+        }
+
+        /* --- CLASS SPECIFIC THEMES --- */
+        /* C5-6: BIO-GREEN */
+        .theme-c5 { --accent-color: var(--neon-c5); }
+        .theme-c5 h2 { color: var(--neon-c5); border-color: var(--neon-c5); text-shadow: 0 0 10px rgba(57, 255, 20, 0.4); }
+        .theme-c5 .cyber-panel { box-shadow: inset 0 0 20px rgba(57, 255, 20, 0.05), 0 0 15px rgba(57, 255, 20, 0.1); border-color: var(--neon-c5); }
+
+        /* C7-8: ELECTRIC BLUE */
+        .theme-c7 { --accent-color: var(--neon-c7); }
+        .theme-c7 h2 { color: var(--neon-c7); border-color: var(--neon-c7); text-shadow: 0 0 10px rgba(0, 243, 255, 0.4); }
+        .theme-c7 .cyber-panel { box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.05), 0 0 15px rgba(0, 243, 255, 0.1); border-color: var(--neon-c7);}
+
+        /* C9: ULTRAVIOLET */
+        .theme-c9 { --accent-color: var(--neon-c9); }
+        .theme-c9 h2 { color: var(--neon-c9); border-color: var(--neon-c9); text-shadow: 0 0 10px rgba(191, 0, 255, 0.4); }
+        .theme-c9 .cyber-panel { box-shadow: inset 0 0 20px rgba(191, 0, 255, 0.05), 0 0 15px rgba(191, 0, 255, 0.1); border-color: var(--neon-c9);}
+
+        /* C10: PLASMA PINK */
+        .theme-c10 { --accent-color: var(--neon-c10); }
+        .theme-c10 h2 { color: var(--neon-c10); border-color: var(--neon-c10); text-shadow: 0 0 10px rgba(255, 0, 85, 0.4); }
+        .theme-c10 .cyber-panel { box-shadow: inset 0 0 20px rgba(255, 0, 85, 0.05), 0 0 15px rgba(255, 0, 85, 0.1); border-color: var(--neon-c10);}
+
+        /* C11: PURE ENERGY */
+        .theme-c11 { --accent-color: var(--neon-c11); }
+        .theme-c11 h2 { color: var(--neon-c11); border-color: var(--neon-c11); text-shadow: 0 0 15px rgba(255, 255, 255, 0.6); }
+        .theme-c11 .cyber-panel { box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 255, 255, 0.2); border-color: var(--neon-c11); background: rgba(30, 30, 40, 0.8);}
+
+        /* Mobile adaptive */
+        @media (max-width: 768px) {
+            .data-grid-2, .data-grid-3 { grid-template-columns: 1fr; }
+            h1.sys-header { font-size: 1.8rem; }
+            h2.sector-title { font-size: 1.4rem; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="hud">
-        <div class="hud-item">❤️ <span id="lives">5</span></div>
-        <div class="hud-item">💰 <span id="coins">0</span></div>
-    </div>
+<div class="container">
+    <h1 class="sys-header">🏛️ CYBER-TUTOR ENCYCLOPEDIA</h1>
 
-    <div id="welcome-screen" class="card">
-        <div style="font-size: 60px;">🏛️</div>
-        <h2 style="font-family: 'Fredoka', sans-serif; color: var(--c5-main);">СУПЕРТЬЮТОР</h2>
-        <p>Добро пожаловать в Академию знаний.</p>
-        <input type="text" id="user-name-input" placeholder="Твое имя...">
-        <p>Выбери свой класс:</p>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px;">
-            <button onclick="setGradeAndGo('5')" style="height:40px; font-size:14px; background:var(--c5-light);">5</button>
-            <button onclick="setGradeAndGo('6')" style="height:40px; font-size:14px; background:var(--c5-main); color:white;">6</button>
-            <button onclick="setGradeAndGo('7')" style="height:40px; font-size:14px; background:var(--c7-main);">7</button>
-            <button onclick="setGradeAndGo('8')" style="height:40px; font-size:14px; background:var(--c7-accent); color:white;">8</button>
-            <button onclick="setGradeAndGo('9')" style="height:40px; font-size:14px; background:var(--c9-main); color:white;">9</button>
-            <button onclick="setGradeAndGo('10')" style="height:40px; font-size:14px; background:var(--c10-main); color:white;">10</button>
-            <button onclick="setGradeAndGo('11')" style="height:40px; font-size:14px; background:var(--c11-main); color:white;">11</button>
+    <section class="theme-c5">
+        <h2 class="sector-title">🟢 SECTOR [5–6]: Числа / Дроби / Логика</h2>
+        
+        <div class="cyber-panel">
+            <h3 class="module-title">Натуральные числа и Арифметика</h3>
+            
+            <div class="data-grid-2">
+                <div>
+                    <strong>>> Признаки делимости:</strong>
+                    <ul class="cyber-list" style="margin-top: 10px;">
+                        <li>На 2: последняя цифра четная.</li>
+                        <li>На 3: сумма цифр делится на 3.</li>
+                        <li>На 4: две последние цифры образуют число, делящееся на 4.</li>
+                        <li>На 5: оканчивается на 0 или 5.</li>
+                        <li>На 9: сумма цифр делится на 9.</li>
+                        <li>На 10, 100...: оканчивается на соотв. кол-во нулей.</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="formula-row">
+                        <strong>>> Деление с остатком:</strong><br>
+                        <span class="code-block">a = b · q + r, где r < b</span>
+                    </div>
+                    <div class="formula-row">
+                        <strong>>> Среднее арифметическое:</strong><br>
+                        <span class="code-block">M = (a₁ + a₂ + ... + aₙ) / n</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="module-title">Обыкновенные и десятичные дроби</h3>
+            <div class="data-grid-2">
+                <div>
+                     <p><strong>Основное свойство:</strong> <span class="code-block"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> = <div class="frac"><span class="top">a · m</span><span class="bottom">b · m</span></div></span></p>
+                     <p style="margin-top:10px;"><strong>Сравнение (если a < b):</strong> <br>
+                        <span class="code-block"><div class="frac"><span class="top">a</span><span class="bottom">c</span></div> < <div class="frac"><span class="top">b</span><span class="bottom">c</span></div></span> ; 
+                        <span class="code-block"><div class="frac"><span class="top">c</span><span class="bottom">a</span></div> > <div class="frac"><span class="top">c</span><span class="bottom">b</span></div></span>
+                    </p>
+                </div>
+                <div>
+                    <p><strong>Умножение/Деление:</strong></p>
+                    <span class="code-block"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> · <div class="frac"><span class="top">c</span><span class="bottom">d</span></div> = <div class="frac"><span class="top">ac</span><span class="bottom">bd</span></div></span><br>
+                    <span class="code-block"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> : <div class="frac"><span class="top">c</span><span class="bottom">d</span></div> = <div class="frac"><span class="top">a · d</span><span class="bottom">b · c</span></div></span>
+                    <p style="margin-top:10px;"><strong>Десятичные:</strong> При умножении на 0,1; 0,01 запятая влево; на 10, 100 — вправо.</p>
+                </div>
+            </div>
+
+            <h3 class="module-title">Проценты и Пропорции</h3>
+            <div class="data-grid-3">
+                <div>
+                    <strong>Пропорция:</strong><br>
+                    <span class="code-block"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> = <div class="frac"><span class="top">c</span><span class="bottom">d</span></div> ⇒ ad = bc</span>
+                </div>
+                <div>
+                    <strong>Нахождение части:</strong><br>
+                    <span class="code-block">b = a · k (k — дробь)</span>
+                </div>
+                <div>
+                    <strong>Проценты:</strong><br>
+                    <ul class="cyber-list">
+                        <li>1% = 0,01</li>
+                        <li>A увеличено на p%: <span class="code-block">A · (1 + <div class="frac"><span class="top">p</span><span class="bottom">100</span></div>)</span></li>
+                        <li>A уменьшено на p%: <span class="code-block">A · (1 - <div class="frac"><span class="top">p</span><span class="bottom">100</span></div>)</span></li>
+                    </ul>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <div id="grade-selector" class="card">
-        <h2 style="font-family: 'Montserrat';">АКАДЕМИЯ</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <button onclick="switchGrade('5')" style="background: var(--c5-bg); border: 2px solid var(--c5-main);">5 КЛАСС</button>
-            <button onclick="switchGrade('6')" style="background: var(--c5-main); color: white;">6 КЛАСС</button>
-            <button onclick="switchGrade('7')" style="background: var(--c7-bg); border: 2px solid var(--c7-main);">7 КЛАСС</button>
-            <button onclick="switchGrade('8')" style="background: var(--c7-accent); color: white;">8 КЛАСС</button>
-            <button onclick="switchGrade('9')" style="background: var(--c9-main); color: white;">9 ОГЭ</button>
-            <button onclick="switchGrade('10')" style="background: var(--c10-main); color: white;">10 PRO</button>
-            <button onclick="switchGrade('11')" style="background: var(--c11-dark); color: white;">11 ЕГЭ</button>
+    <section class="theme-c7">
+        <h2 class="sector-title">🟡 SECTOR [7–8]: Алгебра / Геометрия (Начала)</h2>
+        
+        <div class="cyber-panel">
+            <h3 class="module-title">Свойства степеней и ФСУ</h3>
+            <div class="data-grid-2">
+                <div>
+                    <strong>[ Степени ]</strong>
+                    <ul class="cyber-list">
+                        <li>aⁿ · aᵐ = aⁿ⁺ᵐ</li>
+                        <li>aⁿ / aᵐ = aⁿ⁻ᵐ</li>
+                        <li>(aⁿ)ᵐ = aⁿᵐ</li>
+                        <li>(ab)ⁿ = aⁿ bⁿ</li>
+                        <li>(a/b)ⁿ = aⁿ / bⁿ</li>
+                        <li>a⁻ⁿ = 1 / aⁿ</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong>[ ФСУ: Формулы сокращенного умножения ]</strong>
+                    <ul class="cyber-list">
+                        <li>(a + b)² = a² + 2ab + b²</li>
+                        <li>(a - b)² = a² - 2ab + b²</li>
+                        <li>a² - b² = (a - b)(a + b)</li>
+                        <li>(a + b)³ = a³ + 3a²b + 3ab² + b³</li>
+                        <li>(a - b)³ = a³ - 3a²b + 3ab² - b³</li>
+                        <li>a³ + b³ = (a + b)(a² - ab + b²)</li>
+                        <li>a³ - b³ = (a - b)(a² + ab + b²)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 class="module-title">Квадратные корни и уравнения</h3>
+            <div class="data-grid-2">
+                <div>
+                    <strong>[ Корни ]</strong><br>
+                    <span class="code-block">√a² = |a|</span> <span class="code-block">√ab = √a · √b</span><br>
+                    <span class="code-block">√(a/b) = √a / √b</span> <span class="code-block">(√a)² = a</span>
+                </div>
+                <div>
+                    <strong>[ Уравнение ax² + bx + c = 0 ]</strong><br>
+                    <span class="code-block">D = b² - 4ac</span><br>
+                    <span class="code-block">x₁,₂ = <div class="frac"><span class="top">-b ± √D</span><span class="bottom">2a</span></div></span><br>
+                    <small style="color:var(--text-dim)">Если b четное (b=2k): D₁ = k² - ac, x = (-k ± √D₁)/a</small>
+                </div>
+            </div>
+            <div class="data-grid-2" style="margin-top: 15px;">
+                 <div><strong>Теорема Виета:</strong> <span class="code-block">x₁ + x₂ = -b/a</span>, <span class="code-block">x₁ · x₂ = c/a</span></div>
+                 <div><strong>Разложение:</strong> <span class="code-block">ax² + bx + c = a(x - x₁)(x - x₂)</span></div>
+            </div>
+
+            <h3 class="module-title">Линейная и обратная функции</h3>
+            <ul class="cyber-list">
+                <li><strong>Прямая:</strong> <span class="code-block">y = kx + b</span>. Если k₁ = k₂ — параллельны; если k₁ · k₂ = -1 — перпендикулярны.</li>
+                <li><strong>Гипербола:</strong> <span class="code-block">y = k/x</span>.</li>
+            </ul>
         </div>
-    </div>
+    </section>
 
-    <div id="main-menu" class="card">
-        <div id="hero" style="font-size: 70px; margin-bottom: 10px;"></div>
-        <h2 id="grade-title" style="font-family: 'Fredoka';"></h2>
-        <p id="grade-desc" style="font-weight: 600; opacity: 0.7;"></p>
-        <button class="btn-ok" onclick="startPractice()">🚀 ПРАКТИКА</button>
-        <button class="btn-acc" onclick="showTheoryMenu()">📖 ЭНЦИКЛОПЕДИЯ</button>
-        <button onclick="showGradeSelector()" style="background: none; box-shadow: none; color: #666; font-size: 14px;">🔄 СМЕНИТЬ КЛАСС</button>
-        <button onclick="resetApp()" style="margin-top: 20px; font-size: 10px; opacity: 0.4; background: none; box-shadow: none;">СБРОС ДАННЫХ</button>
-    </div>
+    <section class="theme-c9">
+        <h2 class="sector-title">🟠 SECTOR [9]: Планиметрия / Прогрессии</h2>
+        
+        <div class="cyber-panel">
+            <h3 class="module-title">Треугольники и Окружности</h3>
+            <div class="data-grid-2">
+                <div>
+                    <strong>[ Площади треугольника ]</strong>
+                    <ul class="cyber-list">
+                        <li>S = ½ a h</li>
+                        <li>S = ½ ab sin γ</li>
+                        <li>Герон: S = √p(p-a)(p-b)(p-c) (p-полупериметр)</li>
+                        <li>S = pr (r-впис.); S = abc/4R (R-опис.)</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong>[ Теоремы ]</strong><br>
+                    <span class="code-block">Синусов: <div class="frac"><span class="top">a</span><span class="bottom">sin A</span></div> = <div class="frac"><span class="top">b</span><span class="bottom">sin B</span></div> = <div class="frac"><span class="top">c</span><span class="bottom">sin C</span></div> = 2R</span><br>
+                    <span class="code-block">Косинусов: a² = b² + c² - 2bc cos A</span>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <strong>[ Окружность ]</strong> 
+                Длина дуги: <span class="code-block">l = <div class="frac"><span class="top">π R α</span><span class="bottom">180</span></div></span> | 
+                Площадь сектора: <span class="code-block">S = <div class="frac"><span class="top">π R² α</span><span class="bottom">360</span></div></span>
+            </div>
 
-    <div id="theory-menu" class="card">
-        <h3 style="font-family: 'Montserrat';">Разделы знаний</h3>
-        <div id="theory-list"></div>
-        <button onclick="showMainMenu()" style="background: #eee; box-shadow: none;">⬅️ НАЗАД</button>
-    </div>
-
-    <div id="theory-view" class="card">
-        <h3 id="view-title"></h3>
-        <div id="view-content" class="theory-content-styled"></div>
-        <button class="btn-ok" onclick="showTheoryMenu()">ПОНЯТНО</button>
-    </div>
-
-    <div id="quiz" class="card">
-        <div id="progress" style="font-weight: 900; opacity: 0.5; margin-bottom: 10px;"></div>
-        <div id="q-text" style="font-size: 20px; text-align: left;"></div>
-        <div id="options"></div>
-        <div id="solution-box" style="display: none; padding: 15px; border-radius: 15px; background: #f9f9f9; text-align: left; margin-top: 15px; border: 2px solid #00b894;">
-            <b>Разбор:</b> <div id="solution-text"></div>
+            <h3 class="module-title">Прогрессии (ОГЭ)</h3>
+            <div class="data-grid-2">
+                <div>
+                    <strong>Арифметическая:</strong><br>
+                    <span class="code-block">aₙ = a₁ + d(n-1)</span><br>
+                    <span class="code-block">Sₙ = <div class="frac"><span class="top">a₁ + aₙ</span><span class="bottom">2</span></div> · n</span>
+                </div>
+                <div>
+                    <strong>Геометрическая:</strong><br>
+                    <span class="code-block">bₙ = b₁ · qⁿ⁻¹</span><br>
+                    <span class="code-block">Sₙ = <div class="frac"><span class="top">b₁(1 - qⁿ)</span><span class="bottom">1 - q</span></div></span><br>
+                    <small>Бесконечная убывающая (|q|<1): <span class="code-block">S = b₁ / (1 - q)</span></small>
+                </div>
+            </div>
         </div>
-        <button id="next-btn" class="btn-ok" style="display:none; margin-top: 15px;">ДАЛЕЕ ➡️</button>
+    </section>
+
+    <section class="theme-c10">
+        <h2 class="sector-title">🔵 SECTOR [10]: Тригонометрия / Логарифмы</h2>
+        
+        <div class="cyber-panel">
+            <h3 class="module-title">Тригонометрический атлас</h3>
+            <div class="data-grid-3">
+                <div>
+                    <strong>Тождества:</strong>
+                    <ul class="cyber-list">
+                        <li>sin²x + cos²x = 1</li>
+                        <li>1 + tg²x = 1 / cos²x</li>
+                        <li>1 + ctg²x = 1 / sin²x</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong>Двойной угол:</strong>
+                    <ul class="cyber-list">
+                        <li>sin 2x = 2 sin x cos x</li>
+                        <li>cos 2x = cos²x - sin²x = 2cos²x - 1 = 1 - 2sin²x</li>
+                        <li>tg 2x = 2tg x / (1 - tg²x)</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong>Понижение степени:</strong>
+                    <ul class="cyber-list">
+                        <li>sin²x = (1 - cos 2x) / 2</li>
+                        <li>cos²x = (1 + cos 2x) / 2</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <strong>Сумма и разность:</strong><br>
+                <span class="code-block">sin x ± sin y = 2 sin((x±y)/2) cos((x∓y)/2)</span><br>
+                <span class="code-block">cos x + cos y = 2 cos((x+y)/2) cos((x-y)/2)</span><br>
+                <span class="code-block">cos x - cos y = -2 sin((x+y)/2) sin((x-y)/2)</span>
+            </div>
+
+            <h3 class="module-title">Логарифмы и экспоненты</h3>
+            <strong>Свойства:</strong>
+            <div class="data-grid-2">
+                <ul class="cyber-list">
+                    <li>logₐ(xy) = logₐx + logₐy</li>
+                    <li>logₐ(x/y) = logₐx - logₐy</li>
+                    <li>logₐₖ bᵐ = (m/k) logₐb</li>
+                </ul>
+                <ul class="cyber-list">
+                    <li>Основное тождество: a^logₐb = b</li>
+                    <li>Переход: logₐb = 1 / logᵦa</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="theme-c11">
+        <h2 class="sector-title">🟣 SECTOR [11]: Анализ / Стереометрия</h2>
+        
+        <div class="cyber-panel">
+            <h3 class="module-title">Производная и Первообразная</h3>
+            <div class="data-grid-2">
+                <div>
+                    <strong>[ Таблица производных ]</strong>
+                    <ul class="cyber-list">
+                        <li>(xⁿ)' = n xⁿ⁻¹</li>
+                        <li>(sin x)' = cos x ; (cos x)' = -sin x</li>
+                        <li>(eˣ)' = eˣ ; (ln x)' = 1/x</li>
+                        <li>(tg x)' = 1/cos²x ; (ctg x)' = -1/sin²x</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong>[ Правила и Касательная ]</strong>
+                    <ul class="cyber-list">
+                        <li>(uv)' = u'v + uv'</li>
+                        <li>(u/v)' = (u'v - uv') / v²</li>
+                        <li>Касательная: y = f(x₀) + f'(x₀)(x - x₀)</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <strong>Первообразная:</strong> <span class="code-block">∫xⁿdx = xⁿ⁺¹/(n+1) + C</span> ; <span class="code-block">∫(1/x)dx = ln|x| + C</span>
+            </div>
+
+            <h3 class="module-title">Стереометрия (Полный список)</h3>
+            <div class="data-grid-3">
+                <div><span class="code-block">Призма: V = Sосн h, Sбок = Pосн h</span></div>
+                <div><span class="code-block">Пирамида: V = ⅓ Sосн h</span></div>
+                <div><span class="code-block">Цилиндр: V = πR²h, Sбок = 2πRh</span></div>
+                <div><span class="code-block">Конус: V = ⅓ πR²h, Sбок = πRl</span></div>
+                <div><span class="code-block">Шар: V = 4/3 πR³, Sсф = 4πR²</span></div>
+                <div><span class="code-block">Усеч. конус: V = ⅓ πh(R²+Rr+r²)</span></div>
+            </div>
+
+            <h3 class="module-title">Экономическая задача (№16 ЕГЭ)</h3>
+            <ul class="cyber-list">
+                <li><strong>Сложный процент:</strong> <span class="code-block">S = P(1 + r/100)ⁿ</span></li>
+                <li><strong>Аннуитетный платеж:</strong> <span class="code-block">x = S · <div class="frac"><span class="top">k(1+k)ⁿ</span><span class="bottom">(1+k)ⁿ - 1</span></div></span>, где k = 1 + r/100</li>
+                <li><strong>Дифференцированный платеж:</strong> Остаток долга уменьшается равномерно.</li>
+            </ul>
+        </div>
+    </section>
+
+    <div style="text-align: center; margin-top: 50px; color: var(--text-dim); font-size: 0.8rem;">
+        /// END OF TRANSMISSION /// SUPERTUTOR ORG. /// CYBER-MATH DIVISION ///
     </div>
 
-    <div id="final" class="card">
-        <h2 id="final-status"></h2>
-        <div id="stats" style="font-size: 20px; margin: 20px 0;"></div>
-        <button class="btn-ok" onclick="showMainMenu()">В МЕНЮ</button>
-    </div>
+</div>
 
-    <script>
-    const tg = window.Telegram.WebApp; tg.expand();
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
-
-    let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], name: "" };
-    let remoteDB = [];
-    let currentGrade = "5";
-
-    // --- ДАННЫЕ С ТВОИМ ДИЗАЙНОМ И ТЕОРИЕЙ ---
-    const data = {
-        "5": {
-            name: "5 Класс", hero: "🟢", desc: "Натуральные числа",
-            theory: [
-                { 
-                    title: "Арифметика и Числа", 
-                    text: `<div class="t-56">
-                        <p><strong>Признаки делимости:</strong></p>
-                        <div class="divisibility-grid">
-                            <div class="rule-bubble"><strong>На 2</strong>последняя четная</div>
-                            <div class="rule-bubble"><strong>На 3</strong>сумма делится на 3</div>
-                            <div class="rule-bubble"><strong>На 5</strong>конец 0 или 5</div>
-                            <div class="rule-bubble"><strong>На 9</strong>сумма делится на 9</div>
-                        </div>
-                        <p>📍 <strong>Среднее арифм.:</strong> <span class="formula">M = <div class="frac"><span class="top">a₁ + ... + aₙ</span><span class="bottom">n</span></div></span></p>
-                    </div>`
-                }
-            ]
-        },
-        "6": {
-            name: "6 Класс", hero: "🌿", desc: "Дроби и Пропорции",
-            theory: [
-                {
-                    title: "Дроби и Проценты",
-                    text: `<div class="t-56">
-                        <p><strong>Умножение дробей:</strong> <span class="formula"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> · <div class="frac"><span class="top">c</span><span class="bottom">d</span></div> = <div class="frac"><span class="top">ac</span><span class="bottom">bd</span></div></span></p>
-                        <p><strong>Пропорция:</strong> <span class="formula">ad = bc</span></p>
-                        <div style="background:var(--c5-bg); padding:10px; border-radius:10px;">
-                            <p>🔹 Увеличение на p%: <span class="formula">A · (1 + <div class="frac"><span class="top">p</span><span class="bottom">100</span></div>)</span></p>
-                        </div>
-                    </div>`
-                }
-            ]
-        },
-        "7": {
-            name: "7 Класс", hero: "🟡", desc: "Алгебра и Степени",
-            theory: [
-                {
-                    title: "Степени и ФСУ",
-                    text: `<div class="t-78">
-                        <div class="tech-box">
-                            <div class="tech-item">aⁿ · aᵐ = aⁿ⁺ᵐ</div>
-                            <div class="tech-item">(ab)ⁿ = aⁿbⁿ</div>
-                            <div class="tech-item">a⁻ⁿ = 1 / aⁿ</div>
-                        </div>
-                        <p style="color:var(--c7-main); font-weight:bold;">Формулы ФСУ:</p>
-                        <div class="tech-box">
-                            <div class="tech-item">(a ± b)² = a² ± 2ab + b²</div>
-                            <div class="tech-item">a² - b² = (a-b)(a+b)</div>
-                        </div>
-                    </div>`
-                }
-            ]
-        },
-        "8": {
-            name: "8 Класс", hero: "📟", desc: "Квадратные уравнения",
-            theory: [
-                {
-                    title: "Корни и Уравнения",
-                    text: `<div class="t-78">
-                        <div class="tech-box">
-                            <div class="tech-item">√(a²) = |a|</div>
-                            <div class="tech-item">√(ab) = √a · √b</div>
-                        </div>
-                        <p><strong>Уравнение ax² + bx + c = 0:</strong></p>
-                        <div style="border: 1px dashed #fdcb6e; padding: 10px; margin-top:5px; font-family:'Orbitron';">
-                            D = b² - 4ac<br>
-                            x₁,₂ = (-b ± √D) / 2a
-                        </div>
-                    </div>`
-                }
-            ]
-        },
-        "9": {
-            name: "9 Класс", hero: "🔴", desc: "ОГЭ Подготовка",
-            theory: [
-                {
-                    title: "Геометрия и Прогрессии",
-                    text: `<div class="t-9">
-                        <div class="info-card"><strong>S тр-ка:</strong> ½ a h или ½ ab sin γ</div>
-                        <div class="info-card"><strong>Арифм. прогрессия:</strong><br>aₙ = a₁ + d(n-1)<br>Sₙ = ((a₁ + aₙ)/2) · n</div>
-                    </div>`
-                }
-            ]
-        },
-        "10": {
-            name: "10 Класс", hero: "🔵", desc: "Тригонометрия",
-            theory: [
-                {
-                    title: "Тригонометрия",
-                    text: `<div class="t-10">
-                        <table class="trig-table">
-                            <tr><td><strong>Основное</strong></td><td>sin²x + cos²x = 1</td></tr>
-                            <tr><td><strong>Двойной угол</strong></td><td>sin 2x = 2 sin x cos x</td></tr>
-                        </table>
-                        <p><strong>Логарифмы:</strong> logₐ(xy) = logₐx + logₐy</p>
-                    </div>`
-                }
-            ]
-        },
-        "11": {
-            name: "11 Класс", hero: "📊", desc: "ЕГЭ Профиль",
-            theory: [
-                {
-                    title: "Анализ и Стереометрия",
-                    text: `<div class="t-11">
-                        <ul class="ios-list">
-                            <li><span>(xⁿ)'</span> <span>n xⁿ⁻¹</span></li>
-                            <li><span>(sin x)'</span> <span>cos x</span></li>
-                            <li><span>(uv)'</span> <span>u'v + uv'</span></li>
-                        </ul>
-                        <div style="background:#f5f5f7; border-radius:12px; padding:15px; margin-top:15px;">
-                            <strong>Шар:</strong> V = 4/3 πR³, S = 4πR²
-                        </div>
-                    </div>`
-                }
-            ]
-        }
-    };
-
-    // --- ЛОГИКА (БЕЗ ИЗМЕНЕНИЙ) ---
-    function setGradeAndGo(g) {
-        const name = document.getElementById('user-name-input').value.trim();
-        if(!name) return alert("Введи имя!");
-        state.name = name;
-        localStorage.setItem('math_name', name);
-        switchGrade(g);
-    }
-
-    window.switchGrade = function(g) {
-        currentGrade = g; hide(); document.body.className = "grade-" + g;
-        const cur = data[g] || data["5"];
-        document.getElementById('grade-title').innerText = cur.name;
-        document.getElementById('hero').innerText = cur.hero;
-        document.getElementById('grade-desc').innerText = `Привет, ${state.name}! ${cur.desc}`;
-        document.getElementById('hud').style.display = 'flex';
-        showMainMenu();
-        loadRemoteData();
-    }
-
-    async function loadRemoteData() {
-        try {
-            const res = await fetch(SHEET_URL);
-            const text = await res.text();
-            const rows = text.split('\n').slice(1);
-            remoteDB = rows.map(r => {
-                const c = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                if(c.length < 7) return null;
-                const opt = [c[2], c[3], c[4], c[5]].map(s => s?.replace(/"/g, '').trim());
-                let cor = c[6]?.trim();
-                if(cor.includes("Вариант 1")) cor = opt[0];
-                return { grade: c[0].trim(), q: c[1].replace(/"/g, ''), opt, cor, sol: c[7] };
-            }).filter(i => i);
-        } catch(e) {}
-    }
-
-    window.startPractice = () => {
-        hide(); state.lives = 5; state.coins = 0; state.currentIdx = 0;
-        let pool = remoteDB.filter(i => i.grade == currentGrade);
-        if(!pool.length) return alert("Задания грузятся...");
-        state.questions = pool.sort(() => Math.random()-0.5).slice(0, 10);
-        updateHUD(); document.getElementById('quiz').classList.add('active'); renderQ();
-    }
-
-    window.renderQ = () => {
-        if(state.lives <= 0) return finish(false);
-        if(state.currentIdx >= state.questions.length) return finish(true);
-        const q = state.questions[state.currentIdx];
-        document.getElementById('progress').innerText = `${state.currentIdx+1}/10`;
-        document.getElementById('q-text').innerHTML = q.q;
-        const cont = document.getElementById('options'); cont.innerHTML = "";
-        q.opt.forEach(o => {
-            const b = document.createElement('button'); b.innerHTML = o;
-            b.onclick = () => {
-                if(o === q.cor) { b.style.background="#00b894"; b.style.color="white"; state.coins+=5; }
-                else { b.style.background="#ff7675"; b.style.color="white"; state.lives--; }
-                updateHUD(); document.getElementById('solution-text').innerHTML = q.sol;
-                document.getElementById('solution-box').style.display="block";
-                document.getElementById('next-btn').style.display="block";
-                cont.querySelectorAll('button').forEach(btn => btn.disabled=true);
-            };
-            cont.appendChild(b);
-        });
-        document.getElementById('next-btn').style.display="none"; document.getElementById('solution-box').style.display="none";
-    }
-
-    document.getElementById('next-btn').onclick = () => { state.currentIdx++; renderQ(); };
-    window.finish = (win) => { hide(); document.getElementById('final').classList.add('active'); document.getElementById('final-status').innerText = win ? "ПОБЕДА!" : "НЕУДАЧА"; document.getElementById('stats').innerText = `💰 Монеты: ${state.coins}`; };
-    window.showMainMenu = () => { hide(); document.getElementById('main-menu').classList.add('active'); };
-    window.showGradeSelector = () => { hide(); document.getElementById('hud').style.display='none'; document.getElementById('grade-selector').classList.add('active'); };
-    window.hide = () => document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-    window.updateHUD = () => { document.getElementById('lives').innerText = state.lives; document.getElementById('coins').innerText = state.coins; };
-    window.resetApp = () => { localStorage.clear(); location.reload(); };
-
-    window.showTheoryMenu = () => {
-        hide(); const list = document.getElementById('theory-list'); list.innerHTML = "";
-        data[currentGrade].theory.forEach(t => {
-            const b = document.createElement('button'); b.innerText = t.title;
-            b.onclick = () => { hide(); document.getElementById('view-title').innerText = t.title; document.getElementById('view-content').innerHTML = t.text; document.getElementById('theory-view').classList.add('active'); };
-            list.appendChild(b);
-        });
-        document.getElementById('theory-menu').classList.add('active');
-    };
-
-    function init() {
-        const n = localStorage.getItem('math_name');
-        if(!n) document.getElementById('welcome-screen').classList.add('active');
-        else { state.name = n; showGradeSelector(); }
-    }
-    init();
-    </script>
 </body>
 </html>
