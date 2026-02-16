@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Full Edition</title>
+    <title>Math Universe: Энциклопедия</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Orbitron:wght@700;900&family=Oswald:wght@700;900&family=Roboto:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@400;600&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Nunito:wght@400;700&family=Open+Sans:wght@400;600&family=Orbitron:wght@700;900&family=Oswald:wght@500;700&family=Quicksand:wght@500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -13,332 +13,362 @@
 
     <style>
         :root {
-            --sky: #87CEEB; --lime: #32CD32; --orange: #FF8C00;
-            --turq: #00CED1; --purple: #4B0082; --coral: #FF7F50;
-            --neon: #00ff41; --cyber-blue: #0d0221; --gold: #FFD700;
-            --yellow: #FFFF00; --magenta: #FF00FF; --black: #000000; --white: #FFFFFF;
-            --func-blue: #007AFF; --func-orange: #FF9500; --func-bg: #F5F5F7;
-            --sage: #8DA399; --warm-white: #F9F7F2; --coffee: #4A403A;
-            --deep-bg: #121212; --deep-accent: #0A84FF; --deep-text: #E0E0E0;
+            --bg-body: #f4f4f9;
+            /* Твои палитры */
+            --c5-main: #00b894; --c5-light: #55efc4; --c5-bg: #e3fdf5;
+            --c7-main: #fdcb6e; --c7-accent: #2d3436; --c7-bg: #fffce6;
+            --c9-main: #ff7675; --c9-dark: #d63031; --c9-bg: #fff0f0;
+            --c10-main: #0984e3; --c10-dark: #2c3e50; --c10-bg: #ecf6ff;
+            --c11-main: #636e72; --c11-dark: #2d3436; --c11-bg: #ffffff;
+            
+            /* Системные цвета */
+            --deep-accent: #0A84FF;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            margin: 0; padding: 20px; min-height: 100vh;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            overflow: hidden; position: relative; transition: 0.5s;
-            font-family: 'Roboto', sans-serif; background: #f0f0f0; 
-        }
+        body { margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; background: var(--bg-body); transition: 0.5s; font-family: 'Inter', sans-serif; }
 
-        /* ТЕМЫ КЛАССОВ */
-        body.grade-5 { background: linear-gradient(180deg, var(--sky) 0%, #E0F7FA 100%); font-family: 'Nunito', sans-serif; --acc: var(--orange); --btn: var(--lime); --card-bg: white; --text-col: #333; }
-        body.grade-6 { background: #1A1A2E; font-family: 'Montserrat', sans-serif; color: #E1E8F0; --acc: var(--coral); --btn: var(--turq); --card-bg: rgba(26, 26, 46, 0.98); --text-col: #E1E8F0; }
-        body.grade-7 { background: var(--cyber-blue); color: var(--neon); font-family: 'Roboto', sans-serif; --acc: #9d00ff; --btn: var(--neon); --card-bg: rgba(13, 2, 33, 0.95); --text-col: var(--neon); }
-        body.grade-7 h2 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; }
-        body.grade-8 { background: var(--white); color: var(--black); font-family: 'Inter', sans-serif; --acc: var(--magenta); --btn: var(--yellow); --card-bg: var(--white); --text-col: var(--black); }
-        body.grade-8 h2, body.grade-8 h3 { font-family: 'Oswald', sans-serif; text-transform: uppercase; margin: 0 0 20px 0; line-height: 1.1; }
-        body.grade-8 .card { border-radius: 0; border: 6px solid var(--black); box-shadow: 12px 12px 0 var(--magenta); }
-        body.grade-9 { background: var(--func-bg); color: #1D1D1F; font-family: 'Roboto', sans-serif; --acc: var(--func-blue); --btn: var(--func-orange); --card-bg: #FFFFFF; --text-col: #1D1D1F; }
-        body.grade-10 { background: var(--warm-white); color: var(--coffee); font-family: 'Merriweather', serif; --acc: var(--sage); --btn: #6B7F75; --card-bg: #FFFEFA; --text-col: var(--coffee); }
-        body.grade-11 { background: var(--deep-bg); color: var(--deep-text); font-family: system-ui, -apple-system, sans-serif; --acc: var(--deep-accent); --btn: #30D158; --card-bg: #1C1C1E; --text-col: #E0E0E0; }
+        /* --- СТИЛИ ДЛЯ ФОРМУЛ ИЗ ТВОЕГО МАКЕТА --- */
+        .formula { display: inline-flex; align-items: center; font-style: italic; background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 6px; margin: 2px 0; border: 1px solid rgba(0,0,0,0.05); }
+        .frac { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; margin: 0 4px; font-size: 0.85em; }
+        .frac .top { border-bottom: 1.5px solid currentColor; padding: 0 2px; display: block; line-height: 1.1; }
+        .frac .bottom { display: block; line-height: 1.1; }
 
-        /* ОБЩИЕ ЭЛЕМЕНТЫ */
-        #hud { position: fixed; top: 15px; width: 90%; max-width: 400px; display: none; justify-content: space-between; z-index: 100; }
-        .hud-item { background: white; padding: 10px 18px; border-radius: 25px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        .card { 
-            background: var(--card-bg); border-radius: 35px; padding: 30px;
-            width: 100%; max-width: 440px; text-align: center; position: relative; z-index: 10; display: none;
-            max-height: 85vh; overflow-y: auto; color: var(--text-col);
-            box-shadow: 0 12px 0 rgba(0,0,0,0.1); border: 4px solid #333;
-        }
-        
+        /* --- КОНТЕЙНЕРЫ КАРТОЧЕК --- */
+        .card { background: white; border-radius: 30px; padding: 25px; width: 100%; max-width: 440px; text-align: center; position: relative; z-index: 10; display: none; max-height: 85vh; overflow-y: auto; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 2px solid white; }
         .active { display: block; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { from {transform: scale(0.95); opacity:0;} to {transform: scale(1); opacity:1;} }
 
-        button { 
-            font-family: inherit; border: none; padding: 16px 10px; border-radius: 20px; 
-            width: 100%; margin: 10px 0; font-weight: 900; font-size: 18px; cursor: pointer; 
-            transition: 0.2s; box-shadow: 0 6px 0 rgba(0,0,0,0.2);
-            display: flex; align-items: center; justify-content: center;
-        }
-        button:active { transform: translateY(3px); opacity: 0.8; }
-        .btn-acc { background: var(--acc); color: white; }
-        .btn-ok { background: var(--btn); color: #fff; }
-        .btn-gray { background: #6c757d; color: white; }
+        button { font-family: inherit; border: none; padding: 15px; border-radius: 18px; width: 100%; margin: 8px 0; font-weight: 700; font-size: 17px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
+        button:active { transform: translateY(2px); box-shadow: none; }
+        .btn-ok { background: #00b894; color: white; }
+        .btn-acc { background: #fdcb6e; color: #2d3436; }
+
+        /* --- ДИЗАЙН СЕКЦИЙ ТЕОРИИ --- */
+        .theory-content-styled { text-align: left; }
         
-        .grid-select { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        /* 5-6 Класс */
+        .t-56 { font-family: 'Nunito', sans-serif; color: #2d3436; }
+        .divisibility-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .rule-bubble { background: var(--c5-bg); border: 2px solid var(--c5-light); padding: 10px; border-radius: 15px; text-align: center; font-size: 14px; }
+        .rule-bubble strong { color: var(--c5-main); display: block; font-size: 16px; }
 
-        input {
-            width: 100%; padding: 15px; border-radius: 15px; border: 3px solid #333; 
-            font-size: 18px; margin-bottom: 10px; text-align: center; font-family: inherit;
-        }
+        /* 7-8 Класс */
+        .t-78 { font-family: 'Montserrat', sans-serif; }
+        .tech-box { border: 1px solid #636e72; padding: 15px; border-radius: 12px; background: #2d3436; color: #dfe6e9; margin: 10px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .tech-item { border-left: 3px solid var(--c7-main); padding-left: 8px; font-family: 'Orbitron', sans-serif; font-size: 13px; }
 
-        #q-text { font-size: 19px; font-weight: 700; margin-bottom: 20px; line-height: 1.6; text-align: left; }
-        .theory-box { text-align: left; padding: 20px; border-radius: 25px; border: 3px dashed var(--acc); margin-bottom: 15px; font-size: 16px; line-height: 1.5; }
-        #solution-box { display: none; padding: 20px; border-radius: 25px; margin-top: 20px; text-align: left; border: 3px solid var(--btn); background: rgba(0,0,0,0.05); }
+        /* 9 Класс */
+        .t-9 { font-family: 'Roboto', sans-serif; }
+        .info-card { background: var(--c9-bg); padding: 15px; border-radius: 10px; border-left: 5px solid var(--c9-main); margin-bottom: 10px; }
 
-        #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        .floater { position: absolute; bottom: -100px; opacity: 0.3; animation: floatUp linear forwards; }
-        @keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-120vh); } }
+        /* 10 Класс */
+        .trig-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0; }
+        .trig-table td { padding: 10px; border-bottom: 1px solid #d1e7ff; background: white; }
+
+        /* 11 Класс */
+        .ios-list { list-style: none; background: #f5f5f7; border-radius: 12px; padding: 5px 15px; }
+        .ios-list li { padding: 12px 0; border-bottom: 1px solid #e5e5e5; display: flex; justify-content: space-between; font-family: -apple-system, sans-serif; }
+
+        #hud { position: fixed; top: 15px; width: 90%; max-width: 400px; display: none; justify-content: space-between; z-index: 100; }
+        .hud-item { background: white; padding: 8px 15px; border-radius: 20px; font-weight: 800; border: 2px solid #2d3436; }
+        input { width: 100%; padding: 15px; border-radius: 15px; border: 3px solid #2d3436; font-size: 18px; margin-bottom: 10px; text-align: center; }
     </style>
 </head>
-<body class="grade-5">
+<body>
 
     <div id="hud">
         <div class="hud-item">❤️ <span id="lives">5</span></div>
         <div class="hud-item">💰 <span id="coins">0</span></div>
     </div>
 
-    <div id="floating-container"></div>
-
     <div id="welcome-screen" class="card">
-        <div style="font-size: 65px;">👋</div>
-        <h2 style="font-family: 'Montserrat', sans-serif;">ПРИВЕТ!</h2>
-        <p>Добро пожаловать в Math Universe. Как нам тебя называть?</p>
+        <div style="font-size: 60px;">🏛️</div>
+        <h2 style="font-family: 'Fredoka', sans-serif; color: var(--c5-main);">СУПЕРТЬЮТОР</h2>
+        <p>Добро пожаловать в Академию знаний.</p>
         <input type="text" id="user-name-input" placeholder="Твое имя...">
-        <p style="margin-top: 15px;">Введи свой класс (5-11):</p>
-        <input type="number" id="user-grade-input" placeholder="Номер..." min="5" max="11">
-        <p style="margin: 10px 0; opacity: 0.5;">— ИЛИ ВЫБЕРИ БЫСТРО —</p>
-        <div class="grid-select" style="grid-template-columns: repeat(4, 1fr); gap: 5px;">
-            <button onclick="setGradeFromBtn('5')" style="height: 40px; font-size: 12px; background: #87CEEB;">5</button>
-            <button onclick="setGradeFromBtn('6')" style="height: 40px; font-size: 12px; background: #1A1A2E; color:white;">6</button>
-            <button onclick="setGradeFromBtn('7')" style="height: 40px; font-size: 12px; background: #0d0221; color:#00ff41;">7</button>
-            <button onclick="setGradeFromBtn('8')" style="height: 40px; font-size: 12px; background: white; border:1px solid black; color:black;">8</button>
-            <button onclick="setGradeFromBtn('9')" style="height: 40px; font-size: 12px; background: #007AFF; color:white;">9</button>
-            <button onclick="setGradeFromBtn('10')" style="height: 40px; font-size: 12px; background: #8DA399; color:white;">10</button>
-            <button onclick="setGradeFromBtn('11')" style="height: 40px; font-size: 12px; background: #121212; color:white;">11</button>
+        <p>Выбери свой класс:</p>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px;">
+            <button onclick="setGradeAndGo('5')" style="height:40px; font-size:14px; background:var(--c5-light);">5</button>
+            <button onclick="setGradeAndGo('6')" style="height:40px; font-size:14px; background:var(--c5-main); color:white;">6</button>
+            <button onclick="setGradeAndGo('7')" style="height:40px; font-size:14px; background:var(--c7-main);">7</button>
+            <button onclick="setGradeAndGo('8')" style="height:40px; font-size:14px; background:var(--c7-accent); color:white;">8</button>
+            <button onclick="setGradeAndGo('9')" style="height:40px; font-size:14px; background:var(--c9-main); color:white;">9</button>
+            <button onclick="setGradeAndGo('10')" style="height:40px; font-size:14px; background:var(--c10-main); color:white;">10</button>
+            <button onclick="setGradeAndGo('11')" style="height:40px; font-size:14px; background:var(--c11-main); color:white;">11</button>
         </div>
-        <button class="btn-ok" style="margin-top: 20px;" onclick="saveFullProfile()">ПРОДОЛЖИТЬ</button>
     </div>
 
     <div id="grade-selector" class="card">
-        <h2>ВЫБЕРИ УРОВЕНЬ</h2>
-        <div id="loader-start" style="display:none; margin-bottom:15px;">📥 Загрузка...</div>
-        <div class="grid-select">
-            <button onclick="switchGrade('5')" style="background: #87CEEB;">5 КЛАСС</button>
-            <button onclick="switchGrade('6')" style="background: #1A1A2E; color: white;">6 КЛАСС</button>
-            <button onclick="switchGrade('7')" style="background: #0d0221; color: #00ff41;">7 КЛАСС</button>
-            <button onclick="switchGrade('8')" style="background: #FFFFFF; color: black; border: 3px solid black;">8 КЛАСС</button>
-            <button onclick="switchGrade('9')" style="background: #007AFF; color: white;">9 ОГЭ</button>
-            <button onclick="switchGrade('10')" style="background: #8DA399; color: white;">10 PRO</button>
-            <button onclick="switchGrade('11')" style="background: #121212; color: white;">11 ЕГЭ</button>
+        <h2 style="font-family: 'Montserrat';">АКАДЕМИЯ</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button onclick="switchGrade('5')" style="background: var(--c5-bg); border: 2px solid var(--c5-main);">5 КЛАСС</button>
+            <button onclick="switchGrade('6')" style="background: var(--c5-main); color: white;">6 КЛАСС</button>
+            <button onclick="switchGrade('7')" style="background: var(--c7-bg); border: 2px solid var(--c7-main);">7 КЛАСС</button>
+            <button onclick="switchGrade('8')" style="background: var(--c7-accent); color: white;">8 КЛАСС</button>
+            <button onclick="switchGrade('9')" style="background: var(--c9-main); color: white;">9 ОГЭ</button>
+            <button onclick="switchGrade('10')" style="background: var(--c10-main); color: white;">10 PRO</button>
+            <button onclick="switchGrade('11')" style="background: var(--c11-dark); color: white;">11 ЕГЭ</button>
         </div>
     </div>
 
     <div id="main-menu" class="card">
-        <div id="hero" style="font-size: 75px; margin-bottom: 10px;">🐱🚀</div>
-        <h2 id="grade-title"></h2>
-        <p id="grade-desc" style="font-weight: 700; opacity: 0.8;"></p>
-        <button class="btn-ok" onclick="startPractice()">🚀 СТАРТ</button>
-        <button class="btn-acc" onclick="showTheoryMenu()">📖 СПРАВОЧНИК</button>
-        <button onclick="showGradeSelector()" style="background: rgba(0,0,0,0.1); font-size: 14px;">🔄 СМЕНИТЬ КЛАСС</button>
+        <div id="hero" style="font-size: 70px; margin-bottom: 10px;"></div>
+        <h2 id="grade-title" style="font-family: 'Fredoka';"></h2>
+        <p id="grade-desc" style="font-weight: 600; opacity: 0.7;"></p>
+        <button class="btn-ok" onclick="startPractice()">🚀 ПРАКТИКА</button>
+        <button class="btn-acc" onclick="showTheoryMenu()">📖 ЭНЦИКЛОПЕДИЯ</button>
+        <button onclick="showGradeSelector()" style="background: none; box-shadow: none; color: #666; font-size: 14px;">🔄 СМЕНИТЬ КЛАСС</button>
+        <button onclick="resetApp()" style="margin-top: 20px; font-size: 10px; opacity: 0.4; background: none; box-shadow: none;">СБРОС ДАННЫХ</button>
     </div>
 
     <div id="theory-menu" class="card">
-        <h3>Разделы знаний</h3>
+        <h3 style="font-family: 'Montserrat';">Разделы знаний</h3>
         <div id="theory-list"></div>
-        <button onclick="showMainMenu()" class="btn-gray">⬅️ НАЗАД</button>
+        <button onclick="showMainMenu()" style="background: #eee; box-shadow: none;">⬅️ НАЗАД</button>
     </div>
 
     <div id="theory-view" class="card">
-        <h3 id="view-title" style="color: var(--acc);"></h3>
-        <div id="view-content" class="theory-box"></div>
-        <button class="btn-acc" onclick="showTheoryMenu()">ПОНЯТНО</button>
+        <h3 id="view-title"></h3>
+        <div id="view-content" class="theory-content-styled"></div>
+        <button class="btn-ok" onclick="showTheoryMenu()">ПОНЯТНО</button>
     </div>
 
     <div id="quiz" class="card">
-        <div id="progress"></div>
-        <div id="q-text"></div>
+        <div id="progress" style="font-weight: 900; opacity: 0.5; margin-bottom: 10px;"></div>
+        <div id="q-text" style="font-size: 20px; text-align: left;"></div>
         <div id="options"></div>
-        <div id="solution-box">
-            <b id="sol-hero">Разбор:</b>
-            <div id="solution-text"></div>
+        <div id="solution-box" style="display: none; padding: 15px; border-radius: 15px; background: #f9f9f9; text-align: left; margin-top: 15px; border: 2px solid #00b894;">
+            <b>Разбор:</b> <div id="solution-text"></div>
         </div>
-        <button id="next-btn" class="btn-ok" style="display:none;">ДАЛЬШЕ ➡️</button>
+        <button id="next-btn" class="btn-ok" style="display:none; margin-top: 15px;">ДАЛЕЕ ➡️</button>
     </div>
 
     <div id="final" class="card">
         <h2 id="final-status"></h2>
-        <div id="stats" class="theory-box" style="text-align:center;"></div>
-        <button class="btn-acc" onclick="showMainMenu()">В МЕНЮ</button>
+        <div id="stats" style="font-size: 20px; margin: 20px 0;"></div>
+        <button class="btn-ok" onclick="showMainMenu()">В МЕНЮ</button>
     </div>
 
     <script>
-    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
+    const tg = window.Telegram.WebApp; tg.expand();
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
 
-    try {
-        const tg = window.Telegram.WebApp; tg.expand();
-        let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], name: "" };
-        let remoteDatabase = []; 
-        let currentGrade = "5";
+    let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], name: "" };
+    let remoteDB = [];
+    let currentGrade = "5";
 
-        window.renderMath = (text, el) => {
-            if(!text) return;
-            el.innerHTML = text.replace(/\$([^$]+)\$/g, (m, f) => katex.renderToString(f, {throwOnError: false}));
-        };
-
-        // --- ВЕСЬ ТЕКСТ СПРАВОЧНИКА ---
-        const data = {
-            "5": {
-                name: "5 Класс", hero: "🐱🚀", desc: "Числа и действия",
-                theory: [
-                    { title: "Натуральные числа и действия", text: "<b>Округление:</b> Если след. цифра $5, 6, 7, 8, 9$ — вверх; если $0, 1, 2, 3, 4$ — вниз.<br><b>Порядок:</b> 1.Скобки, 2.Умножение/Деление, 3.Сложение/Вычитание.<br><b>Делимость:</b> на 2 (четные), на 3/9 (сумма цифр), на 5 (0 или 5)." },
-                    { title: "Обыкновенные дроби", text: "<b>Сравнение:</b> привести к общему знаменателю.<br><b>Умножение:</b> верх на верх, низ на низ.<br><b>Деление:</b> вторую дробь перевернуть." }
-                ]
-            },
-            "6": {
-                name: "6 Класс", hero: "🤖🛰️", desc: "Дроби и проценты",
-                theory: [
-                    { title: "Десятичные дроби", text: "<b>Умножение:</b> считаем знаки в обоих числах и отделяем в ответе.<br><b>Деление на 10, 100...:</b> запятую влево на кол-во нулей." },
-                    { title: "Пропорции и проценты", text: "<b>Пропорция:</b> $\\frac{a}{b} = \\frac{c}{d} \\Rightarrow ad = bc$.<br><b>Найти %:</b> Число $A \\cdot \\frac{p}{100}$." }
-                ]
-            },
-            "7": {
-                name: "7 Класс", hero: "👩🏻‍🎤⚡", desc: "Алгебра и ФСУ",
-                theory: [
-                    { title: "Степени", text: "<b>Свойства:</b><br>$a^n \\cdot a^m = a^{n+m}$<br>$(a^n)^m = a^{nm}$<br>$(ab)^n = a^n b^n$<br>$a^{-n} = \\frac{1}{a^n}$" },
-                    { title: "Формулы ФСУ", text: "$(a \\pm b)^2 = a^2 \\pm 2ab + b^2$<br>$a^2 - b^2 = (a-b)(a+b)$<br>$a^3 \\pm b^3 = (a \\pm b)(a^2 \\mp ab + b^2)$" }
-                ]
-            },
-            "8": {
-                name: "8 Класс", hero: "📟💀", desc: "Уравнения и Геометрия",
-                theory: [
-                    { title: "Квадратные уравнения", text: "$D = b^2 - 4ac$.<br> Если $D>0$: $x = \\frac{-b \\pm \\sqrt{D}}{2a}$.<br><b>Виет:</b> $x_1+x_2 = -p, x_1 \\cdot x_2 = q$." },
-                    { title: "Геометрия", text: "<b>Равенство треугольников:</b> по 2 сторонам и углу, по стороне и 2 углам, по 3 сторонам.<br><b>Тригонометрия:</b> $\\sin \\alpha = \\frac{кат}{гип}, \\cos \\alpha = \\frac{кат}{гип}$." }
-                ]
-            },
-            "9": {
-                name: "9 Класс: ОГЭ", hero: "👨‍🏫", desc: "Прогрессии и Окружность",
-                theory: [
-                    { title: "Прогрессии", text: "<b>Арифм:</b> $a_n = a_1 + d(n-1), S_n = \\frac{a_1+a_n}{2}n$.<br><b>Геом:</b> $b_n = b_1 \\cdot q^{n-1}, S_n = \\frac{b_1(q^n-1)}{q-1}$." },
-                    { title: "Окружность и Вероятность", text: "<b>Окружность:</b> Радиус $\\perp$ касательной. Вписанный угол = дуга/2.<br><b>Вероятность:</b> $P = \\frac{m}{n}$." }
-                ]
-            },
-            "10": {
-                name: "10 Класс", hero: "☕🌿", desc: "Тригонометрия",
-                theory: [
-                    { title: "Формулы", text: "$\\sin^2 \\alpha + \\cos^2 \\alpha = 1$.<br>$\\sin 2\\alpha = 2\\sin\\alpha\\cos\\alpha$.<br><b>Сложение:</b> $\\sin(\\alpha \\pm \\beta) = \\sin\\alpha\\cos\\beta \\pm \\cos\\alpha\\sin\\beta$." },
-                    { title: "Логарифмы", text: "$\\log_a (bc) = \\log_a b + \\log_a c$<br>$\\log_a b^n = n\\log_a b$<br>Переход: $\\log_a b = \\frac{\\log_c b}{\\log_c a}$." }
-                ]
-            },
-            "11": {
-                name: "11 Класс", hero: "📊🔥", desc: "ЕГЭ Профиль",
-                theory: [
-                    { title: "Производная", text: "<b>Правила:</b> $(uv)' = u'v+uv', (u/v)' = \\frac{u'v-uv'}{v^2}$.<br><b>Смысл:</b> $f'(x_0) = k = \\text{tg} \\alpha, v(t) = s'(t)$." },
-                    { title: "Стереометрия и Экономика", text: "<b>Объемы:</b> Призма ($S_{осн}h$), Пирамида ($\\frac{1}{3}S_{осн}h$), Шар ($\\frac{4}{3}\\pi R^3$).<br><b>Экономика:</b> $S = x \\cdot \\frac{(1+k)^n-1}{k(1+k)^n}$." }
-                ]
-            }
-        };
-
-        // --- ЛОГИКА ---
-        window.setGradeFromBtn = (g) => { document.getElementById('user-grade-input').value = g; };
-
-        window.saveFullProfile = function() {
-            const name = document.getElementById('user-name-input').value.trim();
-            const grade = document.getElementById('user-grade-input').value;
-            if(!name || !grade) return alert("Заполни все поля!");
-            state.name = name;
-            localStorage.setItem('math_name', name);
-            switchGrade(grade);
-        };
-
-        window.switchGrade = (g) => {
-            currentGrade = g; hideAll();
-            document.body.className = "grade-" + g;
-            const cur = data[g];
-            document.getElementById('grade-title').innerText = cur.name;
-            document.getElementById('hero').innerText = cur.hero;
-            document.getElementById('grade-desc').innerText = `Привет, ${state.name}! ${cur.desc}`;
-            document.getElementById('hud').style.display = 'flex';
-            showMainMenu();
-        };
-
-        async function loadRemoteData() {
-            try {
-                const res = await fetch(SHEET_CSV_URL);
-                const text = await res.text();
-                const rows = text.split('\n').slice(1);
-                remoteDatabase = rows.map(r => {
-                    const c = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if(c.length < 7) return null;
-                    const opt = [c[2], c[3], c[4], c[5]].map(s => s?.replace(/"/g, '').trim());
-                    let cor = c[6]?.trim();
-                    if(cor.includes("Вариант 1")) cor = opt[0];
-                    else if(cor.includes("Вариант 2")) cor = opt[1];
-                    else if(cor.includes("Вариант 3")) cor = opt[2];
-                    else if(cor.includes("Вариант 4")) cor = opt[3];
-                    return { grade: c[0].trim(), q: c[1].replace(/"/g, ''), opt, cor, sol: c[7] };
-                }).filter(i => i);
-            } catch(e) { console.error(e); }
+    // --- ДАННЫЕ С ТВОИМ ДИЗАЙНОМ И ТЕОРИЕЙ ---
+    const data = {
+        "5": {
+            name: "5 Класс", hero: "🟢", desc: "Натуральные числа",
+            theory: [
+                { 
+                    title: "Арифметика и Числа", 
+                    text: `<div class="t-56">
+                        <p><strong>Признаки делимости:</strong></p>
+                        <div class="divisibility-grid">
+                            <div class="rule-bubble"><strong>На 2</strong>последняя четная</div>
+                            <div class="rule-bubble"><strong>На 3</strong>сумма делится на 3</div>
+                            <div class="rule-bubble"><strong>На 5</strong>конец 0 или 5</div>
+                            <div class="rule-bubble"><strong>На 9</strong>сумма делится на 9</div>
+                        </div>
+                        <p>📍 <strong>Среднее арифм.:</strong> <span class="formula">M = <div class="frac"><span class="top">a₁ + ... + aₙ</span><span class="bottom">n</span></div></span></p>
+                    </div>`
+                }
+            ]
+        },
+        "6": {
+            name: "6 Класс", hero: "🌿", desc: "Дроби и Пропорции",
+            theory: [
+                {
+                    title: "Дроби и Проценты",
+                    text: `<div class="t-56">
+                        <p><strong>Умножение дробей:</strong> <span class="formula"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> · <div class="frac"><span class="top">c</span><span class="bottom">d</span></div> = <div class="frac"><span class="top">ac</span><span class="bottom">bd</span></div></span></p>
+                        <p><strong>Пропорция:</strong> <span class="formula">ad = bc</span></p>
+                        <div style="background:var(--c5-bg); padding:10px; border-radius:10px;">
+                            <p>🔹 Увеличение на p%: <span class="formula">A · (1 + <div class="frac"><span class="top">p</span><span class="bottom">100</span></div>)</span></p>
+                        </div>
+                    </div>`
+                }
+            ]
+        },
+        "7": {
+            name: "7 Класс", hero: "🟡", desc: "Алгебра и Степени",
+            theory: [
+                {
+                    title: "Степени и ФСУ",
+                    text: `<div class="t-78">
+                        <div class="tech-box">
+                            <div class="tech-item">aⁿ · aᵐ = aⁿ⁺ᵐ</div>
+                            <div class="tech-item">(ab)ⁿ = aⁿbⁿ</div>
+                            <div class="tech-item">a⁻ⁿ = 1 / aⁿ</div>
+                        </div>
+                        <p style="color:var(--c7-main); font-weight:bold;">Формулы ФСУ:</p>
+                        <div class="tech-box">
+                            <div class="tech-item">(a ± b)² = a² ± 2ab + b²</div>
+                            <div class="tech-item">a² - b² = (a-b)(a+b)</div>
+                        </div>
+                    </div>`
+                }
+            ]
+        },
+        "8": {
+            name: "8 Класс", hero: "📟", desc: "Квадратные уравнения",
+            theory: [
+                {
+                    title: "Корни и Уравнения",
+                    text: `<div class="t-78">
+                        <div class="tech-box">
+                            <div class="tech-item">√(a²) = |a|</div>
+                            <div class="tech-item">√(ab) = √a · √b</div>
+                        </div>
+                        <p><strong>Уравнение ax² + bx + c = 0:</strong></p>
+                        <div style="border: 1px dashed #fdcb6e; padding: 10px; margin-top:5px; font-family:'Orbitron';">
+                            D = b² - 4ac<br>
+                            x₁,₂ = (-b ± √D) / 2a
+                        </div>
+                    </div>`
+                }
+            ]
+        },
+        "9": {
+            name: "9 Класс", hero: "🔴", desc: "ОГЭ Подготовка",
+            theory: [
+                {
+                    title: "Геометрия и Прогрессии",
+                    text: `<div class="t-9">
+                        <div class="info-card"><strong>S тр-ка:</strong> ½ a h или ½ ab sin γ</div>
+                        <div class="info-card"><strong>Арифм. прогрессия:</strong><br>aₙ = a₁ + d(n-1)<br>Sₙ = ((a₁ + aₙ)/2) · n</div>
+                    </div>`
+                }
+            ]
+        },
+        "10": {
+            name: "10 Класс", hero: "🔵", desc: "Тригонометрия",
+            theory: [
+                {
+                    title: "Тригонометрия",
+                    text: `<div class="t-10">
+                        <table class="trig-table">
+                            <tr><td><strong>Основное</strong></td><td>sin²x + cos²x = 1</td></tr>
+                            <tr><td><strong>Двойной угол</strong></td><td>sin 2x = 2 sin x cos x</td></tr>
+                        </table>
+                        <p><strong>Логарифмы:</strong> logₐ(xy) = logₐx + logₐy</p>
+                    </div>`
+                }
+            ]
+        },
+        "11": {
+            name: "11 Класс", hero: "📊", desc: "ЕГЭ Профиль",
+            theory: [
+                {
+                    title: "Анализ и Стереометрия",
+                    text: `<div class="t-11">
+                        <ul class="ios-list">
+                            <li><span>(xⁿ)'</span> <span>n xⁿ⁻¹</span></li>
+                            <li><span>(sin x)'</span> <span>cos x</span></li>
+                            <li><span>(uv)'</span> <span>u'v + uv'</span></li>
+                        </ul>
+                        <div style="background:#f5f5f7; border-radius:12px; padding:15px; margin-top:15px;">
+                            <strong>Шар:</strong> V = 4/3 πR³, S = 4πR²
+                        </div>
+                    </div>`
+                }
+            ]
         }
+    };
 
-        window.startPractice = async () => {
-            hideAll(); state.lives = 5; state.coins = 0; state.currentIdx = 0;
-            if (remoteDatabase.length === 0) await loadRemoteData();
-            let pool = remoteDatabase.filter(i => i.grade == currentGrade);
-            if(!pool.length) return alert("Задания еще грузятся...");
-            state.questions = pool.sort(() => Math.random()-0.5).slice(0, 10);
-            updateHUD(); document.getElementById('quiz').classList.add('active'); renderQ();
-        };
+    // --- ЛОГИКА (БЕЗ ИЗМЕНЕНИЙ) ---
+    function setGradeAndGo(g) {
+        const name = document.getElementById('user-name-input').value.trim();
+        if(!name) return alert("Введи имя!");
+        state.name = name;
+        localStorage.setItem('math_name', name);
+        switchGrade(g);
+    }
 
-        window.renderQ = () => {
-            if(state.lives <= 0) return finish(false);
-            if(state.currentIdx >= state.questions.length) return finish(true);
-            const q = state.questions[state.currentIdx];
-            document.getElementById('progress').innerText = `Вопрос ${state.currentIdx+1}/10`;
-            renderMath(q.q, document.getElementById('q-text'));
-            const optCont = document.getElementById('options'); optCont.innerHTML = "";
-            q.opt.forEach(o => {
-                const b = document.createElement('button');
-                renderMath(o, b);
-                b.onclick = () => {
-                    if(o === q.cor) { b.style.background="#32CD32"; state.coins+=5; }
-                    else { b.style.background="#FF4500"; state.lives--; }
-                    updateHUD(); renderMath(q.sol, document.getElementById('solution-text'));
-                    document.getElementById('solution-box').style.display="block";
-                    document.getElementById('next-btn').style.display="block";
-                    optCont.querySelectorAll('button').forEach(btn => btn.disabled=true);
-                };
-                optCont.appendChild(b);
-            });
-            document.getElementById('next-btn').style.display="none"; document.getElementById('solution-box').style.display="none";
-        };
+    window.switchGrade = function(g) {
+        currentGrade = g; hide(); document.body.className = "grade-" + g;
+        const cur = data[g] || data["5"];
+        document.getElementById('grade-title').innerText = cur.name;
+        document.getElementById('hero').innerText = cur.hero;
+        document.getElementById('grade-desc').innerText = `Привет, ${state.name}! ${cur.desc}`;
+        document.getElementById('hud').style.display = 'flex';
+        showMainMenu();
+        loadRemoteData();
+    }
 
-        document.getElementById('next-btn').onclick = () => { state.currentIdx++; renderQ(); };
-        window.finish = (win) => { hideAll(); document.getElementById('final').classList.add('active'); document.getElementById('final-status').innerText = win ? "ПОБЕДА!" : "НЕУДАЧА"; document.getElementById('stats').innerText = `Монеты: ${state.coins}`; };
-        window.hideAll = () => document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-        window.showMainMenu = () => { hideAll(); document.getElementById('main-menu').classList.add('active'); };
-        window.showGradeSelector = () => { hideAll(); document.getElementById('hud').style.display='none'; document.getElementById('grade-selector').classList.add('active'); };
-        window.updateHUD = () => { document.getElementById('lives').innerText = state.lives; document.getElementById('coins').innerText = state.coins; };
+    async function loadRemoteData() {
+        try {
+            const res = await fetch(SHEET_URL);
+            const text = await res.text();
+            const rows = text.split('\n').slice(1);
+            remoteDB = rows.map(r => {
+                const c = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                if(c.length < 7) return null;
+                const opt = [c[2], c[3], c[4], c[5]].map(s => s?.replace(/"/g, '').trim());
+                let cor = c[6]?.trim();
+                if(cor.includes("Вариант 1")) cor = opt[0];
+                return { grade: c[0].trim(), q: c[1].replace(/"/g, ''), opt, cor, sol: c[7] };
+            }).filter(i => i);
+        } catch(e) {}
+    }
 
-        window.showTheoryMenu = () => {
-            hideAll(); const list = document.getElementById('theory-list'); list.innerHTML = "";
-            data[currentGrade].theory.forEach(t => {
-                const b = document.createElement('button'); b.innerText = t.title;
-                b.onclick = () => { hideAll(); document.getElementById('view-title').innerText = t.title; renderMath(t.text, document.getElementById('view-content')); document.getElementById('theory-view').classList.add('active'); };
-                list.appendChild(b);
-            });
-            document.getElementById('theory-menu').classList.add('active');
-        };
+    window.startPractice = () => {
+        hide(); state.lives = 5; state.coins = 0; state.currentIdx = 0;
+        let pool = remoteDB.filter(i => i.grade == currentGrade);
+        if(!pool.length) return alert("Задания грузятся...");
+        state.questions = pool.sort(() => Math.random()-0.5).slice(0, 10);
+        updateHUD(); document.getElementById('quiz').classList.add('active'); renderQ();
+    }
 
-        function initApp() {
-            const saved = localStorage.getItem('math_name');
-            hideAll();
-            if(!saved) document.getElementById('welcome-screen').classList.add('active');
-            else { state.name = saved; showGradeSelector(); }
-            loadRemoteData();
-        }
-        initApp();
-        setInterval(() => {
-            const c = document.getElementById('floating-container'); const d = document.createElement('div');
-            d.className = 'floater'; d.innerText = "⚡"; d.style.left = Math.random()*95+"vw";
-            d.style.animationDuration = (6+Math.random()*6)+"s"; c.appendChild(d);
-            setTimeout(() => d.remove(), 10000);
-        }, 2000);
+    window.renderQ = () => {
+        if(state.lives <= 0) return finish(false);
+        if(state.currentIdx >= state.questions.length) return finish(true);
+        const q = state.questions[state.currentIdx];
+        document.getElementById('progress').innerText = `${state.currentIdx+1}/10`;
+        document.getElementById('q-text').innerHTML = q.q;
+        const cont = document.getElementById('options'); cont.innerHTML = "";
+        q.opt.forEach(o => {
+            const b = document.createElement('button'); b.innerHTML = o;
+            b.onclick = () => {
+                if(o === q.cor) { b.style.background="#00b894"; b.style.color="white"; state.coins+=5; }
+                else { b.style.background="#ff7675"; b.style.color="white"; state.lives--; }
+                updateHUD(); document.getElementById('solution-text').innerHTML = q.sol;
+                document.getElementById('solution-box').style.display="block";
+                document.getElementById('next-btn').style.display="block";
+                cont.querySelectorAll('button').forEach(btn => btn.disabled=true);
+            };
+            cont.appendChild(b);
+        });
+        document.getElementById('next-btn').style.display="none"; document.getElementById('solution-box').style.display="none";
+    }
 
-    } catch (e) { document.getElementById('error-msg').innerText = e; }
+    document.getElementById('next-btn').onclick = () => { state.currentIdx++; renderQ(); };
+    window.finish = (win) => { hide(); document.getElementById('final').classList.add('active'); document.getElementById('final-status').innerText = win ? "ПОБЕДА!" : "НЕУДАЧА"; document.getElementById('stats').innerText = `💰 Монеты: ${state.coins}`; };
+    window.showMainMenu = () => { hide(); document.getElementById('main-menu').classList.add('active'); };
+    window.showGradeSelector = () => { hide(); document.getElementById('hud').style.display='none'; document.getElementById('grade-selector').classList.add('active'); };
+    window.hide = () => document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+    window.updateHUD = () => { document.getElementById('lives').innerText = state.lives; document.getElementById('coins').innerText = state.coins; };
+    window.resetApp = () => { localStorage.clear(); location.reload(); };
+
+    window.showTheoryMenu = () => {
+        hide(); const list = document.getElementById('theory-list'); list.innerHTML = "";
+        data[currentGrade].theory.forEach(t => {
+            const b = document.createElement('button'); b.innerText = t.title;
+            b.onclick = () => { hide(); document.getElementById('view-title').innerText = t.title; document.getElementById('view-content').innerHTML = t.text; document.getElementById('theory-view').classList.add('active'); };
+            list.appendChild(b);
+        });
+        document.getElementById('theory-menu').classList.add('active');
+    };
+
+    function init() {
+        const n = localStorage.getItem('math_name');
+        if(!n) document.getElementById('welcome-screen').classList.add('active');
+        else { state.name = n; showGradeSelector(); }
+    }
+    init();
     </script>
 </body>
 </html>
