@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Universe: Ultimate</title>
+    <title>Math Universe: Full Edition</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700;900&family=Nunito:wght@700;900&family=Orbitron:wght@700;900&family=Oswald:wght@700;900&family=Roboto:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
     
@@ -13,20 +13,21 @@
 
     <style>
         :root {
+            /* Цвета 5-7 */
             --sky: #87CEEB; --lime: #32CD32; --orange: #FF8C00;
             --turq: #00CED1; --purple: #4B0082; --coral: #FF7F50;
             --neon: #00ff41; --cyber-blue: #0d0221; --gold: #FFD700;
             
-            /* 8 класс */
+            /* Цвета 8 */
             --yellow: #FFFF00; --magenta: #FF00FF; --black: #000000; --white: #FFFFFF;
             
-            /* 9 класс (Functional) */
+            /* Цвета 9 */
             --func-blue: #007AFF; --func-orange: #FF9500; --func-bg: #F5F5F7;
             
-            /* 10 класс (StudyCafe) */
+            /* Цвета 10 */
             --sage: #8DA399; --warm-white: #F9F7F2; --coffee: #4A403A;
             
-            /* 11 класс (Deep Focus) */
+            /* Цвета 11 */
             --deep-bg: #121212; --deep-accent: #0A84FF; --deep-text: #E0E0E0;
         }
 
@@ -53,6 +54,7 @@
         body.grade-8 h2, body.grade-8 h3 { font-family: 'Oswald', sans-serif; text-transform: uppercase; margin: 0 0 20px 0; line-height: 1.1; }
         body.grade-8 h2 { font-size: 32px; border-bottom: 6px solid var(--black); padding-bottom: 10px; }
         body.grade-8 .card { border-radius: 0; border: 6px solid var(--black); box-shadow: 12px 12px 0 var(--magenta); }
+        /* Исправление: убрали uppercase для кнопок ответов */
         body.grade-8 button { font-family: 'Oswald', sans-serif; border-radius: 0; border: 4px solid var(--black); box-shadow: 4px 4px 0 var(--black); text-transform: none; }
 
         /* 9 КЛАСС (FUNCTIONAL) */
@@ -74,22 +76,19 @@
         body.grade-11 .btn-ok { background: var(--btn) !important; color: #000 !important; border: none; }
         body.grade-11 .hud-item { background: #2C2C2E; color: #FFF; border: 1px solid #444; }
 
-        /* --- ОБЩИЕ ЭЛЕМЕНТЫ --- */
+        /* ОБЩИЕ */
         #hud { position: fixed; top: 15px; width: 90%; max-width: 400px; display: flex; justify-content: space-between; z-index: 100; }
         .hud-item { background: white; padding: 10px 18px; border-radius: 25px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        body.grade-7 .hud-item { background: #1a1a1a; color: var(--neon); border: 1px solid var(--neon); }
-        body.grade-8 .hud-item { background: var(--white); border-radius: 0; border: 4px solid var(--black); box-shadow: 4px 4px 0 var(--black); }
-
+        
         .card { 
             background: var(--card-bg); border-radius: 35px; padding: 30px;
             width: 100%; max-width: 440px; text-align: center; position: relative; z-index: 10; display: none;
             max-height: 85vh; overflow-y: auto; color: var(--text-col);
             box-shadow: 0 12px 0 rgba(0,0,0,0.1); border: 4px solid #333;
         }
-        /* Сброс границ для старших классов где не нужно */
-        body.grade-9 .card, body.grade-10 .card, body.grade-11 .card { border: none; }
-        body.grade-10 .card { border: 1px solid #E0DCD0; } 
-        body.grade-11 .card { border: 1px solid #333; }
+        
+        /* Сетка для выбора классов */
+        .grid-select { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
 
         .active { display: block; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { from {transform: scale(0.95); opacity:0;} to {transform: scale(1); opacity:1;} }
@@ -105,11 +104,11 @@
         .btn-acc { background: var(--acc); color: white; }
         .btn-ok { background: var(--btn); color: #fff; }
         
-        /* Стили кнопок 8 класса */
+        /* Специфика для 8 класса */
         body.grade-8 .btn-acc { background: var(--magenta); color: white; }
         body.grade-8 .btn-ok { background: var(--yellow); color: black; }
 
-        /* ШРИФТ ЗАДАНИЯ */
+        /* ШРИФТЫ ЗАДАНИЙ */
         #q-text { font-size: 19px; font-weight: 700; margin-bottom: 20px; line-height: 1.6; text-align: left; }
         body.grade-5 #q-text { font-size: 18px; } 
         body.grade-8 #q-text { font-size: 20px; }
@@ -129,7 +128,6 @@
         
         #floating-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
         .floater { position: absolute; bottom: -100px; opacity: 0.3; animation: floatUp linear forwards; }
-        body.grade-8 .floater { opacity: 0.15; font-weight: 900; }
         @keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-120vh); } }
         
         #error-msg { display: none; color: red; background: white; padding: 20px; border-radius: 10px; z-index: 999; position: relative; }
@@ -141,13 +139,27 @@
     <div id="error-msg">Ошибка загрузки.</div>
 
     <div id="hud">
-        <div class="hud-item">❤️ <span id="lives" style="color: inherit;">5</span></div>
-        <div class="hud-item">💰 <span id="coins" style="color: inherit;">0</span></div>
+        <div class="hud-item">❤️ <span id="lives">5</span></div>
+        <div class="hud-item">💰 <span id="coins">0</span></div>
     </div>
 
     <div id="floating-container"></div>
 
-    <div id="main-menu" class="card active">
+    <div id="grade-selector" class="card">
+        <h2>ВЫБЕРИ УРОВЕНЬ</h2>
+        <p>Каждый класс — это свой стиль и задачи.</p>
+        <div class="grid-select">
+            <button onclick="switchGrade('5')" style="background: #87CEEB;">5 КЛАСС</button>
+            <button onclick="switchGrade('6')" style="background: #1A1A2E; color: white;">6 КЛАСС</button>
+            <button onclick="switchGrade('7')" style="background: #0d0221; color: #00ff41;">7 КЛАСС</button>
+            <button onclick="switchGrade('8')" style="background: #FFFFFF; color: black; border: 3px solid black;">8 КЛАСС</button>
+            <button onclick="switchGrade('9')" style="background: #007AFF; color: white;">9 ОГЭ</button>
+            <button onclick="switchGrade('10')" style="background: #8DA399; color: white;">10 PRO</button>
+            <button onclick="switchGrade('11')" style="background: #121212; color: white;">11 ЕГЭ</button>
+        </div>
+    </div>
+
+    <div id="main-menu" class="card">
         <div id="hero" style="font-size: 75px; margin-bottom: 10px;">🐱🚀</div>
         <h2 id="grade-title" style="font-size: 28px; margin: 10px 0;">Загрузка...</h2>
         <p id="grade-desc" style="font-size: 15px; margin-bottom: 20px; opacity: 0.8; font-weight: 700;"></p>
@@ -157,6 +169,8 @@
         <button class="btn-acc" onclick="showTheoryMenu()">📖 ТЕОРИЯ</button>
         <button class="btn-ok" onclick="startPractice()">🚀 ПРАКТИКА</button>
         <button onclick="showShop()" style="background: var(--gold); color: #000;">🛒 МАГАЗИН</button>
+        
+        <button onclick="showGradeSelector()" style="background: rgba(0,0,0,0.1); font-size: 14px; margin-top: 15px;">🔄 СМЕНИТЬ КЛАСС</button>
     </div>
 
     <div id="theory-menu" class="card">
@@ -173,7 +187,7 @@
 
     <div id="shop" class="card">
         <h2 style="color: var(--gold);">🛒 МАГАЗИН</h2>
-        <p>Магазин в разработке...</p>
+        <p>В разработке...</p>
         <button onclick="showMainMenu()" style="background:#6c757d; color:white; margin-top: 15px;">⬅️ НАЗАД</button>
     </div>
 
@@ -196,7 +210,6 @@
     </div>
 
     <script>
-    // ССЫЛКА НА ТВОЮ ТАБЛИЦУ (CSV)
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
 
     try {
@@ -205,8 +218,8 @@
         
         let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], errorsByBlock: {} };
         let remoteDatabase = []; 
+        let currentGrade = "5"; // Класс по умолчанию
 
-        // РЕНДЕРЕР
         window.renderMath = function(text, element, isDisplay = false) {
             try {
                 element.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
@@ -226,16 +239,16 @@
                     { title: "5. Десятичные дроби", text: "Умножение на 10, 100 $\\to$ запятая <b>вправо</b>.<br>Деление на 10, 100 $\\to$ запятая <b>влево</b>.<br>Среднее арифметическое: сумма всех чисел деленная на их количество." }
                 ],
                 questions: [
-                    { q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй книге?", opt: ["42", "378", "123", "40"], cor: "42", sol: "$126 : 3 = 42$.", bId: "Натуральные числа" },
-                    { q: "Найдите значение выражения:<br>$45 + 15 \\cdot (102 - 92)$", opt: ["195", "600", "150", "160"], cor: "195", sol: "1) $102 - 92 = 10$<br>2) $15 \\cdot 10 = 150$<br>3) $45 + 150 = 195$", bId: "Порядок действий" },
-                    { q: "Ширина прямоугольника 8 см, а длина на 4 см больше. Чему равен периметр?", opt: ["40 см", "24 см", "96 см", "32 см"], cor: "40 см", sol: "Длина: $8 + 4 = 12$.<br>Периметр: $(8 + 12) \\cdot 2 = 40$.", bId: "Периметр" },
-                    { q: "Какую часть метра составляют 35 сантиметров?", opt: ["$\\dfrac{35}{100}$", "$\\dfrac{35}{10}$", "$\\dfrac{100}{35}$", "$\\dfrac{3}{5}$"], cor: "$\\dfrac{35}{100}$", sol: "В 1 метре 100 см, значит $\\frac{35}{100}$.", bId: "Дроби" },
-                    { q: "Вычислите: $3,27 + 12,5$", opt: ["15,77", "15,32", "4,52", "157,7"], cor: "15,77", sol: "Записываем запятую под запятой:<br>$3,27 + 12,50 = 15,77$.", bId: "Десятичные дроби" },
-                    { q: "Решите уравнение: $x - 14,8 = 5,2$", opt: ["20", "9,6", "20,10", "19,6"], cor: "20", sol: "$x = 5,2 + 14,8 = 20$.", bId: "Уравнения" },
-                    { q: "Округлите число 452,38 до целых.", opt: ["452", "453", "450", "452,4"], cor: "452", sol: "Первая цифра после запятой 3 (< 5), округляем в меньшую сторону.", bId: "Округление" },
-                    { q: "Площадь квадрата равна 64 см$^2$. Найдите его сторону.", opt: ["8 см", "16 см", "32 см", "4 см"], cor: "8 см", sol: "$8 \\cdot 8 = 64$.", bId: "Квадрат" },
-                    { q: "В классе 25 учеников. 40% из них — девочки. Сколько девочек в классе?", opt: ["10", "15", "4", "5"], cor: "10", sol: "$25 \\cdot 0,4 = 10$.", bId: "Проценты" },
-                    { q: "Чему равен объем прямоугольного параллелепипеда (2 см, 5 см, 10 см)?", opt: ["100 см$^3$", "17 см$^3$", "34 см$^3$", "50 см$^3$"], cor: "100 см$^3$", sol: "$V = 2 \\cdot 5 \\cdot 10 = 100$.", bId: "Объем" }
+                   { q: "В одной книге 126 страниц, что в 3 раза больше, чем в другой. Сколько страниц во второй?", opt: ["42", "378", "123", "40"], cor: "42", sol: "$126 : 3 = 42$", bId: "Числа" },
+                   { q: "$45 + 15 \\cdot (102 - 92)$", opt: ["195", "600", "150"], cor: "195", sol: "$15 \\cdot 10 + 45 = 195$", bId: "Действия" },
+                   { q: "35 см от метра это:", opt: ["$\\frac{35}{100}$", "$\\frac{35}{10}$", "$\\frac{3}{5}$"], cor: "$\\frac{35}{100}$", sol: "1м = 100см", bId: "Дроби" },
+                   { q: "Площадь квадрата 64 см$^2$. Сторона?", opt: ["8", "16", "32"], cor: "8", sol: "$8 \\cdot 8 = 64$", bId: "Геометрия" },
+                   { q: "40% от 25 учеников это:", opt: ["10", "15", "5"], cor: "10", sol: "$25 \\cdot 0,4 = 10$", bId: "Проценты" },
+                   { q: "$3,27 + 12,5$", opt: ["15,77", "15,32", "157,7"], cor: "15,77", sol: "Запятая под запятой.", bId: "Дроби" },
+                   { q: "Периметр (8 и 12 см)", opt: ["40", "20", "96"], cor: "40", sol: "$(8+12)\\cdot 2 = 40$", bId: "Геометрия" },
+                   { q: "Округлить 452,38 до целых", opt: ["452", "453", "450"], cor: "452", sol: "3 меньше 5 -> вниз", bId: "Округление" },
+                   { q: "Объем (2, 5, 10)", opt: ["100", "50", "17"], cor: "100", sol: "$2\\cdot 5\\cdot 10 = 100$", bId: "Объем" },
+                   { q: "Уравнение $x-14.8=5.2$", opt: ["20", "19", "9.6"], cor: "20", sol: "Складываем.", bId: "Уравнения" }
                 ]
             },
             "6": {
@@ -249,20 +262,20 @@
                     { title: "6. Раскрытие скобок", text: "Минус перед скобкой меняет знаки внутри: $-(a-b) = -a+b$." }
                 ],
                 questions: [
-                    { q: "Найдите НОК (наименьшее общее кратное) чисел 12 и 15:", opt: ["3", "180", "60", "30"], cor: "60", sol: "60 делится и на 12, и на 15.", bId: "Теория чисел" },
-                    { q: "Решите пропорцию:<br>$12 : x = 4 : 5$", opt: ["15", "9,6", "10", "2,4"], cor: "15", sol: "$4x = 12 \\cdot 5 \\implies x = 15$.", bId: "Пропорции" },
-                    { q: "Карта 1 : 500 000. На карте 4 см.<br>Каково реальное расстояние?", opt: ["2 км", "20 км", "200 км", "12,5 км"], cor: "20 км", sol: "$4 \\cdot 500\\,000$ см = $20$ км.", bId: "Масштаб" },
-                    { q: "Длина окружности при $R=5$ ($\\pi \\approx 3,14$):", opt: ["15,7", "31,4", "78,5", "314"], cor: "31,4", sol: "$C = 2\\pi R = 2 \\cdot 3,14 \\cdot 5 = 31,4$.", bId: "Геометрия" },
-                    { q: "Вычислите:<br>$-18 + (-7) - (-10)$", opt: ["-35", "-15", "-25", "15"], cor: "-15", sol: "$-18 - 7 + 10 = -15$.", bId: "Отрицательные числа" },
-                    { q: "Значение:<br>$(-2,5) \\cdot (-4) \\cdot 0,3$", opt: ["3", "-3", "0,3", "-30"], cor: "3", sol: "$10 \\cdot 0,3 = 3$.", bId: "Отрицательные числа" },
-                    { q: "В какой четверти точка $A(-5; 8)$?", opt: ["I", "II", "III", "IV"], cor: "II", sol: "$x < 0, y > 0 \\implies$ II четверть.", bId: "Координаты" },
-                    { q: "Упростите:<br>$3(x - 2) - 2(x - 3)$", opt: ["$x - 12$", "$5x$", "$x$", "$x + 12$"], cor: "$x$", sol: "$3x - 6 - 2x + 6 = x$.", bId: "Раскрытие скобок" },
-                    { q: "Решите уравнение:<br>$5x - 12 = 2x + 6$", opt: ["2", "6", "-2", "18"], cor: "6", sol: "$3x = 18 \\implies x = 6$.", bId: "Уравнения" },
-                    { q: "Значение $|-12,4| + |3,6|$:", opt: ["8,8", "16", "-8,8", "-16"], cor: "16", sol: "$12,4 + 3,6 = 16$.", bId: "Модуль" }
+                    { q: "НОК(12, 15)", opt: ["60", "30", "180", "3"], cor: "60", sol: "60 делится на 12 и 15", bId: "Числа" },
+                    { q: "Пропорция: $12:x = 4:5$", opt: ["15", "10", "20", "9"], cor: "15", sol: "$4x=60 \\implies x=15$", bId: "Пропорции" },
+                    { q: "$-18 + (-7) - (-10)$", opt: ["-15", "-35", "-25", "15"], cor: "-15", sol: "$-18-7+10=-15$", bId: "Отрицательные" },
+                    { q: "Длина окружности $R=5$ ($\\pi=3,14$)", opt: ["31,4", "15,7", "78,5"], cor: "31,4", sol: "$2\\pi R = 31,4$", bId: "Геометрия" },
+                    { q: "Модуль $|-12,4| + |3,6|$", opt: ["16", "8,8", "-8,8"], cor: "16", sol: "Модуль съедает минус.", bId: "Модуль" },
+                    { q: "Четверть точки A(-5; 8)", opt: ["II", "I", "III"], cor: "II", sol: "x минус, y плюс", bId: "Координаты" },
+                    { q: "Упростить $3(x-2)-2(x-3)$", opt: ["$x$", "$5x$", "$x-12$"], cor: "$x$", sol: "$3x-6-2x+6=x$", bId: "Алгебра" },
+                    { q: "$(-2,5) \\cdot (-4) \\cdot 0,3$", opt: ["3", "-3", "30"], cor: "3", sol: "$10 \\cdot 0,3 = 3$", bId: "Числа" },
+                    { q: "Масштаб 1:500000. 4см на карте.", opt: ["20 км", "2 км", "200 км"], cor: "20 км", sol: "$4 \\cdot 5 = 20$", bId: "Масштаб" },
+                    { q: "$5x-12=2x+6$", opt: ["6", "2", "-2"], cor: "6", sol: "$3x=18$", bId: "Уравнения" }
                 ]
             },
             "7": {
-                name: "7 Класс", hero: "👩🏻‍🎤⚡", desc: "Пора зажечь с алгеброй и функциями!",
+                name: "7 Класс", hero: "👩🏻‍🎤⚡", desc: "Алгебра, ФСУ и Функции",
                 theory: [
                     { title: "1. Свойства степеней", text: "$a^n \\cdot a^m = a^{n+m}$<br>$(a^n)^m = a^{nm}$<br>При умножении показатели складываются, при возведении в степень — перемножаются." },
                     { title: "2. Линейная функция", text: "$y = kx + b$.<br>$k$ — наклон прямой.<br>$b$ — точка пересечения с осью Y." },
@@ -272,16 +285,16 @@
                     { title: "6. Треугольники", text: "Признаки равенства: 1) СУС (2 стороны и угол), 2) УСУ (сторона и 2 угла), 3) ССС (3 стороны)." }
                 ],
                 questions: [
-                    { q: "Упростите выражение:<br>$2(3x - 1) - 4(x + 2)$", opt: ["$2x - 10$", "$2x + 6$", "$10x - 10$", "$2x - 3$"], cor: "$2x - 10$", sol: "$6x - 2 - 4x - 8 = 2x - 10$", bId: "Алгебра" },
-                    { q: "Вычислите: $\\dfrac{(a^3)^4}{a^{10}}$", opt: ["$a^7$", "$a^2$", "$a^{22}$", "$a^{12}$"], cor: "$a^2$", sol: "$a^{12} : a^{10} = a^2$", bId: "Свойства степеней" },
-                    { q: "Представьте как многочлен:<br>$(x - 3)(x + 5)$", opt: ["$x^2 - 15$", "$x^2 - 2x - 15$", "$x^2 + 8x - 15$", "$x^2 + 2x - 15$"], cor: "$x^2 + 2x - 15$", sol: "$x^2 + 5x - 3x - 15 = x^2 + 2x - 15$", bId: "Алгебра" },
-                    { q: "Решите систему:<br>$\\begin{cases} x + y = 10 \\\\ x - y = 4 \\end{cases}$", opt: ["(6; 4)", "(5; 5)", "(7; 3)", "(8; 2)"], cor: "(7; 3)", sol: "Сложим: $2x = 14 \\implies x=7$. Тогда $y=3$.", bId: "Системы" },
-                    { q: "Разложите: $16 - 9y^2$", opt: ["$(4 - 3y)(4 + 3y)$", "$(4 - 3y)^2$", "$(8 - 3y)(8 + 3y)$", "$(16 - 9y)(16 + 9y)$"], cor: "$(4 - 3y)(4 + 3y)$", sol: "$4^2 - (3y)^2 = (4-3y)(4+3y)$", bId: "ФСУ" },
-                    { q: "$y = 3x + b$ проходит через $A(1; 5)$.<br>Найдите $b$:", opt: ["5", "2", "8", "-2"], cor: "2", sol: "$5 = 3 \\cdot 1 + b \\implies b=2$", bId: "Функция" },
-                    { q: "Решите уравнение:<br>$5x - 4 = 3x + 8$", opt: ["2", "4", "6", "-2"], cor: "6", sol: "$2x = 12 \\implies x = 6$", bId: "Алгебра" },
-                    { q: "Угол, смежный с углом $50^\\circ$:", opt: ["$40^\\circ$", "$130^\\circ$", "$50^\\circ$", "$180^\\circ$"], cor: "$130^\\circ$", sol: "$180 - 50 = 130$", bId: "Геометрия" },
-                    { q: "Равнобедренный треуг.<br>Угол при основании $70^\\circ$. Вершина?", opt: ["$70^\\circ$", "$110^\\circ$", "$55^\\circ$", "$40^\\circ$"], cor: "$40^\\circ$", sol: "$180 - 2 \\cdot 70 = 40$", bId: "Геометрия" },
-                    { q: "Параллельные прямые.<br>Накрест лежащий к $60^\\circ$:", opt: ["$120^\\circ$", "$60^\\circ$", "$30^\\circ$", "$90^\\circ$"], cor: "$60^\\circ$", sol: "Углы равны.", bId: "Геометрия" }
+                    { q: "Упростите: $2(3x-1)-4(x+2)$", opt: ["$2x-10$", "$2x+6$", "$10x-10$"], cor: "$2x-10$", sol: "$6x-2-4x-8$", bId: "Алгебра" },
+                    { q: "Вычислите: $\\frac{(a^3)^4}{a^{10}}$", opt: ["$a^2$", "$a^7$", "$a^{12}$"], cor: "$a^2$", sol: "$a^{12}/a^{10} = a^2$", bId: "Степени" },
+                    { q: "Разложите: $16 - 9y^2$", opt: ["$(4-3y)(4+3y)$", "$(4-3y)^2$"], cor: "$(4-3y)(4+3y)$", sol: "Разность квадратов", bId: "ФСУ" },
+                    { q: "Система: $x+y=10, x-y=4$", opt: ["(7;3)", "(6;4)", "(5;5)"], cor: "(7;3)", sol: "Сложением: $2x=14$", bId: "Системы" },
+                    { q: "Смежный с $50^\\circ$", opt: ["$130^\\circ$", "$40^\\circ$", "$50^\\circ$"], cor: "$130^\\circ$", sol: "$180-50=130$", bId: "Геометрия" },
+                    { q: "Найти b, если $y=3x+b$ через A(1;5)", opt: ["2", "5", "8"], cor: "2", sol: "$5=3+b$", bId: "Функции" },
+                    { q: "Многочлен $(x-3)(x+5)$", opt: ["$x^2+2x-15$", "$x^2-15$", "$x^2-2x-15$"], cor: "$x^2+2x-15$", sol: "Фонтанчик", bId: "Алгебра" },
+                    { q: "Накрест лежащий к $60^\\circ$", opt: ["$60^\\circ$", "$120^\\circ$", "$30^\\circ$"], cor: "$60^\\circ$", sol: "Равны", bId: "Геометрия" },
+                    { q: "Угол при основании р/б тр-ка $70^\\circ$. Вершина?", opt: ["$40^\\circ$", "$70^\\circ$", "$55^\\circ$"], cor: "$40^\\circ$", sol: "$180-140=40$", bId: "Геометрия" },
+                    { q: "Уравнение $5x-4=3x+8$", opt: ["6", "4", "2"], cor: "6", sol: "$2x=12$", bId: "Алгебра" }
                 ]
             },
             "8": {
@@ -295,16 +308,16 @@
                     { title: "Теорема Пифагора", text: "$a^2 + b^2 = c^2$. <br>Катеты, гипотенуза. Классика." }
                 ],
                 questions: [
-                    { q: "Сократите дробь: $\\dfrac{a^2 - 16}{a^2 + 4a}$", opt: ["$\\dfrac{a-4}{a}$", "$\\dfrac{a+4}{a}$", "$a-4$", "$\\dfrac{a-4}{a+4}$"], cor: "$\\dfrac{a-4}{a}$", sol: "Числитель $(a-4)(a+4)$, знаменатель $a(a+4)$. Сокращаем. Даже ты должен был это увидеть.", bId: "Дроби" },
-                    { q: "Вычислите: $\\sqrt{0,36 \\cdot 25}$", opt: ["0,3", "30", "3", "1,5"], cor: "3", sol: "$0,6 \\cdot 5 = 3$. Надеюсь, ты не считал это на пальцах?", bId: "Корни" },
-                    { q: "Найдите корни уравнения: $x^2 - 5x + 6 = 0$", opt: ["2; 3", "-2; -3", "1; 6", "-1; 6"], cor: "2; 3", sol: "По Виету: сумма $5$, произведение $6$. Это $2$ и $3$. Проще, чем твой пароль от телефона.", bId: "Уравнения" },
-                    { q: "Решите неравенство: $3x - 5 > 5x + 1$", opt: ["$x > -3$", "$x < -3$", "$x > 3$", "$x < 3$"], cor: "$x < -3$", sol: "$-2x > 6 \\implies x < -3$. Не забывай менять знак, когда делишь на минус!", bId: "Неравенства" },
-                    { q: "Представьте в виде степени: $(x^{-3})^2 \\cdot x^8$", opt: ["$x^2$", "$x^{13}$", "$x^{-2}$", "$x^3$"], cor: "$x^2$", sol: "$x^{-6} \\cdot x^8 = x^2$. Степени складываются. Элементарно.", bId: "Степени" },
-                    { q: "Графику функции $y = 12/x$ принадлежит точка:", opt: ["(2; 6)", "(3; 3)", "(0; 12)", "(-4; 3)"], cor: "(2; 6)", sol: "$12 / 2 = 6$. Подходит. Остальные — мимо.", bId: "Функции" },
-                    { q: "Периметр пар-грамма 40 см, одна сторона 12. Найди соседнюю сторону.", opt: ["28 см", "14 см", "8 см", "10 см"], cor: "8 см", sol: "$2(12 + x) = 40 \\implies 12+x=20 \\implies x=8$. Логика уровня 1.", bId: "Геометрия" },
-                    { q: "В прямоугольном треуг-ке катеты 6 см и 8 см. Найти гипотенузу.", opt: ["14 см", "100 см", "10 см", "12 см"], cor: "10 см", sol: "$\\sqrt{36+64} = 10$. Египетский треугольник. База.", bId: "Геометрия" },
-                    { q: "Найдите площадь ромба, диагонали которого 10 и 12 см.", opt: ["120 см$^2$", "60 см$^2$", "11 см$^2$", "44 см$^2$"], cor: "60 см$^2$", sol: "$(10 \\cdot 12) / 2 = 60$. Не забывай делить на два, умник.", bId: "Геометрия" },
-                    { q: "Подобие $k=3, S_{ABC}=10$. Найди площадь $S_{A_1B_1C_1}$:", opt: ["30 см$^2$", "90 см$^2$", "3,3 см$^2$", "100 см$^2$"], cor: "90 см$^2$", sol: "$10 \\cdot k^2 = 10 \\cdot 9 = 90$. Квадрат коэффициента! Слышишь?", bId: "Подобие" }
+                    { q: "Сократить: $\\frac{a^2-16}{a^2+4a}$", opt: ["$\\frac{a-4}{a}$", "$\\frac{a+4}{a}$"], cor: "$\\frac{a-4}{a}$", sol: "Выносим $a$, раскладываем верх.", bId: "Дроби" },
+                    { q: "$\\sqrt{0,36 \\cdot 25}$", opt: ["3", "30", "0,3"], cor: "3", sol: "$0,6 \\cdot 5 = 3$", bId: "Корни" },
+                    { q: "Корни: $x^2-5x+6=0$", opt: ["2; 3", "-2; -3", "1; 6"], cor: "2; 3", sol: "Виет: $2+3=5, 2\\cdot3=6$", bId: "Уравнения" },
+                    { q: "Площадь ромба $d_1=10, d_2=12$", opt: ["60", "120", "44"], cor: "60", sol: "$10 \\cdot 12 / 2 = 60$", bId: "Геометрия" },
+                    { q: "Катеты 6 и 8. Гипотенуза?", opt: ["10", "14", "100"], cor: "10", sol: "$\\sqrt{36+64}=10$", bId: "Геометрия" },
+                    { q: "Неравенство $3x-5 > 5x+1$", opt: ["$x < -3$", "$x > -3$", "$x > 3$"], cor: "$x < -3$", sol: "$-2x > 6$, меняем знак", bId: "Неравенства" },
+                    { q: "Степень $(x^{-3})^2 \\cdot x^8$", opt: ["$x^2$", "$x^{-2}$", "$x^6$"], cor: "$x^2$", sol: "$x^{-6} \\cdot x^8 = x^2$", bId: "Степени" },
+                    { q: "Точка на $y=12/x$", opt: ["(2; 6)", "(3; 3)", "(4; 2)"], cor: "(2; 6)", sol: "$12/2=6$", bId: "Функции" },
+                    { q: "Периметр 40, сторона 12. Вторая?", opt: ["8", "14", "28"], cor: "8", sol: "$20-12=8$", bId: "Геометрия" },
+                    { q: "Площади подобных k=3. S=10. S2?", opt: ["90", "30", "100"], cor: "90", sol: "$10 \\cdot 3^2 = 90$", bId: "Подобие" }
                 ]
             },
             "9": {
@@ -313,15 +326,15 @@
                     { title: "Прогрессии", text: "<b>Арифметическая:</b> $a_n = a_1 + d(n-1)$<br>$S_n = \\frac{a_1+a_n}{2}n$<br><br><b>Геометрическая:</b> $b_n = b_1 \\cdot q^{n-1}$<br>$S_n = \\frac{b_1(q^n-1)}{q-1}$" },
                     { title: "Геометрия", text: "<b>Т. Синусов:</b> $\\frac{a}{\\sin A} = 2R$<br><b>Т. Косинусов:</b> $a^2 = b^2+c^2 - 2bc\\cos A$<br><b>Площадь:</b> $S = \\frac{1}{2}ab\\sin\\gamma$" }
                 ],
-                questions: [] // Грузим из CSV
+                questions: [] 
             },
             "10": {
                 name: "10 Grade · Study", hero: "☕🌿", desc: "Focus & Aesthetic Learning",
                 theory: [
-                    { title: "Тригонометрия", text: "$\\sin^2\\alpha + \\cos^2\\alpha = 1$<br>$\\sin 2\\alpha = 2\\sin\\alpha\\cos\\alpha$<br>$\\cos 2\\alpha = \\cos^2\\alpha - \\sin^2\\alpha$" },
+                    { title: "Тригонометрия", text: "<b>Тождество:</b> $\\sin^2\\alpha + \\cos^2\\alpha = 1$<br><b>Двойные углы:</b><br>$\\sin 2\\alpha = 2\\sin\\alpha\\cos\\alpha$<br>$\\cos 2\\alpha = \\cos^2\\alpha - \\sin^2\\alpha$" },
                     { title: "Логарифмы", text: "$\\log_a b = x \\iff a^x = b$<br>$\\log_a(xy) = \\log_a x + \\log_a y$<br>$\\log_a x^p = p\\log_a x$" }
                 ],
-                questions: [] // Грузим из CSV
+                questions: [] 
             },
             "11": {
                 name: "GRADE 11 [FINAL]", hero: "📊🔥", desc: "System: Maximum Performance",
@@ -330,15 +343,10 @@
                     { title: "Вероятность", text: "$P(A) = \\frac{m}{n}$<br>$P(A+B) = P(A)+P(B)$ (несовм.)<br>$P(AB) = P(A)P(B)$ (независ.)" },
                     { title: "Объемы", text: "Призма: $S_{\\text{осн}}h$<br>Пирамида: $\\frac{1}{3}S_{\\text{осн}}h$<br>Шар: $\\frac{4}{3}\\pi R^3$" }
                 ],
-                questions: [] // Грузим из CSV
+                questions: [] 
             }
         };
 
-        const params = new URLSearchParams(window.location.search);
-        const grade = params.get('grade') || "5"; 
-        const curData = data[grade] || data["5"];
-
-        // ЗАГРУЗКА CSV
         async function loadRemoteData() {
             try {
                 document.getElementById('loading-indicator').style.display = 'block';
@@ -349,11 +357,9 @@
                 remoteDatabase = rows.map(row => {
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (cols.length < 7) return null;
-
                     const options = [cols[2], cols[3], cols[4], cols[5]].map(s => s?.replace(/^"|"$/g, '').trim());
                     const correctText = cols[6]?.trim();
                     let finalCorrect = correctText;
-
                     if (correctText?.includes("Вариант 1")) finalCorrect = options[0];
                     else if (correctText?.includes("Вариант 2")) finalCorrect = options[1];
                     else if (correctText?.includes("Вариант 3")) finalCorrect = options[2];
@@ -370,60 +376,56 @@
                 
                 document.getElementById('loading-indicator').innerText = "✅ Облако подключено";
                 setTimeout(() => document.getElementById('loading-indicator').style.display = 'none', 2000);
-            } catch (e) {
-                document.getElementById('loading-indicator').innerText = "⚠️ Ошибка связи с облаком";
-            }
+            } catch (e) { document.getElementById('loading-indicator').innerText = "⚠️ Ошибка связи"; }
         }
 
-        window.init = function() {
-            document.body.className = "grade-" + grade;
+        // --- ЛОГИКА СМЕНЫ КЛАССА ---
+        window.switchGrade = function(newGrade) {
+            currentGrade = newGrade;
+            hide();
+            // Обновляем body class для стилей
+            document.body.className = "grade-" + newGrade;
+            // Обновляем данные на главной
+            const curData = data[newGrade] || data["5"];
             document.getElementById('grade-title').innerText = curData.name;
             document.getElementById('hero').innerText = curData.hero;
             document.getElementById('grade-desc').innerText = curData.desc || "";
             
-            if (grade === "8") document.getElementById('sol-hero').innerHTML = "📟💀 ГОВОРИТ:";
+            // Запускаем подгрузку если старшие классы
+            if (parseInt(newGrade) >= 9) loadRemoteData();
 
-            // Если старшие классы - грузим базу
-            if (parseInt(grade) >= 9) loadRemoteData();
+            // Показываем меню
+            document.getElementById('main-menu').classList.add('active');
+            
+            // Настройка кнопки назад в магазине
+            if(newGrade === "8") document.querySelector('#shop button').innerText = "⬅️ НАЗАД";
+        }
 
-            showMainMenu();
-            spawnFloating();
+        window.showGradeSelector = function() {
+            hide();
+            document.getElementById('grade-selector').classList.add('active');
         }
 
         window.showMainMenu = function() { 
             tg.MainButton.hide(); 
             hide(); 
             document.getElementById('main-menu').classList.add('active'); 
-            
-            // Стилизация кнопок 8 класса (Caps)
-            if(grade === "8") {
-                document.querySelector('#main-menu .btn-acc').innerText = "📖 ТЕОРИЯ";
-                document.querySelector('#main-menu .btn-ok').innerText = "🚀 ТЕСТ";
-                document.querySelector('#main-menu button:last-child').innerText = "🛒 МАГАЗИН";
-            }
         }
         
-        window.showShop = function() { 
-            hide(); 
-            document.getElementById('shop').classList.add('active'); 
-            if(grade === "8") document.querySelector('#shop button').innerText = "⬅️ НАЗАД";
-        }
-
+        window.showShop = function() { hide(); document.getElementById('shop').classList.add('active'); }
         window.hide = function() { document.querySelectorAll('.card').forEach(c => c.classList.remove('active')); }
 
         window.showTheoryMenu = function() {
             hide();
             const list = document.getElementById('theory-list');
             list.innerHTML = "";
-            curData.theory.forEach((t, i) => {
+            const curData = data[currentGrade];
+            curData.theory.forEach((t) => {
                 const b = document.createElement('button');
-                if (grade === "8" || grade === "11") {
-                    b.className = "btn-ok"; // Строгие кнопки
-                } else if (grade === "10") {
-                    b.className = "btn-ok"; b.style.borderRadius = "15px"; // Эстетика
-                } else {
-                    b.className = "btn-ok"; b.style.background = "#eee"; b.style.color = "#333";
-                }
+                b.className = (currentGrade==="8"||currentGrade==="11") ? "btn-ok" : ((currentGrade==="10") ? "btn-ok" : "btn-ok"); 
+                if(currentGrade==="10") b.style.borderRadius="15px";
+                if(parseInt(currentGrade)<=7) { b.style.background="#eee"; b.style.color="#333"; }
+                
                 b.innerText = t.title;
                 b.onclick = () => {
                     hide();
@@ -435,34 +437,28 @@
                 };
                 list.appendChild(b);
             });
-            const backBtn = document.querySelector('#theory-menu button:last-child');
-            if(grade === "8") backBtn.innerText = "⬅️ НАЗАД";
             document.getElementById('theory-menu').classList.add('active');
         }
 
-        window.startPractice = async function(filterBlock = null) {
+        window.startPractice = async function() {
             hide();
             state.lives = 5; state.coins = 0; state.currentIdx = 0; state.errorsByBlock = {};
-            
             let pool = [];
 
-            // ЛОГИКА ВЫБОРА ИСТОЧНИКА
-            if (parseInt(grade) >= 9) {
+            if (parseInt(currentGrade) >= 9) {
                 if (remoteDatabase.length === 0) await loadRemoteData();
-                pool = remoteDatabase.filter(item => item.grade == grade);
+                pool = remoteDatabase.filter(item => item.grade == currentGrade);
             } else {
-                pool = curData.questions;
+                pool = data[currentGrade].questions;
             }
 
             if (!pool || pool.length === 0) {
-                alert("Задания загружаются или отсутствуют. Попробуйте через секунду!");
+                alert("Задания загружаются. Жми еще раз!");
                 showMainMenu();
                 return;
             }
 
-            // Миксуем и берем 10 (или меньше если их мало)
             state.questions = pool.sort(() => Math.random() - 0.5).slice(0, 10);
-            
             updateHUD();
             document.getElementById('quiz').classList.add('active');
             renderQ();
@@ -478,13 +474,11 @@
             if(state.currentIdx >= state.questions.length) { finish(true); return; }
 
             const q = state.questions[state.currentIdx];
-            
-            const stepText = grade === "8" ? `ЗАДАНИЕ ${state.currentIdx + 1}/${state.questions.length}` : `Задание ${state.currentIdx + 1} / ${state.questions.length}`;
-            document.getElementById('progress').innerText = stepText;
+            document.getElementById('progress').innerText = `${state.currentIdx + 1} / ${state.questions.length}`;
             
             const qContainer = document.getElementById('q-text');
             qContainer.innerHTML = "";
-            renderMath(q.q, qContainer, q.q.includes('begin{cases}'));
+            renderMath(q.q, qContainer, q.q.includes('cases'));
 
             document.getElementById('solution-box').style.display = "none";
             document.getElementById('next-btn').style.display = "none";
@@ -494,15 +488,12 @@
             q.opt.forEach(o => {
                 const b = document.createElement('button');
                 renderMath(o, b);
-                
-                // Стиль кнопок вариантов
-                if(grade === "10") b.style.borderRadius = "20px";
-                if(grade === "9") b.style.background = "#fff";
+                if(currentGrade === "10") b.style.borderRadius = "20px";
+                if(currentGrade === "9") b.style.background = "#fff";
 
                 b.onclick = () => {
                     const all = optCont.querySelectorAll('button');
                     all.forEach(btn => btn.disabled = true);
-                    
                     const normalize = (str) => str.replace(/\$/g, '').trim();
                     const isCorrect = normalize(o) === normalize(q.cor);
 
@@ -510,111 +501,63 @@
                         b.style.background = "#32CD32"; b.style.color = "white"; state.coins += 5;
                     } else {
                         b.style.background = "#FF4500"; b.style.color = "white"; state.lives--;
-                        state.errorsByBlock[q.bId || "Общее"] = (state.errorsByBlock[q.bId || "Общее"] || 0) + 1;
-                        all.forEach(btn => { 
-                            if(normalize(btn.innerText) === normalize(q.cor)) {
-                                btn.style.background = "#32CD32"; btn.style.color = "white"; 
-                            } 
-                        });
+                        state.errorsByBlock[q.bId || "Общее"] = 1;
+                        all.forEach(btn => { if(normalize(btn.innerText) === normalize(q.cor)) { btn.style.background = "#32CD32"; btn.style.color="white"; } });
                     }
                     updateHUD();
                     const solArea = document.getElementById('solution-text');
                     solArea.innerHTML = "";
                     renderMath(q.sol, solArea);
                     document.getElementById('solution-box').style.display = "block";
-                    
-                    const nextBtn = document.getElementById('next-btn');
-                    if(grade === "8") nextBtn.innerText = "ДАЛЬШЕ ➡️";
-                    nextBtn.style.display = "block";
+                    document.getElementById('next-btn').style.display = "block";
                 };
                 optCont.appendChild(b);
             });
         }
 
-        document.getElementById('next-btn').onclick = () => {
-            state.currentIdx++;
-            renderQ();
-        };
+        document.getElementById('next-btn').onclick = () => { state.currentIdx++; renderQ(); };
 
         window.finish = function(win) {
             hide();
             document.getElementById('final').classList.add('active');
-            const stats = document.getElementById('stats');
+            document.getElementById('stats').innerHTML = `<h3>${win ? 'ПОБЕДА!' : 'НЕУДАЧА'}</h3><p>Монеты: ${state.coins}</p>`;
             
-            let resultTitle = win ? 'Миссия Выполнена!' : 'Жизни закончились!';
-            let coinsText = `Монеты: ${state.coins} 💰`;
-            if (grade === "8") {
-                resultTitle = win ? 'МИССИЯ ВЫПОЛНЕНА' : 'ТЫ ПРОИГРАЛ';
-                coinsText = `МОНЕТЫ: ${state.coins} 💰`;
-            }
-
-            stats.innerHTML = `<h3>${resultTitle}</h3><p>${coinsText}</p>`;
             const retryArea = document.getElementById('retry-area');
             retryArea.innerHTML = "";
-            let failedBlocks = Object.keys(state.errorsByBlock).filter(b => state.errorsByBlock[b] >= 1);
-            
-            if(failedBlocks.length > 0) {
-                failedBlocks.forEach(b => {
-                    const rb = document.createElement('button');
-                    rb.className = grade === "8" ? "btn-ok" : "btn-acc"; 
-                    rb.innerText = grade === "8" ? `ПЕРЕСДАТЬ: ${b}` : `Пересдать: ${b}`;
-                    rb.onclick = () => {
-                        tg.MainButton.hide();
-                        startPractice(null); 
-                    };
-                    retryArea.appendChild(rb);
-                });
-            }
+            const btn = document.createElement('button');
+            btn.className = "btn-acc"; 
+            btn.innerText = "В ГЛАВНОЕ МЕНЮ";
+            btn.onclick = showMainMenu;
+            retryArea.appendChild(btn);
 
-            const menuBtn = document.querySelector('#final > button');
-            if(grade === "8") menuBtn.innerText = "В МЕНЮ";
-
-            const resultData = {
-                action: "quiz_finished",
-                grade: grade,
-                coins: state.coins,
-                livesLeft: state.lives,
-                mistakes: failedBlocks
-            };
-
-            tg.MainButton.text = grade === "8" ? "ОТПРАВИТЬ РЕЗУЛЬТАТЫ" : "Отправить результаты";
-            tg.MainButton.color = "#32CD32";
+            const resultData = { action: "quiz_finished", grade: currentGrade, coins: state.coins };
+            tg.MainButton.text = "ОТПРАВИТЬ";
             tg.MainButton.show();
-
-            tg.onEvent('mainButtonClicked', function() {
-                tg.sendData(JSON.stringify(resultData)); 
-                tg.close(); 
-            });
+            tg.onEvent('mainButtonClicked', function() { tg.sendData(JSON.stringify(resultData)); tg.close(); });
         }
 
         window.spawn = function() {
             const c = document.getElementById('floating-container');
             const d = document.createElement('div');
             d.className = 'floater';
-            
-            let icons = ["🐱","⭐","📐"];
-            if (grade === "6") icons = ["🤖","🛰️","💠"];
-            if (grade === "7") icons = ["⚡","🎤","💎"];
-            if (grade === "8") icons = ["📟","💀","√","X²","="];
-            if (grade === "9") icons = ["📐","📘","✏️"];
-            if (grade === "10") icons = ["☕","🌿","📚"];
-            if (grade === "11") icons = ["📊","📈","🔥"];
-
-            d.innerText = icons[Math.floor(Math.random()*icons.length)];
+            d.innerText = ["⚡","📚","📐"][Math.floor(Math.random()*3)];
             d.style.left = Math.random()*95 + "vw";
-            d.style.fontSize = (25+Math.random()*30) + "px";
             d.style.animationDuration = (6+Math.random()*6) + "s";
             c.appendChild(d);
             setTimeout(() => d.remove(), 12000);
         }
-        window.spawnFloating = function() { setInterval(spawn, 1500); }
+        setInterval(spawn, 1500);
 
-        init();
+        // Инициализация
+        const params = new URLSearchParams(window.location.search);
+        const urlGrade = params.get('grade');
+        if (urlGrade && data[urlGrade]) {
+            switchGrade(urlGrade);
+        } else {
+            showGradeSelector(); // Если класса нет в ссылке, показываем меню
+        }
 
-    } catch (e) {
-        document.getElementById('error-msg').style.display = 'block';
-        document.getElementById('error-msg').innerText = "JS Error: " + e.message;
-    }
+    } catch (e) { document.getElementById('error-msg').style.display = 'block'; }
     </script>
 </body>
 </html>
