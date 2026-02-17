@@ -2,500 +2,373 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SuperTutor | Ultimate Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Universe: Энциклопедия</title>
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Cinzel:wght@400;700&family=Fredoka:wght@400;600&family=JetBrains+Mono:wght@400;800&family=Montserrat:wght@300;600&family=Orbitron:wght@500;900&family=Press+Start+2P&family=Russo+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@400;600&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Nunito:wght@400;700&family=Open+Sans:wght@400;600&family=Orbitron:wght@700;900&family=Oswald:wght@500;700&family=Quicksand:wght@500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
-        /* --- GLOBAL RESET --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { overflow-x: hidden; background: #000; }
-        
-        /* --- UNIVERSAL MATH FORMATTING --- */
-        /* Дроби и формулы, работающие везде */
-        .math-block { display: inline-block; padding: 2px 5px; border-radius: 4px; margin: 2px 0; white-space: nowrap; }
+        :root {
+            --bg-body: #f4f4f9;
+            /* Твои палитры */
+            --c5-main: #00b894; --c5-light: #55efc4; --c5-bg: #e3fdf5;
+            --c7-main: #fdcb6e; --c7-accent: #2d3436; --c7-bg: #fffce6;
+            --c9-main: #ff7675; --c9-dark: #d63031; --c9-bg: #fff0f0;
+            --c10-main: #0984e3; --c10-dark: #2c3e50; --c10-bg: #ecf6ff;
+            --c11-main: #636e72; --c11-dark: #2d3436; --c11-bg: #ffffff;
+            
+            /* Системные цвета */
+            --deep-accent: #0A84FF;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; background: var(--bg-body); transition: 0.5s; font-family: 'Inter', sans-serif; }
+
+        /* --- СТИЛИ ДЛЯ ФОРМУЛ ИЗ ТВОЕГО МАКЕТА --- */
+        .formula { display: inline-flex; align-items: center; font-style: italic; background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 6px; margin: 2px 0; border: 1px solid rgba(0,0,0,0.05); }
         .frac { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; margin: 0 4px; font-size: 0.85em; }
-        .frac .top { border-bottom: 2px solid currentColor; padding: 0 2px; display: block; line-height: 1.1; }
-        .frac .bottom { display: block; line-height: 1.1; padding-top: 1px; }
+        .frac .top { border-bottom: 1.5px solid currentColor; padding: 0 2px; display: block; line-height: 1.1; }
+        .frac .bottom { display: block; line-height: 1.1; }
+
+        /* --- КОНТЕЙНЕРЫ КАРТОЧЕК --- */
+        .card { background: white; border-radius: 30px; padding: 25px; width: 100%; max-width: 440px; text-align: center; position: relative; z-index: 10; display: none; max-height: 85vh; overflow-y: auto; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 2px solid white; }
+        .active { display: block; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from {transform: scale(0.95); opacity:0;} to {transform: scale(1); opacity:1;} }
+
+        button { font-family: inherit; border: none; padding: 15px; border-radius: 18px; width: 100%; margin: 8px 0; font-weight: 700; font-size: 17px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 0 rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
+        button:active { transform: translateY(2px); box-shadow: none; }
+        .btn-ok { background: #00b894; color: white; }
+        .btn-acc { background: #fdcb6e; color: #2d3436; }
+
+        /* --- ДИЗАЙН СЕКЦИЙ ТЕОРИИ --- */
+        .theory-content-styled { text-align: left; }
         
-        /* =========================================
-           LEVEL 1: 5-6 CLASS -> "ASTRO-BOT"
-           Style: Soft, Rounded, White Plastic, Orange/Blue Neon
-           ========================================= */
-        #lvl-5-6 {
-            background-color: #f0f4f8;
-            color: #2d3436;
-            font-family: 'Fredoka', sans-serif;
-            padding: 60px 20px;
-            position: relative;
-            /* Pattern: Robot dots */
-            background-image: radial-gradient(#dfe6e9 2px, transparent 2px);
-            background-size: 20px 20px;
-        }
+        /* 5-6 Класс */
+        .t-56 { font-family: 'Nunito', sans-serif; color: #2d3436; }
+        .divisibility-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .rule-bubble { background: var(--c5-bg); border: 2px solid var(--c5-light); padding: 10px; border-radius: 15px; text-align: center; font-size: 14px; }
+        .rule-bubble strong { color: var(--c5-main); display: block; font-size: 16px; }
 
-        #lvl-5-6 .card {
-            background: #ffffff;
-            border-radius: 25px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05), inset 0 -5px 0 #e2e6ea;
-            border: 2px solid #fff;
-        }
+        /* 7-8 Класс */
+        .t-78 { font-family: 'Montserrat', sans-serif; }
+        .tech-box { border: 1px solid #636e72; padding: 15px; border-radius: 12px; background: #2d3436; color: #dfe6e9; margin: 10px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .tech-item { border-left: 3px solid var(--c7-main); padding-left: 8px; font-family: 'Orbitron', sans-serif; font-size: 13px; }
 
-        #lvl-5-6 h2 {
-            font-family: 'Audiowide', cursive;
-            color: #0984e3;
-            font-size: 3rem;
-            text-align: center;
-            text-transform: uppercase;
-            margin-bottom: 40px;
-            text-shadow: 2px 2px 0px #74b9ff;
-        }
+        /* 9 Класс */
+        .t-9 { font-family: 'Roboto', sans-serif; }
+        .info-card { background: var(--c9-bg); padding: 15px; border-radius: 10px; border-left: 5px solid var(--c9-main); margin-bottom: 10px; }
 
-        #lvl-5-6 h3 {
-            background: #ff7675;
-            color: white;
-            display: inline-block;
-            padding: 10px 25px;
-            border-radius: 50px;
-            margin: 20px 0 15px;
-            box-shadow: 0 5px 15px rgba(255, 118, 117, 0.4);
-        }
+        /* 10 Класс */
+        .trig-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0; }
+        .trig-table td { padding: 10px; border-bottom: 1px solid #d1e7ff; background: white; }
 
-        .bot-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 15px;
-        }
+        /* 11 Класс */
+        .ios-list { list-style: none; background: #f5f5f7; border-radius: 12px; padding: 5px 15px; }
+        .ios-list li { padding: 12px 0; border-bottom: 1px solid #e5e5e5; display: flex; justify-content: space-between; font-family: -apple-system, sans-serif; }
 
-        .bot-pill {
-            background: #00b894;
-            color: white;
-            padding: 15px;
-            border-radius: 15px;
-            text-align: center;
-            font-size: 0.9rem;
-            transition: transform 0.2s;
-        }
-        .bot-pill:hover { transform: translateY(-5px); }
-
-        /* =========================================
-           LEVEL 2: 7-8 CLASS -> "INDUSTRIAL CYBERPUNK"
-           Style: Brutalist, Yellow/Black, Glitch, Hazard
-           ========================================= */
-        #lvl-7-8 {
-            background-color: #0b0b0b;
-            color: #f1c40f;
-            font-family: 'Russo One', sans-serif;
-            padding: 60px 20px;
-            border-top: 10px solid #f1c40f;
-            border-bottom: 10px solid #f1c40f;
-            position: relative;
-        }
-        
-        /* Hazard Stripes Background */
-        #lvl-7-8::before {
-            content: '';
-            position: absolute; top:0; left:0; width:100%; height:100%;
-            background: repeating-linear-gradient(
-                45deg,
-                rgba(255, 255, 0, 0.05),
-                rgba(255, 255, 0, 0.05) 10px,
-                transparent 10px,
-                transparent 20px
-            );
-            pointer-events: none;
-        }
-
-        #lvl-7-8 .brutal-box {
-            border: 4px solid #f1c40f;
-            background: #1a1a1a;
-            padding: 25px;
-            margin-bottom: 40px;
-            /* Sliced corner effect */
-            clip-path: polygon(
-                0 0, 
-                100% 0, 
-                100% calc(100% - 30px), 
-                calc(100% - 30px) 100%, 
-                0 100%
-            );
-            position: relative;
-        }
-
-        #lvl-7-8 h2 {
-            font-size: 2.5rem;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-            margin-bottom: 50px;
-            text-align: right;
-            border-bottom: 4px solid #f1c40f;
-            display: inline-block;
-            width: 100%;
-        }
-
-        #lvl-7-8 h3 {
-            background: #f1c40f;
-            color: #000;
-            padding: 5px 15px;
-            text-transform: uppercase;
-            display: inline-block;
-            margin: 30px 0 15px;
-            transform: skewX(-10deg);
-        }
-
-        .code-snippet {
-            font-family: 'JetBrains Mono', monospace;
-            color: #fff;
-            background: #000;
-            border-left: 3px solid #f1c40f;
-            padding: 10px;
-            margin: 5px 0;
-            display: block;
-        }
-
-        /* =========================================
-           LEVEL 3: 9 CLASS -> "SYNTHWAVE GRID"
-           Style: Retro 80s, Purple, Neon Pink, Grid
-           ========================================= */
-        #lvl-9 {
-            background: #2d004d;
-            color: #00f3ff;
-            font-family: 'Montserrat', sans-serif;
-            padding: 80px 20px;
-            position: relative;
-            overflow: hidden;
-            /* The Grid */
-            background-image: 
-                linear-gradient(rgba(255, 0, 255, 0.2) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 0, 255, 0.2) 1px, transparent 1px);
-            background-size: 50px 50px;
-            perspective: 500px;
-        }
-
-        #lvl-9::after {
-            content: '';
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 50%;
-            background: linear-gradient(to top, #2d004d, transparent);
-            pointer-events: none;
-        }
-
-        #lvl-9 .synth-card {
-            background: rgba(45, 0, 77, 0.8);
-            border: 2px solid #ff00ff;
-            box-shadow: 0 0 15px #ff00ff, inset 0 0 20px rgba(255,0,255,0.2);
-            padding: 30px;
-            margin-bottom: 40px;
-            backdrop-filter: blur(5px);
-            position: relative;
-            z-index: 2;
-        }
-
-        #lvl-9 h2 {
-            font-family: 'Press Start 2P', cursive; /* Pixel font */
-            color: #ff00ff;
-            text-shadow: 4px 4px 0px #2d004d, 0 0 20px #ff00ff;
-            font-size: 2rem;
-            text-align: center;
-            margin-bottom: 50px;
-            line-height: 1.5;
-        }
-
-        #lvl-9 h3 {
-            color: #ffe600;
-            text-transform: uppercase;
-            font-weight: 800;
-            letter-spacing: 2px;
-            border-bottom: 2px solid #ffe600;
-            margin-top: 30px;
-        }
-
-        .neon-text { color: #fff; text-shadow: 0 0 5px #fff; }
-        .geo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
-        /* =========================================
-           LEVEL 4: 10 CLASS -> "QUANTUM GLASS"
-           Style: Sci-Fi Lab, Holographic, Blue, Translucent
-           ========================================= */
-        #lvl-10 {
-            background: radial-gradient(circle at center, #001f3f, #000814);
-            color: #d1f7ff;
-            font-family: 'Orbitron', sans-serif;
-            padding: 80px 20px;
-        }
-
-        #lvl-10 .glass-panel {
-            background: rgba(0, 168, 255, 0.05);
-            border: 1px solid rgba(0, 168, 255, 0.3);
-            border-radius: 4px;
-            padding: 30px;
-            margin-bottom: 40px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 30px rgba(0, 168, 255, 0.1);
-        }
-
-        #lvl-10 h2 {
-            font-weight: 900;
-            color: transparent;
-            -webkit-text-stroke: 1px #00a8ff;
-            font-size: 3.5rem;
-            text-align: center;
-            opacity: 0.8;
-            margin-bottom: 20px;
-        }
-
-        #lvl-10 h3 {
-            color: #00a8ff;
-            font-size: 1.2rem;
-            margin-top: 30px;
-            display: flex;
-            align-items: center;
-        }
-        #lvl-10 h3::before {
-            content: '►';
-            margin-right: 10px;
-            font-size: 0.8em;
-        }
-
-        .trig-row {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(0, 168, 255, 0.2);
-            padding: 10px 0;
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        /* =========================================
-           LEVEL 5: 11 CLASS -> "VOID PREMIUM"
-           Style: Luxury Minimal, Monochrome + Gold, Serif
-           ========================================= */
-        #lvl-11 {
-            background-color: #050505;
-            color: #bdc3c7;
-            font-family: 'Cinzel', serif; /* Elegant Serif */
-            padding: 100px 20px;
-            border-top: 1px solid #333;
-        }
-
-        #lvl-11 .lux-container {
-            max-width: 800px;
-            margin: 0 auto;
-            border-left: 1px solid #333;
-            padding-left: 40px;
-        }
-
-        #lvl-11 h2 {
-            color: #ecf0f1;
-            font-size: 3rem;
-            font-weight: 400;
-            letter-spacing: 10px;
-            margin-bottom: 60px;
-            text-align: center;
-            background: linear-gradient(to right, #7f8c8d, #fff, #7f8c8d);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        #lvl-11 h3 {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 300;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            color: #d4af37; /* Gold */
-            margin: 50px 0 20px;
-        }
-
-        .minimal-list li {
-            list-style: none;
-            padding: 15px 0;
-            border-bottom: 1px solid #222;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        /* Mobile Adapts */
-        @media(max-width:768px) {
-            .geo-grid { grid-template-columns: 1fr; }
-            #lvl-7-8 h2 { font-size: 1.8rem; text-align: left;}
-            #lvl-9 h2 { font-size: 1.5rem; }
-            #lvl-10 h2 { font-size: 2rem; }
-            #lvl-11 .lux-container { padding-left: 10px; border: none; }
-        }
-
+        #hud { position: fixed; top: 15px; width: 90%; max-width: 400px; display: none; justify-content: space-between; z-index: 100; }
+        .hud-item { background: white; padding: 8px 15px; border-radius: 20px; font-weight: 800; border: 2px solid #2d3436; }
+        input { width: 100%; padding: 15px; border-radius: 15px; border: 3px solid #2d3436; font-size: 18px; margin-bottom: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <section id="lvl-5-6">
-        <div style="max-width:900px; margin:0 auto;">
-            <h2>5–6 Robots</h2>
-            
-            <div class="card">
-                <h3>Арифметика</h3>
-                <p><strong>Признаки делимости:</strong></p>
-                <div class="bot-grid" style="margin-top:15px;">
-                    <div class="bot-pill">На 2:<br>посл. четная</div>
-                    <div class="bot-pill">На 3:<br>сумма цифр</div>
-                    <div class="bot-pill">На 5:<br>0 или 5</div>
-                    <div class="bot-pill">На 9:<br>сумма = 9k</div>
-                </div>
-                <div style="margin-top:20px;">
-                    <p>🤖 <strong>Деление с остатком:</strong> <span class="math-block">a = b·q + r</span></p>
-                    <p>🤖 <strong>Среднее:</strong> <span class="math-block">M = (∑a) / n</span></p>
-                </div>
-            </div>
+    <div id="hud">
+        <div class="hud-item">❤️ <span id="lives">5</span></div>
+        <div class="hud-item">💰 <span id="coins">0</span></div>
+    </div>
 
-            <div class="card">
-                <h3>Дроби</h3>
-                <p>⚡ <strong>Основное свойство:</strong> <span class="math-block"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> = <div class="frac"><span class="top">a·m</span><span class="bottom">b·m</span></div></span></p>
-                <p>⚡ <strong>Умножение:</strong> <span class="math-block"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> · <div class="frac"><span class="top">c</span><span class="bottom">d</span></div> = <div class="frac"><span class="top">ac</span><span class="bottom">bd</span></div></span></p>
-                <p>⚡ <strong>Пропорция:</strong> <span class="math-block"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> = <div class="frac"><span class="top">c</span><span class="bottom">d</span></div> ⇒ ad = bc</span></p>
-                <br>
-                <div style="background:#e3fdf5; padding:10px; border-radius:10px;">
-                    <strong>Проценты:</strong><br>
-                    Увеличить на P%: <span class="math-block">A · (1 + 0,01P)</span>
-                </div>
-            </div>
+    <div id="welcome-screen" class="card">
+        <div style="font-size: 60px;">🏛️</div>
+        <h2 style="font-family: 'Fredoka', sans-serif; color: var(--c5-main);">СУПЕРТЬЮТОР</h2>
+        <p>Добро пожаловать в Академию знаний.</p>
+        <input type="text" id="user-name-input" placeholder="Твое имя...">
+        <p>Выбери свой класс:</p>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px;">
+            <button onclick="setGradeAndGo('5')" style="height:40px; font-size:14px; background:var(--c5-light);">5</button>
+            <button onclick="setGradeAndGo('6')" style="height:40px; font-size:14px; background:var(--c5-main); color:white;">6</button>
+            <button onclick="setGradeAndGo('7')" style="height:40px; font-size:14px; background:var(--c7-main);">7</button>
+            <button onclick="setGradeAndGo('8')" style="height:40px; font-size:14px; background:var(--c7-accent); color:white;">8</button>
+            <button onclick="setGradeAndGo('9')" style="height:40px; font-size:14px; background:var(--c9-main); color:white;">9</button>
+            <button onclick="setGradeAndGo('10')" style="height:40px; font-size:14px; background:var(--c10-main); color:white;">10</button>
+            <button onclick="setGradeAndGo('11')" style="height:40px; font-size:14px; background:var(--c11-main); color:white;">11</button>
         </div>
-    </section>
+    </div>
 
-    <section id="lvl-7-8">
-        <div style="max-width:900px; margin:0 auto;">
-            <h2>⚠ ZONE 7-8: BRUTAL</h2>
-
-            <div class="brutal-box">
-                <h3>СТЕПЕНИ // POWER_PLANT</h3>
-                <span class="code-snippet">a^n · a^m = a^(n+m)</span>
-                <span class="code-snippet">a^n / a^m = a^(n-m)</span>
-                <span class="code-snippet">(a^n)^m = a^(nm)</span>
-                <span class="code-snippet">a^(-n) = 1 / a^n</span>
-            </div>
-
-            <div class="brutal-box">
-                <h3>ФСУ // CORE_PROTOCOLS</h3>
-                <span class="code-snippet">(a ± b)² = a² ± 2ab + b²</span>
-                <span class="code-snippet">a² - b² = (a - b)(a + b)</span>
-                <span class="code-snippet">(a ± b)³ = a³ ± 3a²b + 3ab² ± b³</span>
-                <span class="code-snippet">a³ ± b³ = (a ± b)(a² ∓ ab + b²)</span>
-            </div>
-
-            <div class="brutal-box">
-                <h3>ROOTS & QUADRATICS</h3>
-                <p style="color:#fff; margin-bottom:10px;">Уравнение: ax² + bx + c = 0</p>
-                <div style="border: 2px dashed #f1c40f; padding:10px;">
-                    D = b² - 4ac<br>
-                    x = <span class="math-block"><div class="frac"><span class="top">-b ± √D</span><span class="bottom">2a</span></div></span>
-                </div>
-                <p style="margin-top:10px; color:#fff;">Vieta: x₁+x₂ = -b/a; x₁x₂ = c/a</p>
-            </div>
+    <div id="grade-selector" class="card">
+        <h2 style="font-family: 'Montserrat';">АКАДЕМИЯ</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button onclick="switchGrade('5')" style="background: var(--c5-bg); border: 2px solid var(--c5-main);">5 КЛАСС</button>
+            <button onclick="switchGrade('6')" style="background: var(--c5-main); color: white;">6 КЛАСС</button>
+            <button onclick="switchGrade('7')" style="background: var(--c7-bg); border: 2px solid var(--c7-main);">7 КЛАСС</button>
+            <button onclick="switchGrade('8')" style="background: var(--c7-accent); color: white;">8 КЛАСС</button>
+            <button onclick="switchGrade('9')" style="background: var(--c9-main); color: white;">9 ОГЭ</button>
+            <button onclick="switchGrade('10')" style="background: var(--c10-main); color: white;">10 PRO</button>
+            <button onclick="switchGrade('11')" style="background: var(--c11-dark); color: white;">11 ЕГЭ</button>
         </div>
-    </section>
+    </div>
 
-    <section id="lvl-9">
-        <div style="max-width:900px; margin:0 auto;">
-            <h2>LEVEL 9: SYNTHWAVE</h2>
+    <div id="main-menu" class="card">
+        <div id="hero" style="font-size: 70px; margin-bottom: 10px;"></div>
+        <h2 id="grade-title" style="font-family: 'Fredoka';"></h2>
+        <p id="grade-desc" style="font-weight: 600; opacity: 0.7;"></p>
+        <button class="btn-ok" onclick="startPractice()">🚀 ПРАКТИКА</button>
+        <button class="btn-acc" onclick="showTheoryMenu()">📖 ЭНЦИКЛОПЕДИЯ</button>
+        <button onclick="showGradeSelector()" style="background: none; box-shadow: none; color: #666; font-size: 14px;">🔄 СМЕНИТЬ КЛАСС</button>
+        <button onclick="resetApp()" style="margin-top: 20px; font-size: 10px; opacity: 0.4; background: none; box-shadow: none;">СБРОС ДАННЫХ</button>
+    </div>
 
-            <div class="synth-card">
-                <h3>GEOMETRY GRID</h3>
-                <div class="geo-grid">
-                    <div>
-                        <p class="neon-text">📐 S треугольника:</p>
-                        <p>1. ½ a h</p>
-                        <p>2. ½ ab sin γ</p>
-                        <p>3. Герон: √p(p-a)...</p>
-                    </div>
-                    <div>
-                        <p class="neon-text">⭕ Окружность:</p>
-                        <p>Дуга: <span class="math-block">πRα / 180</span></p>
-                        <p>Сектор: <span class="math-block">πR²α / 360</span></p>
-                        <p>Теорема Синусов: <span class="math-block"><div class="frac"><span class="top">a</span><span class="bottom">sinA</span></div> = 2R</span></p>
-                    </div>
-                </div>
-            </div>
+    <div id="theory-menu" class="card">
+        <h3 style="font-family: 'Montserrat';">Разделы знаний</h3>
+        <div id="theory-list"></div>
+        <button onclick="showMainMenu()" style="background: #eee; box-shadow: none;">⬅️ НАЗАД</button>
+    </div>
 
-            <div class="synth-card">
-                <h3>PROGRESSION LOOP</h3>
-                <p class="neon-text">Aриaметическая:</p>
-                <span class="math-block">a_n = a₁ + d(n-1)</span> | <span class="math-block">S_n = <div class="frac"><span class="top">a₁+a_n</span><span class="bottom">2</span></div>·n</span>
-                <br><br>
-                <p class="neon-text">Геометрическая:</p>
-                <span class="math-block">b_n = b₁·q^(n-1)</span> | <span class="math-block">S_n = <div class="frac"><span class="top">b₁(1-q^n)</span><span class="bottom">1-q</span></div></span>
-            </div>
+    <div id="theory-view" class="card">
+        <h3 id="view-title"></h3>
+        <div id="view-content" class="theory-content-styled"></div>
+        <button class="btn-ok" onclick="showTheoryMenu()">ПОНЯТНО</button>
+    </div>
+
+    <div id="quiz" class="card">
+        <div id="progress" style="font-weight: 900; opacity: 0.5; margin-bottom: 10px;"></div>
+        <div id="q-text" style="font-size: 20px; text-align: left;"></div>
+        <div id="options"></div>
+        <div id="solution-box" style="display: none; padding: 15px; border-radius: 15px; background: #f9f9f9; text-align: left; margin-top: 15px; border: 2px solid #00b894;">
+            <b>Разбор:</b> <div id="solution-text"></div>
         </div>
-    </section>
+        <button id="next-btn" class="btn-ok" style="display:none; margin-top: 15px;">ДАЛЕЕ ➡️</button>
+    </div>
 
-    <section id="lvl-10">
-        <div style="max-width:900px; margin:0 auto;">
-            <h2>GRADE 10: LAB</h2>
+    <div id="final" class="card">
+        <h2 id="final-status"></h2>
+        <div id="stats" style="font-size: 20px; margin: 20px 0;"></div>
+        <button class="btn-ok" onclick="showMainMenu()">В МЕНЮ</button>
+    </div>
 
-            <div class="glass-panel">
-                <h3>Trigonometry Atlas</h3>
-                <div class="trig-row">
-                    <span>Basic</span>
-                    <span>sin²x + cos²x = 1</span>
-                </div>
-                <div class="trig-row">
-                    <span>Double</span>
-                    <span>sin2x = 2sinx cosx</span>
-                </div>
-                <div class="trig-row">
-                    <span>Double Cos</span>
-                    <span>cos2x = cos²x - sin²x</span>
-                </div>
-                <div class="trig-row">
-                    <span>Sum</span>
-                    <span>sin x + sin y = 2sin((x+y)/2)cos((x-y)/2)</span>
-                </div>
-            </div>
+    <script>
+    const tg = window.Telegram.WebApp; tg.expand();
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
 
-            <div class="glass-panel">
-                <h3>Logarithm Data</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-                    <div>log(xy) = log x + log y</div>
-                    <div>log(x/y) = log x - log y</div>
-                    <div>a^(log_a b) = b</div>
-                    <div>log_a b = 1 / log_b a</div>
-                </div>
-            </div>
-        </div>
-    </section>
+    let state = { lives: 5, coins: 0, currentIdx: 0, questions: [], name: "" };
+    let remoteDB = [];
+    let currentGrade = "5";
 
-    <section id="lvl-11">
-        <div class="lux-container">
-            <h2>XI. THE FINAL</h2>
+    // --- ДАННЫЕ С ТВОИМ ДИЗАЙНОМ И ТЕОРИЕЙ ---
+    const data = {
+        "5": {
+            name: "5 Класс", hero: "🟢", desc: "Натуральные числа",
+            theory: [
+                { 
+                    title: "Арифметика и Числа", 
+                    text: `<div class="t-56">
+                        <p><strong>Признаки делимости:</strong></p>
+                        <div class="divisibility-grid">
+                            <div class="rule-bubble"><strong>На 2</strong>последняя четная</div>
+                            <div class="rule-bubble"><strong>На 3</strong>сумма делится на 3</div>
+                            <div class="rule-bubble"><strong>На 5</strong>конец 0 или 5</div>
+                            <div class="rule-bubble"><strong>На 9</strong>сумма делится на 9</div>
+                        </div>
+                        <p>📍 <strong>Среднее арифм.:</strong> <span class="formula">M = <div class="frac"><span class="top">a₁ + ... + aₙ</span><span class="bottom">n</span></div></span></p>
+                    </div>`
+                }
+            ]
+        },
+        "6": {
+            name: "6 Класс", hero: "🌿", desc: "Дроби и Пропорции",
+            theory: [
+                {
+                    title: "Дроби и Проценты",
+                    text: `<div class="t-56">
+                        <p><strong>Умножение дробей:</strong> <span class="formula"><div class="frac"><span class="top">a</span><span class="bottom">b</span></div> · <div class="frac"><span class="top">c</span><span class="bottom">d</span></div> = <div class="frac"><span class="top">ac</span><span class="bottom">bd</span></div></span></p>
+                        <p><strong>Пропорция:</strong> <span class="formula">ad = bc</span></p>
+                        <div style="background:var(--c5-bg); padding:10px; border-radius:10px;">
+                            <p>🔹 Увеличение на p%: <span class="formula">A · (1 + <div class="frac"><span class="top">p</span><span class="bottom">100</span></div>)</span></p>
+                        </div>
+                    </div>`
+                }
+            ]
+        },
+        "7": {
+            name: "7 Класс", hero: "🟡", desc: "Алгебра и Степени",
+            theory: [
+                {
+                    title: "Степени и ФСУ",
+                    text: `<div class="t-78">
+                        <div class="tech-box">
+                            <div class="tech-item">aⁿ · aᵐ = aⁿ⁺ᵐ</div>
+                            <div class="tech-item">(ab)ⁿ = aⁿbⁿ</div>
+                            <div class="tech-item">a⁻ⁿ = 1 / aⁿ</div>
+                        </div>
+                        <p style="color:var(--c7-main); font-weight:bold;">Формулы ФСУ:</p>
+                        <div class="tech-box">
+                            <div class="tech-item">(a ± b)² = a² ± 2ab + b²</div>
+                            <div class="tech-item">a² - b² = (a-b)(a+b)</div>
+                        </div>
+                    </div>`
+                }
+            ]
+        },
+        "8": {
+            name: "8 Класс", hero: "📟", desc: "Квадратные уравнения",
+            theory: [
+                {
+                    title: "Корни и Уравнения",
+                    text: `<div class="t-78">
+                        <div class="tech-box">
+                            <div class="tech-item">√(a²) = |a|</div>
+                            <div class="tech-item">√(ab) = √a · √b</div>
+                        </div>
+                        <p><strong>Уравнение ax² + bx + c = 0:</strong></p>
+                        <div style="border: 1px dashed #fdcb6e; padding: 10px; margin-top:5px; font-family:'Orbitron';">
+                            D = b² - 4ac<br>
+                            x₁,₂ = (-b ± √D) / 2a
+                        </div>
+                    </div>`
+                }
+            ]
+        },
+        "9": {
+            name: "9 Класс", hero: "🔴", desc: "ОГЭ Подготовка",
+            theory: [
+                {
+                    title: "Геометрия и Прогрессии",
+                    text: `<div class="t-9">
+                        <div class="info-card"><strong>S тр-ка:</strong> ½ a h или ½ ab sin γ</div>
+                        <div class="info-card"><strong>Арифм. прогрессия:</strong><br>aₙ = a₁ + d(n-1)<br>Sₙ = ((a₁ + aₙ)/2) · n</div>
+                    </div>`
+                }
+            ]
+        },
+        "10": {
+            name: "10 Класс", hero: "🔵", desc: "Тригонометрия",
+            theory: [
+                {
+                    title: "Тригонометрия",
+                    text: `<div class="t-10">
+                        <table class="trig-table">
+                            <tr><td><strong>Основное</strong></td><td>sin²x + cos²x = 1</td></tr>
+                            <tr><td><strong>Двойной угол</strong></td><td>sin 2x = 2 sin x cos x</td></tr>
+                        </table>
+                        <p><strong>Логарифмы:</strong> logₐ(xy) = logₐx + logₐy</p>
+                    </div>`
+                }
+            ]
+        },
+        "11": {
+            name: "11 Класс", hero: "📊", desc: "ЕГЭ Профиль",
+            theory: [
+                {
+                    title: "Анализ и Стереометрия",
+                    text: `<div class="t-11">
+                        <ul class="ios-list">
+                            <li><span>(xⁿ)'</span> <span>n xⁿ⁻¹</span></li>
+                            <li><span>(sin x)'</span> <span>cos x</span></li>
+                            <li><span>(uv)'</span> <span>u'v + uv'</span></li>
+                        </ul>
+                        <div style="background:#f5f5f7; border-radius:12px; padding:15px; margin-top:15px;">
+                            <strong>Шар:</strong> V = 4/3 πR³, S = 4πR²
+                        </div>
+                    </div>`
+                }
+            ]
+        }
+    };
 
-            <h3>Calculus (Derivatives)</h3>
-            <ul class="minimal-list">
-                <li><span>(x^n)'</span> <span>n x^(n-1)</span></li>
-                <li><span>(sin x)'</span> <span>cos x</span></li>
-                <li><span>(ln x)'</span> <span>1/x</span></li>
-                <li><span>(uv)'</span> <span>u'v + uv'</span></li>
-            </ul>
+    // --- ЛОГИКА (БЕЗ ИЗМЕНЕНИЙ) ---
+    function setGradeAndGo(g) {
+        const name = document.getElementById('user-name-input').value.trim();
+        if(!name) return alert("Введи имя!");
+        state.name = name;
+        localStorage.setItem('math_name', name);
+        switchGrade(g);
+    }
 
-            <h3>Integrals</h3>
-            <ul class="minimal-list">
-                <li><span>∫ x^n dx</span> <span>x^(n+1)/(n+1) + C</span></li>
-                <li><span>∫ (1/x) dx</span> <span>ln|x| + C</span></li>
-            </ul>
+    window.switchGrade = function(g) {
+        currentGrade = g; hide(); document.body.className = "grade-" + g;
+        const cur = data[g] || data["5"];
+        document.getElementById('grade-title').innerText = cur.name;
+        document.getElementById('hero').innerText = cur.hero;
+        document.getElementById('grade-desc').innerText = `Привет, ${state.name}! ${cur.desc}`;
+        document.getElementById('hud').style.display = 'flex';
+        showMainMenu();
+        loadRemoteData();
+    }
 
-            <h3>Stereometry</h3>
-            <ul class="minimal-list">
-                <li><span>Prism Volume</span> <span>S_base · h</span></li>
-                <li><span>Cone Volume</span> <span>⅓ π R² h</span></li>
-                <li><span>Sphere Volume</span> <span>4/3 π R³</span></li>
-            </ul>
+    async function loadRemoteData() {
+        try {
+            const res = await fetch(SHEET_URL);
+            const text = await res.text();
+            const rows = text.split('\n').slice(1);
+            remoteDB = rows.map(r => {
+                const c = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                if(c.length < 7) return null;
+                const opt = [c[2], c[3], c[4], c[5]].map(s => s?.replace(/"/g, '').trim());
+                let cor = c[6]?.trim();
+                if(cor.includes("Вариант 1")) cor = opt[0];
+                return { grade: c[0].trim(), q: c[1].replace(/"/g, ''), opt, cor, sol: c[7] };
+            }).filter(i => i);
+        } catch(e) {}
+    }
 
-            <h3>Economics (Task 16)</h3>
-            <div style="margin-top:20px; font-family:'Montserrat';">
-                <p>Compound Interest: <span class="math-block">S = P(1 + r/100)^n</span></p>
-            </div>
-        </div>
-    </section>
+    window.startPractice = () => {
+        hide(); state.lives = 5; state.coins = 0; state.currentIdx = 0;
+        let pool = remoteDB.filter(i => i.grade == currentGrade);
+        if(!pool.length) return alert("Задания грузятся...");
+        state.questions = pool.sort(() => Math.random()-0.5).slice(0, 10);
+        updateHUD(); document.getElementById('quiz').classList.add('active'); renderQ();
+    }
 
+    window.renderQ = () => {
+        if(state.lives <= 0) return finish(false);
+        if(state.currentIdx >= state.questions.length) return finish(true);
+        const q = state.questions[state.currentIdx];
+        document.getElementById('progress').innerText = `${state.currentIdx+1}/10`;
+        document.getElementById('q-text').innerHTML = q.q;
+        const cont = document.getElementById('options'); cont.innerHTML = "";
+        q.opt.forEach(o => {
+            const b = document.createElement('button'); b.innerHTML = o;
+            b.onclick = () => {
+                if(o === q.cor) { b.style.background="#00b894"; b.style.color="white"; state.coins+=5; }
+                else { b.style.background="#ff7675"; b.style.color="white"; state.lives--; }
+                updateHUD(); document.getElementById('solution-text').innerHTML = q.sol;
+                document.getElementById('solution-box').style.display="block";
+                document.getElementById('next-btn').style.display="block";
+                cont.querySelectorAll('button').forEach(btn => btn.disabled=true);
+            };
+            cont.appendChild(b);
+        });
+        document.getElementById('next-btn').style.display="none"; document.getElementById('solution-box').style.display="none";
+    }
+
+    document.getElementById('next-btn').onclick = () => { state.currentIdx++; renderQ(); };
+    window.finish = (win) => { hide(); document.getElementById('final').classList.add('active'); document.getElementById('final-status').innerText = win ? "ПОБЕДА!" : "НЕУДАЧА"; document.getElementById('stats').innerText = `💰 Монеты: ${state.coins}`; };
+    window.showMainMenu = () => { hide(); document.getElementById('main-menu').classList.add('active'); };
+    window.showGradeSelector = () => { hide(); document.getElementById('hud').style.display='none'; document.getElementById('grade-selector').classList.add('active'); };
+    window.hide = () => document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+    window.updateHUD = () => { document.getElementById('lives').innerText = state.lives; document.getElementById('coins').innerText = state.coins; };
+    window.resetApp = () => { localStorage.clear(); location.reload(); };
+
+    window.showTheoryMenu = () => {
+        hide(); const list = document.getElementById('theory-list'); list.innerHTML = "";
+        data[currentGrade].theory.forEach(t => {
+            const b = document.createElement('button'); b.innerText = t.title;
+            b.onclick = () => { hide(); document.getElementById('view-title').innerText = t.title; document.getElementById('view-content').innerHTML = t.text; document.getElementById('theory-view').classList.add('active'); };
+            list.appendChild(b);
+        });
+        document.getElementById('theory-menu').classList.add('active');
+    };
+
+    function init() {
+        const n = localStorage.getItem('math_name');
+        if(!n) document.getElementById('welcome-screen').classList.add('active');
+        else { state.name = n; showGradeSelector(); }
+    }
+    init();
+    </script>
 </body>
 </html>
