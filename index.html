@@ -225,7 +225,7 @@
             <button class="btn" style="background: #1e293b" onclick="selectClass(11)">11 класс</button>
         </div>
         
-        <button class="btn" style="margin-top:30px; background:#555;" onclick="showScreen('screen-feedback')">💬 Служба поддержки</button>
+        <button class="btn" style="margin-top:30px; background:#555;" onclick="openExternalFeedback()">💬 Служба поддержки</button>
     </div>
 
     <div id="screen-menu" class="screen">
@@ -257,7 +257,7 @@
     <div id="screen-theory-read" class="screen">
         <div class="top-bar">
             <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showTheorySelection()">⬅ К темам</button>
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0; background: #c0392b;" onclick="reportError('theory')">⚠️ Ошибка</button>
+            <button class="btn" style="width: auto; padding: 5px 15px; margin:0; background: #c0392b;" onclick="openExternalFeedback()">⚠️ Ошибка</button>
         </div>
         
         <div id="theory-content" class="theory-container">
@@ -286,7 +286,7 @@
             </div>
         </div>
 
-        <button class="btn" style="margin-top:20px; background: transparent; color: #888; font-size:12px; width: auto;" onclick="reportError('question')">Сообщить об ошибке в задании</button>
+        <button class="btn" style="margin-top:20px; background: transparent; color: #888; font-size:12px; width: auto;" onclick="openExternalFeedback()">Сообщить об ошибке в задании</button>
     </div>
 
     <div id="screen-results" class="screen">
@@ -343,34 +343,14 @@
             </div>
         </div>
 
-        <button class="btn" onclick="showScreen('screen-feedback')">💬 Обратная связь</button>
+        <button class="btn" onclick="openExternalFeedback()">💬 Обратная связь</button>
         <button class="btn" style="margin-top:20px;" onclick="showScreen('screen-menu')">🏠 Главное меню</button>
-    </div>
-
-    <div id="screen-feedback" class="screen">
-        <h2>Обратная связь</h2>
-        <p style="opacity: 0.8; text-align: center;">Опишите проблему или предложение</p>
-        
-        <textarea id="feedback-text" rows="6" placeholder="Введите сообщение..."></textarea>
-        
-        <div style="width: 100%; max-width: 400px; margin-bottom: 20px;">
-            <label for="feedback-file" style="display: block; margin-bottom: 5px;">Прикрепить скриншот:</label>
-            <input type="file" id="feedback-file" accept="image/*">
-        </div>
-
-        <button class="btn" onclick="sendFeedback()">Отправить</button>
-        <button class="btn" style="background: transparent; color: inherit; border: 1px solid currentColor;" onclick="showScreen('screen-menu')">Отмена</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand(); // Раскрыть на весь экран
 
-        // ==========================================================
-        // БАЗА ЗНАНИЙ (ПОЛНАЯ, КАК ТЫ ПРОСИЛ)
-        // Используем String.raw`...` для LaTeX, чтобы не экранировать бэкслеши
-        // Двойной бэкслеш \\ в конце строк нужен для переноса формул
-        // ==========================================================
         const theoryData = {
             5: [
                 {
@@ -692,7 +672,6 @@
             ]
         };
 
-        // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
         let state = {
             name: "",
             class: 0,
@@ -704,12 +683,17 @@
             currentQIndex: 0
         };
 
-        // --- ФУНКЦИИ ---
+        // --- ФУНКЦИИ ПЕРЕХОДА ---
 
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
             window.scrollTo(0,0);
+        }
+
+        // НОВАЯ ФУНКЦИЯ ОБРАТНОЙ СВЯЗИ
+        function openExternalFeedback() {
+            tg.openTelegramLink('https://t.me/supertutor15');
         }
 
         function selectClass(cls) {
@@ -721,7 +705,6 @@
             state.name = inputName;
             state.class = cls;
             
-            // Применяем тему (CSS класс на body)
             document.body.className = `class-${cls}`;
             
             loadState();
@@ -731,7 +714,6 @@
             showScreen('screen-menu');
         }
 
-        // Рендер списка тем
         function showTheorySelection() {
             const list = document.getElementById('topics-list');
             list.innerHTML = "";
@@ -751,12 +733,10 @@
             showScreen('screen-theory-select');
         }
 
-        // Открытие конкретной темы и рендер LaTeX
         function openTopic(index) {
             const topic = theoryData[state.class][index];
             const container = document.getElementById('theory-content');
             
-            // Генерируем HTML для карточки
             container.innerHTML = `
                 <div class="theory-card">
                     <h3>${topic.title}</h3>
@@ -764,13 +744,12 @@
                 </div>
             `;
             
-            // Рендерим формулы через KaTeX
             const area = container.querySelector('.latex-render-area');
             try {
                 katex.render(topic.content, area, {
                     throwOnError: false,
                     displayMode: true,
-                    fleqn: false // центрирование
+                    fleqn: false
                 });
             } catch(e) {
                 area.innerText = "Ошибка отображения формул";
@@ -779,7 +758,6 @@
             showScreen('screen-theory-read');
         }
 
-        // --- ПРАКТИКА (Загрузка из Google Sheets CSV) ---
         async function startPractice() {
             state.lives = 5;
             state.currentQIndex = 0;
@@ -791,7 +769,6 @@
             document.getElementById('feedback-block').style.display = 'none';
             
             try {
-                // ССЫЛКА НА ТВОЙ CSV
                 const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
                 const response = await fetch(url);
                 const csvText = await response.text();
@@ -811,40 +788,30 @@
         }
 
         function parseQuestions(csv) {
-            // Очень простой парсер CSV
-            const rows = csv.split('\n').map(row => {
-                // Учитываем, что в ячейках могут быть запятые, но пока делим просто
-                return row.split(','); 
-            });
-            
-            // Ожидаем столбцы: [0]Timestamp, [1]Class, [2]Block/Theme, [3]Question, [4]Ans1, [5]Ans2, [6]Ans3, [7]Ans4, [8]CorrectNum, [9]Comment
-            
+            const rows = csv.split('\n').map(row => row.split(','));
             state.currentQuestions = rows.filter(r => r[1] && r[1].trim() == state.class)
-                .sort(() => 0.5 - Math.random()) // Перемешиваем
-                .slice(0, state.class >= 9 ? 10 : 5); // Кол-во вопросов
+                .sort(() => 0.5 - Math.random())
+                .slice(0, state.class >= 9 ? 10 : 5);
         }
 
         function renderQuestion() {
             document.getElementById('feedback-block').style.display = 'none';
             document.getElementById('answers-block').style.display = 'block';
-            document.getElementById('next-q-btn').style.display = 'none'; // Прячем кнопку "Далее" пока нет ответа
+            document.getElementById('next-q-btn').style.display = 'none';
             
             const q = state.currentQuestions[state.currentQIndex];
-            
-            // Вставляем текст вопроса
             document.getElementById('question-text').innerText = `Вопрос ${state.currentQIndex + 1}: ${q[3]}`; 
             
             const answersDiv = document.getElementById('answers-block');
             answersDiv.innerHTML = "";
             
-            // Варианты ответов (индексы 4,5,6,7)
             const opts = [q[4], q[5], q[6], q[7]];
             
             opts.forEach((optText, i) => {
                 if(optText && optText.trim() !== "") {
                     const btn = document.createElement('button');
                     btn.className = 'btn';
-                    btn.style.background = "#fff"; // Белые кнопки для ответов
+                    btn.style.background = "#fff";
                     btn.style.color = "#000";
                     btn.style.border = "1px solid #ccc";
                     btn.innerText = optText;
@@ -856,24 +823,23 @@
 
         function checkAnswer(selectedIdx, btnElement) {
             const q = state.currentQuestions[state.currentQIndex];
-            const correctIdx = parseInt(q[8]); // Индекс верного ответа (цифра 1-4)
+            const correctIdx = parseInt(q[8]);
             
             const feedbackDiv = document.getElementById('feedback-block');
             const title = document.getElementById('feedback-title');
             const expl = document.getElementById('feedback-solution');
             
-            // Блокируем все кнопки
             const allBtns = document.getElementById('answers-block').querySelectorAll('.btn');
             allBtns.forEach(b => b.disabled = true);
 
             if (selectedIdx === correctIdx) {
-                btnElement.style.background = "#2ecc71"; // Зеленый
+                btnElement.style.background = "#2ecc71";
                 btnElement.style.color = "#fff";
                 title.innerText = "✅ Верно!";
                 title.style.color = "green";
                 addCoins(10);
             } else {
-                btnElement.style.background = "#e74c3c"; // Красный
+                btnElement.style.background = "#e74c3c";
                 btnElement.style.color = "#fff";
                 title.innerText = "❌ Ошибка!";
                 title.style.color = "red";
@@ -884,8 +850,6 @@
             updateStats();
 
             feedbackDiv.style.display = 'block';
-            
-            // Показываем кнопку "Далее" только после ответа
             const nextBtn = document.getElementById('next-q-btn');
             nextBtn.style.display = 'block';
             nextBtn.onclick = nextQuestion;
@@ -908,7 +872,6 @@
             showScreen('screen-results');
             const msg = document.getElementById('result-message');
             const finalLives = document.getElementById('final-lives');
-            
             finalLives.innerText = state.lives;
             
             if (success) {
@@ -918,35 +881,25 @@
                 msg.innerText = "💀 Потрачено";
                 msg.style.color = "#e74c3c";
             }
-            
-            // Сохраняем монеты в память
             localStorage.setItem('schoolAppState', JSON.stringify(state));
         }
 
-        // --- СИСТЕМА МОНЕТ ---
         function addCoins(amount) {
             const now = new Date().getTime();
             const twelveHours = 12 * 60 * 60 * 1000;
-            
-            // Если прошло 12 часов, сбрасываем счетчик монет за день
             if (state.lastCoinDate && (now - state.lastCoinDate > twelveHours)) {
                 state.coinsToday = 0; 
             }
-
             if (state.coinsToday < 100) {
                 state.coins += amount;
                 state.coinsToday += amount;
                 state.lastCoinDate = now;
-                
-                // Анимация получения (просто лог в консоль пока)
-                console.log(`Получено ${amount} монет`);
             }
             updateStats();
         }
 
         function buyItem(price) {
             if (state.coins >= price) {
-                // Пока просто визуально
                 alert("Функция скачивания PDF будет доступна скоро! (Списывание не произошло)");
             } else {
                 alert("Недостаточно монет! Проходи тесты.");
@@ -974,11 +927,8 @@
             });
         }
 
-        // --- ВЗАИМОДЕЙСТВИЕ С СЕРВЕРОМ ---
-        
         async function saveAndFinish() {
             if (document.getElementById('consent-checkbox').checked) {
-                // Формируем данные
                 const data = {
                     action: "save_result",
                     username: state.name + " (@" + (tg.initDataUnsafe?.user?.username || "no_tg") + ")",
@@ -986,9 +936,6 @@
                     correct: state.currentQuestions.length - (5 - state.lives),
                     errors: (5 - state.lives)
                 };
-                
-                // Отправляем на Python сервер (если запущен локально или через ngrok)
-                // Если запущено просто как файл или на github pages без бэкенда, это не сработает, но ошибок не выдаст
                 try {
                     await fetch('/api/save_stats', {
                         method: 'POST',
@@ -996,34 +943,6 @@
                         body: JSON.stringify(data)
                     });
                 } catch(e) { console.log("Бэкенд недоступен"); }
-            }
-            showScreen('screen-menu');
-        }
-
-        function reportError(type) {
-            showScreen('screen-feedback');
-            document.getElementById('feedback-text').value = `[Ошибка ${type}] Класс: ${state.class}, Вопрос/Тема индекс: ${state.currentQIndex}`;
-        }
-
-        async function sendFeedback() {
-            const text = document.getElementById('feedback-text').value;
-            const fileInput = document.getElementById('feedback-file');
-            
-            const formData = new FormData();
-            formData.append('username', tg.initDataUnsafe?.user?.username || state.name);
-            formData.append('text', text);
-            if (fileInput.files[0]) {
-                formData.append('screenshot', fileInput.files[0]);
-            }
-
-            try {
-                await fetch('/api/feedback', {
-                    method: 'POST',
-                    body: formData
-                });
-                alert("Отправлено!");
-            } catch(e) {
-                alert("Ошибка отправки. (Нужен запущенный Python бот)");
             }
             showScreen('screen-menu');
         }
