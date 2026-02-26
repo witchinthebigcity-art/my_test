@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>School App</title>
+    <title>Математическая вселенная</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&family=Quicksand:wght@400;700&family=Montserrat:wght@400;700&family=Gotham+Pro&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Montserrat:wght@400;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         /* --- БАЗОВЫЕ СТИЛИ --- */
         :root {
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --accent-color: #3390ec;
+            --bg-color: #050b18;
+            --text-color: #ffffff;
+            --accent-color: #3a86ff;
             --font-main: 'Roboto', sans-serif;
             --btn-radius: 12px;
             --btn-text: #ffffff;
@@ -32,6 +32,17 @@
             transition: all 0.3s ease;
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
+        }
+
+        /* КОСМИЧЕСКИЙ ФОН ДЛЯ ГЛАВНОГО МЕНЮ */
+        #stars-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
         }
 
         .screen {
@@ -74,6 +85,8 @@
             border: 1px solid #ccc;
             box-sizing: border-box;
             font-size: 16px;
+            background: rgba(255,255,255,0.1);
+            color: white;
         }
 
         /* --- ВЕРХНЯЯ ПАНЕЛЬ --- */
@@ -91,130 +104,47 @@
         }
         .stat-item { font-weight: bold; display: flex; align-items: center; gap: 5px; }
 
-        /* --- СТИЛИЗАЦИЯ КЛАССОВ --- */
-        
-        /* 5 Класс: Яркие, Nunito */
-        body.class-5 {
-            --bg-color: #E0F7FA; 
-            --text-color: #01579B; 
-            --accent-color: #FF6F00; /* Оранжевый */
-            --font-main: 'Nunito', sans-serif;
-            background-image: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%); /* Лайм-Голубой */
-        }
+        /* --- ТЕМЫ КЛАССОВ (Применяются при выборе) --- */
+        body.class-5 { --accent-color: #FF6F00; --font-main: 'Nunito'; }
+        body.class-6 { --accent-color: #651FFF; --font-main: 'Montserrat'; }
+        body.class-7 { --accent-color: #d60270; --font-main: 'Orbitron'; }
+        body.class-8 { --accent-color: #FFD600; --btn-text: #000; --font-main: 'Oswald'; }
+        body.class-11 { --accent-color: #3b82f6; }
 
-        /* 6 Класс: Sci-Fi, Геометрия */
-        body.class-6 {
-            --bg-color: #2c3e50; 
-            --text-color: #00E5FF; 
-            --accent-color: #651FFF; /* Фиолетовый */
-            --font-main: 'Montserrat', sans-serif;
-            background: linear-gradient(to bottom, #20002c, #cbb4d4);
-        }
-
-        /* 7 Класс: Киберпанк */
-        body.class-7 {
-            --bg-color: #050511; 
-            --text-color: #00ff41; 
-            --accent-color: #d60270; /* Неон маджента */
-            --font-main: 'Orbitron', sans-serif;
-            background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
-        }
-
-        /* 8 Класс: Брутализм */
-        body.class-8 {
-            --bg-color: #ffffff; 
-            --text-color: #000000; 
-            --accent-color: #FFD600; /* Желтый */
-            --font-main: 'Oswald', sans-serif;
-            --btn-text: #000;
-        }
-        body.class-8 .btn { border: 3px solid black; border-radius: 0; box-shadow: 5px 5px 0px #000; }
-        body.class-8 .top-bar { border: 2px solid black; background: #fff; color: black; border-radius: 0;}
-
-        /* 9 Класс: Функциональность */
-        body.class-9 {
-            --bg-color: #f0f2f5; 
-            --text-color: #1c1e21; 
-            --accent-color: #1877f2; /* Синий */
-            --font-main: 'Roboto', sans-serif;
-        }
-
-        /* 10 Класс: StudyCafe (Korea) */
-        body.class-10 {
-            --bg-color: #E3E1D9; 
-            --text-color: #4A4A4A; 
-            --accent-color: #7B8D76; /* Sage Green */
-            --font-main: 'Open Sans', sans-serif;
-        }
-
-        /* 11 Класс: Night Mode (Deep Focus) */
-        body.class-11 {
-            --bg-color: #0f172a; 
-            --text-color: #cbd5e1; 
-            --accent-color: #3b82f6; 
-            --font-main: system-ui, -apple-system, sans-serif;
-        }
-
-        /* --- БЛОКИ ТЕОРИИ --- */
-        .theory-container {
-            width: 100%;
-            max-width: 600px;
-        }
         .theory-card {
-            background: rgba(255,255,255,0.95);
-            color: #000;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
         }
-        /* Спец. стиль карточки для темных тем */
-        body.class-6 .theory-card, body.class-7 .theory-card, body.class-11 .theory-card {
-            background: rgba(30,30,40, 0.9);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        body.class-8 .theory-card {
-            border: 3px solid black;
-            border-radius: 0;
+
+        .katex-display { overflow-x: auto; text-align: left !important; }
+
+        /* Анимация звезд */
+        .star {
+            position: absolute;
             background: white;
-            color: black;
-            box-shadow: 5px 5px 0 black;
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: twinkle 5s infinite;
         }
-
-        /* Контейнер для формул */
-        .katex-display {
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 10px 0;
-            margin: 0.5em 0;
-            text-align: left !important; /* Выравнивание формул */
-        }
-        
-        .katex { font-size: 1.1em; }
-
-        /* Персонаж (Placeholder) */
-        .character-box {
-            width: 100px;
-            height: 100px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            margin: 0 auto 10px;
-            display: none; /* Включится JS-ом */
-        }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
     </style>
 </head>
 <body>
 
+    <div id="stars-canvas"></div>
+
     <div id="screen-welcome" class="screen active">
-        <h1 style="font-size: 32px;">🎓 School App</h1>
-        <p>Твой личный помощник в учебе.</p>
+        <h1 style="font-size: 32px; color: #3a86ff;">Математическая вселенная</h1>
+        <p>Центр управления знаниями</p>
         
-        <input type="text" id="username-input" placeholder="Как тебя зовут?">
+        <input type="text" id="username-input" placeholder="Введите имя курсанта...">
         
-        <h3>Выбери свой класс:</h3>
+        <h3>Ваш класс:</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width:100%; max-width:400px;">
             <button class="btn" style="background: #FF6F00" onclick="selectClass(5)">5 класс</button>
             <button class="btn" style="background: #651FFF" onclick="selectClass(6)">6 класс</button>
@@ -224,8 +154,6 @@
             <button class="btn" style="background: #7B8D76" onclick="selectClass(10)">10 класс</button>
             <button class="btn" style="background: #1e293b" onclick="selectClass(11)">11 класс</button>
         </div>
-        
-        <button class="btn" style="margin-top:30px; background:#555;" onclick="openExternalFeedback()">💬 Служба поддержки</button>
     </div>
 
     <div id="screen-menu" class="screen">
@@ -234,36 +162,30 @@
             <div class="stat-item">🪙 <span id="coins-display">0</span></div>
         </div>
         
-        <div id="char-display" class="character-box"></div>
-        <h1 id="menu-title">Меню</h1>
+        <h1 id="menu-title">Математическая вселенная</h1>
         <p id="welcome-text"></p>
 
         <div style="width:100%; max-width:400px;">
             <button class="btn" onclick="showTheorySelection()">📚 Теория</button>
             <button class="btn" onclick="startPractice()">✏️ Практика</button>
             <button class="btn" onclick="showScreen('screen-shop')">🛒 Магазин</button>
-            <button class="btn" style="background: transparent; border: 1px solid currentColor; color: inherit;" onclick="location.reload()">↩ Сменить класс</button>
+            <button class="btn" style="background: transparent; border: 1px solid currentColor; color: inherit;" onclick="changeClass()">↩ Сменить класс</button>
         </div>
     </div>
 
     <div id="screen-theory-select" class="screen">
-        <div class="top-bar">
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showScreen('screen-menu')">⬅ Назад</button>
-        </div>
+        <div class="top-bar"><button class="btn" style="width: auto; margin:0;" onclick="showScreen('screen-menu')">⬅ Назад</button></div>
         <h2>Темы обучения</h2>
         <div id="topics-list" style="width: 100%; max-width: 400px;"></div>
     </div>
 
     <div id="screen-theory-read" class="screen">
         <div class="top-bar">
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showTheorySelection()">⬅ К темам</button>
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0; background: #c0392b;" onclick="openExternalFeedback()">⚠️ Ошибка</button>
+            <button class="btn" style="width: auto; margin:0;" onclick="showTheorySelection()">⬅ Назад</button>
+            <button class="btn" style="width: auto; margin:0; background: #c0392b;" onclick="openExternalFeedback()">⚠️ Сообщить об ошибке</button>
         </div>
-        
-        <div id="theory-content" class="theory-container">
-            </div>
-
-        <button class="btn" onclick="startPractice()">Пройти тест по этой теме</button>
+        <div id="theory-content" class="theory-container"></div>
+        <button class="btn" onclick="startPractice()">Пройти тест</button>
     </div>
 
     <div id="screen-practice" class="screen">
@@ -271,87 +193,56 @@
             <div class="stat-item">❤️ <span id="quiz-lives">5</span></div>
             <div class="stat-item">🪙 <span id="quiz-coins">0</span></div>
         </div>
-        
-        <div style="width: 100%; max-width: 500px; flex-grow: 1; display: flex; flex-direction: column;">
-            <div class="theory-card" style="margin-top: 20px;">
-                <h3 id="question-text">Загрузка...</h3>
-            </div>
-
+        <div style="width: 100%; max-width: 500px; flex-grow: 1;">
+            <div class="theory-card" style="margin-top: 20px;"><h3 id="question-text">Загрузка...</h3></div>
             <div id="answers-block"></div>
-
-            <div id="feedback-block" style="display:none; margin-top:20px; padding:15px; background:rgba(255,255,255,0.95); border-radius:10px; color:#000; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                <strong id="feedback-title" style="font-size: 18px; display:block; margin-bottom:10px;"></strong>
-                <p id="feedback-solution" style="font-size: 14px; line-height: 1.5;"></p>
-                <button class="btn" id="next-q-btn" onclick="nextQuestion()">Далее ➡</button>
+            <div id="feedback-block" style="display:none; padding:15px; background:rgba(255,255,255,0.9); border-radius:10px; color:#000;">
+                <strong id="feedback-title"></strong>
+                <p id="feedback-solution"></p>
+                <button class="btn" id="next-q-btn">Далее ➡</button>
             </div>
         </div>
-
-        <button class="btn" style="margin-top:20px; background: transparent; color: #888; font-size:12px; width: auto;" onclick="openExternalFeedback()">Сообщить об ошибке в задании</button>
+        <button class="btn" style="background: transparent; color: #888; font-size:12px;" onclick="openExternalFeedback()">Сообщить об ошибке в задании</button>
     </div>
 
     <div id="screen-results" class="screen">
-        <h1>Результат</h1>
-        <h2 id="result-message" style="font-size: 40px; margin: 20px 0;"></h2>
-        
+        <h1>Результат миссии</h1>
+        <h2 id="result-message" style="font-size: 32px;"></h2>
         <div class="theory-card">
-            <p>Заработано монет: <span id="earned-coins" style="font-weight:bold; color: #f1c40f;">0</span></p>
-            <p>Осталось жизней: <span id="final-lives">0</span></p>
+            <p>Монеты: <span id="earned-coins" style="color: gold;">0</span></p>
+            <p>Жизни: <span id="final-lives">0</span></p>
         </div>
-        
-        <div id="consent-block" style="margin: 20px 0; font-size: 12px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: left;">
-            <label style="display: flex; gap: 10px; align-items: flex-start;">
-                <input type="checkbox" id="consent-checkbox" style="width: 20px; height: 20px; margin:0;"> 
-                <span>Даю согласие на обработку и хранение результатов прохождения тестирования.</span>
-            </label>
-            <p style="margin-top:5px; font-style: italic; opacity: 0.7;">p.s. это для того, чтобы можно было проанализировать свои результаты за большой период</p>
-        </div>
-
-        <div style="width: 100%; max-width: 400px;">
-            <button class="btn" onclick="startPractice()">🔄 Пройти тест снова</button>
-            <button class="btn" onclick="showScreen('screen-shop')">🛒 В магазин</button>
-            <button class="btn" style="background:#7f8c8d;" onclick="saveAndFinish()">🏠 В меню</button>
-        </div>
+        <button class="btn" onclick="showScreen('screen-menu')">🏠 В меню</button>
     </div>
 
     <div id="screen-shop" class="screen">
-        <h1>Магазин</h1>
-        <p>Баланс: <span id="shop-balance" style="font-weight:bold; color:gold;">0</span> 🪙</p>
-        
-        <div class="theory-container">
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Новичок"</h3>
-                    <small>Набор стикеров</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(30)">30 🪙</button>
-            </div>
-
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Профи"</h3>
-                    <small>Новые фоны</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(50)">50 🪙</button>
-            </div>
-
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Легенда"</h3>
-                    <small>Секретный персонаж</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(100)">100 🪙</button>
-            </div>
-        </div>
-
-        <button class="btn" onclick="openExternalFeedback()">💬 Обратная связь</button>
-        <button class="btn" style="margin-top:20px;" onclick="showScreen('screen-menu')">🏠 Главное меню</button>
+        <h1>Звездный магазин</h1>
+        <p>Баланс: <span id="shop-balance" style="color:gold;">0</span> 🪙</p>
+        <button class="btn" onclick="showScreen('screen-menu')">🏠 В меню</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Раскрыть на весь экран
+        tg.expand();
 
-        const theoryData = {
+        // --- СОЗДАНИЕ ЗВЕЗД ---
+        function createStars() {
+            const canvas = document.getElementById('stars-canvas');
+            for (let i = 0; i < 80; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 3;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 5 + 's';
+                canvas.appendChild(star);
+            }
+        }
+        createStars();
+
+          const theoryData = {
             5: [
                 {
                     title: "Блок 1: Натуральные числа",
@@ -672,61 +563,67 @@
             ]
         };
 
+
         let state = {
-            name: "",
-            class: 0,
+            name: localStorage.getItem('school_user_name') || "",
+            class: localStorage.getItem('school_user_class') || 0,
             lives: 5,
-            coins: 0,
-            coinsToday: 0,
-            lastCoinDate: null,
+            coins: parseInt(localStorage.getItem('school_user_coins')) || 0,
             currentQuestions: [],
             currentQIndex: 0
         };
 
-        // --- ФУНКЦИИ ПЕРЕХОДА ---
+        // Если имя уже есть в памяти, подставляем
+        if (state.name) {
+            document.getElementById('username-input').value = state.name;
+        }
 
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
-            window.scrollTo(0,0);
         }
 
-        // НОВАЯ ФУНКЦИЯ ОБРАТНОЙ СВЯЗИ
+        function selectClass(cls) {
+            const name = document.getElementById('username-input').value;
+            if (!name) { alert("Представьтесь, пожалуйста!"); return; }
+            
+            state.name = name;
+            state.class = cls;
+            
+            // Сохраняем в память
+            localStorage.setItem('school_user_name', name);
+            localStorage.setItem('school_user_class', cls);
+            
+            document.body.className = `class-${cls}`;
+            document.getElementById('welcome-text').innerText = `Курсант ${name}, готов к обучению в ${cls} классе?`;
+            updateStats();
+            showScreen('screen-menu');
+        }
+
+        function changeClass() {
+            showScreen('screen-welcome');
+        }
+
         function openExternalFeedback() {
             tg.openTelegramLink('https://t.me/supertutor15');
         }
 
-        function selectClass(cls) {
-            const inputName = document.getElementById('username-input').value;
-            if(!inputName) {
-                alert("Пожалуйста, введи свое имя!");
-                return;
-            }
-            state.name = inputName;
-            state.class = cls;
-            
-            document.body.className = `class-${cls}`;
-            
-            loadState();
-            updateStats();
-            
-            document.getElementById('welcome-text').innerText = `Привет, ${state.name}! Ты в ${cls} классе.`;
-            showScreen('screen-menu');
+        function updateStats() {
+            const els = ['lives-display', 'coins-display', 'quiz-lives', 'quiz-coins', 'shop-balance', 'earned-coins', 'final-lives'];
+            els.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = id.includes('lives') ? state.lives : state.coins;
+            });
+            localStorage.setItem('school_user_coins', state.coins);
         }
 
         function showTheorySelection() {
             const list = document.getElementById('topics-list');
             list.innerHTML = "";
             const topics = theoryData[state.class] || [];
-            
-            if (topics.length === 0) {
-                list.innerHTML = "<p>Для этого класса теория еще загружается...</p>";
-            }
-
             topics.forEach((topic, idx) => {
                 const btn = document.createElement('button');
-                btn.className = 'btn';
-                btn.innerText = topic.title;
+                btn.className = 'btn'; btn.innerText = topic.title;
                 btn.onclick = () => openTopic(idx);
                 list.appendChild(btn);
             });
@@ -736,215 +633,88 @@
         function openTopic(index) {
             const topic = theoryData[state.class][index];
             const container = document.getElementById('theory-content');
-            
-            container.innerHTML = `
-                <div class="theory-card">
-                    <h3>${topic.title}</h3>
-                    <div class="latex-render-area">${topic.content}</div>
-                </div>
-            `;
-            
-            const area = container.querySelector('.latex-render-area');
-            try {
-                katex.render(topic.content, area, {
-                    throwOnError: false,
-                    displayMode: true,
-                    fleqn: false
-                });
-            } catch(e) {
-                area.innerText = "Ошибка отображения формул";
-            }
-            
+            container.innerHTML = `<div class="theory-card"><h3>${topic.title}</h3><div id="latex-area"></div></div>`;
+            katex.render(topic.content, document.getElementById('latex-area'), { displayMode: true });
             showScreen('screen-theory-read');
         }
 
         async function startPractice() {
-            state.lives = 5;
-            state.currentQIndex = 0;
-            updateStats();
-            
+            state.lives = 5; state.currentQIndex = 0;
             showScreen('screen-practice');
-            document.getElementById('question-text').innerText = "Загружаем вопросы...";
-            document.getElementById('answers-block').innerHTML = "";
-            document.getElementById('feedback-block').style.display = 'none';
+            document.getElementById('question-text').innerText = "Связь со спутником... (загрузка)";
             
             try {
                 const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
                 const response = await fetch(url);
                 const csvText = await response.text();
-                
                 parseQuestions(csvText);
-                
-                if (state.currentQuestions.length > 0) {
-                    renderQuestion();
-                } else {
-                    alert("Вопросов для твоего класса пока нет в базе.");
-                    showScreen('screen-menu');
-                }
-            } catch (e) {
-                alert("Ошибка интернета или доступа к таблице.");
-                showScreen('screen-menu');
-            }
+                renderQuestion();
+            } catch (e) { alert("Ошибка связи с базой!"); showScreen('screen-menu'); }
         }
 
         function parseQuestions(csv) {
-            const rows = csv.split('\n').map(row => row.split(','));
-            state.currentQuestions = rows.filter(r => r[1] && r[1].trim() == state.class)
+            const rows = csv.split('\n').slice(1).map(row => row.split(','));
+            const filtered = rows.filter(r => r[1] && r[1].trim() == state.class);
+            
+            // ЛОГИКА РАНДОМА И ЛИМИТОВ (5 для 5-7 кл, 10 для 8-11 кл)
+            const limit = state.class <= 7 ? 5 : 10;
+            state.currentQuestions = filtered
                 .sort(() => 0.5 - Math.random())
-                .slice(0, state.class >= 9 ? 10 : 5);
+                .slice(0, limit);
         }
 
         function renderQuestion() {
             document.getElementById('feedback-block').style.display = 'none';
             document.getElementById('answers-block').style.display = 'block';
-            document.getElementById('next-q-btn').style.display = 'none';
-            
             const q = state.currentQuestions[state.currentQIndex];
-            document.getElementById('question-text').innerText = `Вопрос ${state.currentQIndex + 1}: ${q[3]}`; 
-            
+            if (!q) { finishQuiz(true); return; }
+
+            document.getElementById('question-text').innerText = q[3];
             const answersDiv = document.getElementById('answers-block');
             answersDiv.innerHTML = "";
-            
-            const opts = [q[4], q[5], q[6], q[7]];
-            
-            opts.forEach((optText, i) => {
-                if(optText && optText.trim() !== "") {
+            [q[4], q[5], q[6], q[7]].forEach((opt, i) => {
+                if (opt && opt.trim()) {
                     const btn = document.createElement('button');
-                    btn.className = 'btn';
-                    btn.style.background = "#fff";
-                    btn.style.color = "#000";
-                    btn.style.border = "1px solid #ccc";
-                    btn.innerText = optText;
+                    btn.className = 'btn'; btn.style.background = "#fff"; btn.style.color = "#000";
+                    btn.innerText = opt;
                     btn.onclick = () => checkAnswer(i + 1, btn);
                     answersDiv.appendChild(btn);
                 }
             });
         }
 
-        function checkAnswer(selectedIdx, btnElement) {
+        function checkAnswer(idx, btn) {
             const q = state.currentQuestions[state.currentQIndex];
-            const correctIdx = parseInt(q[8]);
+            const correct = parseInt(q[8]);
+            const feedback = document.getElementById('feedback-block');
             
-            const feedbackDiv = document.getElementById('feedback-block');
-            const title = document.getElementById('feedback-title');
-            const expl = document.getElementById('feedback-solution');
-            
-            const allBtns = document.getElementById('answers-block').querySelectorAll('.btn');
-            allBtns.forEach(b => b.disabled = true);
+            document.querySelectorAll('#answers-block .btn').forEach(b => b.disabled = true);
 
-            if (selectedIdx === correctIdx) {
-                btnElement.style.background = "#2ecc71";
-                btnElement.style.color = "#fff";
-                title.innerText = "✅ Верно!";
-                title.style.color = "green";
-                addCoins(10);
+            if (idx === correct) {
+                btn.style.background = "#2ecc71";
+                document.getElementById('feedback-title').innerText = "✅ Верно!";
+                state.coins += 10;
             } else {
-                btnElement.style.background = "#e74c3c";
-                btnElement.style.color = "#fff";
-                title.innerText = "❌ Ошибка!";
-                title.style.color = "red";
+                btn.style.background = "#e74c3c";
+                document.getElementById('feedback-title').innerText = "❌ Ошибка!";
                 state.lives--;
             }
-            
-            expl.innerText = q[9] || "Решение загружается..."; 
+
+            document.getElementById('feedback-solution').innerText = q[9] || "";
+            feedback.style.display = 'block';
+            document.getElementById('next-q-btn').onclick = () => {
+                state.currentQIndex++;
+                state.lives > 0 ? renderQuestion() : finishQuiz(false);
+            };
             updateStats();
-
-            feedbackDiv.style.display = 'block';
-            const nextBtn = document.getElementById('next-q-btn');
-            nextBtn.style.display = 'block';
-            nextBtn.onclick = nextQuestion;
-
-            if (state.lives <= 0) {
-                setTimeout(() => finishQuiz(false), 1500);
-            }
-        }
-
-        function nextQuestion() {
-            state.currentQIndex++;
-            if (state.currentQIndex >= state.currentQuestions.length) {
-                finishQuiz(true);
-            } else {
-                renderQuestion();
-            }
         }
 
         function finishQuiz(success) {
             showScreen('screen-results');
             const msg = document.getElementById('result-message');
-            const finalLives = document.getElementById('final-lives');
-            finalLives.innerText = state.lives;
-            
-            if (success) {
-                msg.innerText = "🎉 Тест пройден!";
-                msg.style.color = "#2ecc71";
-            } else {
-                msg.innerText = "💀 Потрачено";
-                msg.style.color = "#e74c3c";
-            }
-            localStorage.setItem('schoolAppState', JSON.stringify(state));
-        }
-
-        function addCoins(amount) {
-            const now = new Date().getTime();
-            const twelveHours = 12 * 60 * 60 * 1000;
-            if (state.lastCoinDate && (now - state.lastCoinDate > twelveHours)) {
-                state.coinsToday = 0; 
-            }
-            if (state.coinsToday < 100) {
-                state.coins += amount;
-                state.coinsToday += amount;
-                state.lastCoinDate = now;
-            }
+            msg.innerText = success ? "Миссия выполнена!" : "Миссия провалена";
+            msg.style.color = success ? "#2ecc71" : "#e74c3c";
             updateStats();
-        }
-
-        function buyItem(price) {
-            if (state.coins >= price) {
-                alert("Функция скачивания PDF будет доступна скоро! (Списывание не произошло)");
-            } else {
-                alert("Недостаточно монет! Проходи тесты.");
-            }
-        }
-
-        function loadState() {
-            const saved = localStorage.getItem('schoolAppState');
-            if (saved) {
-                const p = JSON.parse(saved);
-                state.coins = p.coins || 0;
-                state.coinsToday = p.coinsToday || 0;
-                state.lastCoinDate = p.lastCoinDate;
-            }
-        }
-
-        function updateStats() {
-            const els = ['lives-display', 'coins-display', 'quiz-lives', 'quiz-coins', 'shop-balance', 'earned-coins'];
-            els.forEach(id => {
-                const el = document.getElementById(id);
-                if(el) {
-                    if (id.includes('lives')) el.innerText = state.lives;
-                    else el.innerText = state.coins;
-                }
-            });
-        }
-
-        async function saveAndFinish() {
-            if (document.getElementById('consent-checkbox').checked) {
-                const data = {
-                    action: "save_result",
-                    username: state.name + " (@" + (tg.initDataUnsafe?.user?.username || "no_tg") + ")",
-                    class: state.class,
-                    correct: state.currentQuestions.length - (5 - state.lives),
-                    errors: (5 - state.lives)
-                };
-                try {
-                    await fetch('/api/save_stats', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(data)
-                    });
-                } catch(e) { console.log("Бэкенд недоступен"); }
-            }
-            showScreen('screen-menu');
         }
 
     </script>
