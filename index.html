@@ -30,10 +30,8 @@
         body.class-7 { --accent: #d60270; --bg: #050511; --font: 'Orbitron'; }
         body.class-8 { --accent: #FFD600; --bg: #000; --txt: #fff; --font: 'Oswald'; }
         body.class-8 .btn { color: #000; border: 2px solid #000; box-shadow: 4px 4px 0 #FFD600; }
-        body.class-9 { --accent: #007AFF; } body.class-10 { --accent: #7B8D76; } body.class-11 { --accent: #1e293b; }
 
-        .katex-display { overflow-x: auto; text-align: left !important; }
-        .shop-item { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px dashed var(--accent); width: 100%; box-sizing: border-box; }
+        .katex-display { overflow-x: auto; text-align: left !important; font-size: 1.2em; }
     </style>
 </head>
 <body>
@@ -42,7 +40,7 @@
     <div id="screen-welcome" class="screen active">
         <h1>Математическая вселенная</h1>
         <input type="text" id="username-input" placeholder="Имя курсанта...">
-        <h3>Сектор назначения:</h3>
+        <h3>Сектор обучения:</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width:100%; max-width:400px;">
             <button class="btn" onclick="selectClass(5)">5 класс</button>
             <button class="btn" onclick="selectClass(6)">6 класс</button>
@@ -50,7 +48,7 @@
             <button class="btn" onclick="selectClass(8)">8 класс</button>
             <button class="btn" onclick="selectClass(9)">9 класс</button>
             <button class="btn" onclick="selectClass(10)">10 класс</button>
-            <button class="btn" style="grid-column: span 2" onclick="selectClass(11)">11 класс (ЕГЭ)</button>
+            <button class="btn" style="grid-column: span 2" onclick="selectClass(11)">11 класс</button>
         </div>
         <button class="btn" style="margin-top:20px; background:#555;" onclick="openExternalFeedback()">💬 Обратная связь</button>
     </div>
@@ -62,131 +60,129 @@
         </div>
         <h1 id="welcome-text"></h1>
         <div style="width:100%; max-width:400px;">
-            <button class="btn" onclick="showTheorySelection()">📚 База знаний (7 блоков)</button>
-            <button class="btn" onclick="startPractice()">🎯 Практическая миссия</button>
-            <button class="btn" onclick="showScreen('screen-shop')">🛒 Звездный магазин</button>
+            <button class="btn" onclick="showTheorySelection()">📚 Теория (7 блоков)</button>
+            <button class="btn" onclick="startPractice()">✏️ Практика</button>
+            <button class="btn" onclick="showScreen('screen-shop')">🛒 Магазин</button>
             <button class="btn" style="background:#c0392b" onclick="openExternalFeedback()">⚠️ Сообщить об ошибке</button>
-            <button class="btn" style="background:transparent; border:1px solid #444" onclick="location.reload()">↩ Сменить сектор</button>
+            <button class="btn" style="background:transparent; border:1px solid #444" onclick="location.reload()">↩ Сменить класс</button>
         </div>
     </div>
 
     <div id="screen-theory-select" class="screen">
-        <div class="top-bar" onclick="showScreen('screen-menu')">⬅ В главное меню</div>
-        <h2>7 Секторов Знаний</h2>
+        <div class="top-bar" onclick="showScreen('screen-menu')">⬅ Назад</div>
+        <h2>7 Секторов теории</h2>
         <div id="topics-list" style="width:100%; max-width:400px;"></div>
     </div>
 
     <div id="screen-theory-read" class="screen">
-        <div class="top-bar" onclick="showTheorySelection()">⬅ К списку блоков</div>
+        <div class="top-bar" onclick="showTheorySelection()">⬅ Назад</div>
         <div id="theory-content" class="theory-card"></div>
-        <button class="btn" onclick="openExternalFeedback()">⚠️ Ошибка в формулах</button>
-        <button class="btn" onclick="startPractice()">Начать тест по теме</button>
+        <button class="btn" onclick="startPractice()">Пройти практику</button>
     </div>
 
     <div id="screen-practice" class="screen">
         <div class="top-bar" onclick="showScreen('screen-shop')">❤️ <span id="quiz-lives">5</span> | 🪙 <span id="quiz-coins">0</span></div>
-        <div class="theory-card"><h3 id="question-text">Загрузка...</h3></div>
+        <div class="theory-card"><h3 id="question-text">Связь со спутником...</h3></div>
         <div id="answers-block" style="width:100%; max-width:400px;"></div>
-        <div id="feedback-block" style="display:none; padding:15px; background:rgba(255,255,255,0.95); border-radius:10px; color:#000; width:100%; max-width:400px;">
-            <strong id="feedback-title"></strong><p id="feedback-solution"></p>
+        <div id="feedback-block" style="display:none; padding:15px; background:rgba(255,255,255,0.95); border-radius:10px; color:#000; width:100%; max-width:400px; flex-direction:column; align-items:center;">
+            <strong id="feedback-title"></strong>
+            <p id="feedback-solution" style="margin: 10px 0; font-size:16px;"></p>
             <button class="btn" id="next-q-btn">Далее ➡</button>
         </div>
-        <button class="btn" style="background:transparent; color:#888; font-size:12px; margin-top:10px;" onclick="openExternalFeedback()">Сообщить об ошибке в задании</button>
     </div>
 
     <div id="screen-shop" class="screen">
-        <h1>Звездный магазин</h1>
-        <p>Ваш баланс: <span id="shop-balance" style="color:gold; font-weight:bold;">0</span> 🪙</p>
+        <h1>Магазин</h1>
+        <p>Баланс: <span id="shop-balance" style="color:gold;">0</span> 🪙</p>
         <div id="shop-items" style="width:100%; max-width:400px;"></div>
-        <button class="btn" style="background:#7f8c8d" onclick="showScreen('screen-menu')">🏠 В меню</button>
+        <button class="btn" style="background:#7f8c8d" onclick="showScreen('screen-menu')">🏠 Назад</button>
     </div>
 
     <div id="screen-error-proposal" class="screen">
-        <h1>Миссия завершена!</h1>
+        <h1>Миссия завершена</h1>
         <div class="theory-card">
             <p id="error-summary"></p>
-            <p>Ваши системы дали сбой в некоторых темах. Желаете провести работу над ошибками?</p>
+            <p>Хотите исправить ошибки и пройти задачи по этим темам заново?</p>
         </div>
-        <button class="btn" onclick="startErrorCorrection()">✅ Да, исправить ошибки</button>
-        <button class="btn" style="background:#7f8c8d" onclick="showScreen('screen-menu')">🏠 Нет, в меню</button>
+        <button class="btn" onclick="startErrorCorrection()">✅ Исправить ошибки</button>
+        <button class="btn" style="background:#7f8c8d" onclick="showScreen('screen-menu')">🏠 В меню</button>
     </div>
-
-    <div id="screen-results" class="screen"><h1 id="result-message"></h1><button class="btn" onclick="showScreen('screen-menu')">🏠 В меню</button></div>
 
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
+        function createStars() { const c = document.getElementById('stars-canvas'); for (let i = 0; i < 70; i++) { const s = document.createElement('div'); s.className = 'star'; const size = Math.random() * 3 + 'px'; s.style.width = size; s.style.height = size; s.style.left = Math.random() * 100 + '%'; s.style.top = Math.random() * 100 + '%'; s.style.animationDelay = Math.random() * 5 + 's'; c.appendChild(s); } } createStars();
 
         const theoryData = {
             5: [
-                { title: "1. Свойства чисел", content: String.raw`a+b=b+a \\ (a+b)+c=a+(b+c) \\ a \cdot b=b \cdot a \\ a(bc)=(ab)c \\ a(b+c)=ab+ac \\ a \cdot 1=a, a \cdot 0=0 \\ a:b=q (ост. r)` },
-                { title: "2. Геометрия 5 кл", content: String.raw`P_{прям} = 2(a+b) \\ P_{кв} = 4a \\ S_{прям} = ab \\ S_{кв} = a^2 \\ V_{куб} = a^3 \\ V_{пар} = abc \\ S_{пов\_куб} = 6a^2` },
-                { title: "3. Движение", content: String.raw`s = v \cdot t \\ v = s/t \\ t = s/v \\ v_{по} = v_{соб} + v_{теч} \\ v_{пр} = v_{соб} - v_{теч} \\ v_{сбл} = v_1 + v_2 \\ v_{уд} = v_1 - v_2` },
-                { title: "4. Обыкновенные дроби", content: String.raw`\frac{a}{c} + \frac{b}{c} = \frac{a+b}{c} \\ \frac{a}{c} - \frac{b}{c} = \frac{a-b}{c} \\ \frac{a}{a} = 1, \frac{0}{b} = 0 \\ n \cdot \frac{a}{b} = \text{часть} \\ m : \frac{a}{b} = \text{целое} \\ a\frac{b}{c} = \frac{ac+b}{c} \\ \text{Сравнение дробей}` },
-                { title: "5. Десятичные дроби", content: String.raw`a,b \pm c,d \\ a,b \cdot 10^n \to \text{вправо} \\ a,b : 10^n \to \text{влево} \\ \text{Среднее: } \frac{\sum x}{n} \\ a,b \cdot c,d \\ a,b : c,d \\ \text{Округление: } 5 \uparrow, 4 \downarrow` },
-                { title: "6. Проценты", content: String.raw`1\% = 0,01 \\ 100\% = 1 \\ 50\% = 0,5 \\ 25\% = 0,25 \\ 10\% = 0,1 \\ 20\% = 0,2 \\ \text{Найти } p\%: n \cdot \frac{p}{100}` },
+                { title: "1. Числа и действия", content: String.raw`a+b=b+a \\ (a+b)+c=a+(b+c) \\ a \cdot (b+c)=ab+ac \\ a \cdot 1=a, a \cdot 0=0 \\ a:1=a, a:a=1 \\ a \cdot b = b \cdot a \\ a:b=q \text{ (ост. } r)` },
+                { title: "2. Геометрия 5 кл", content: String.raw`P = 2(a+b) \\ P = 4a \\ S = ab \\ S = a^2 \\ V = abc \\ V = a^3 \\ S_{пов} = 6a^2` },
+                { title: "3. Задачи на движение", content: String.raw`s = v \cdot t \\ v = s/t \\ t = s/v \\ v_{по} = v_{соб} + v_{теч} \\ v_{пр} = v_{соб} - v_{теч} \\ v_{сбл} = v_1 + v_2 \\ v_{уд} = v_1 - v_2` },
+                { title: "4. Обыкновенные дроби", content: String.raw`\frac{a}{c} + \frac{b}{c} = \frac{a+b}{c} \\ \frac{a}{c} - \frac{b}{c} = \frac{a-b}{c} \\ \frac{a}{a} = 1 \\ \frac{0}{b} = 0 \\ n \cdot \frac{a}{b} = \text{часть} \\ m : \frac{a}{b} = \text{целое} \\ a\frac{b}{c} = \frac{ac+b}{c}` },
+                { title: "5. Десятичные дроби", content: String.raw`a,b + c,d \\ a,b \cdot 10^n \to \text{вправо} \\ a,b : 10^n \to \text{влево} \\ \text{Среднее: } \frac{\sum x}{n} \\ a,b \cdot c,d \\ a,b : c,d \\ 5 \uparrow, 4 \downarrow` },
+                { title: "6. Проценты", content: String.raw`1\% = 0,01 \\ 100\% = 1 \\ 50\% = 1/2 \\ 25\% = 1/4 \\ 10\% = 0,1 \\ 20\% = 0,2 \\ n \cdot \frac{p}{100}` },
                 { title: "7. Измерения", content: String.raw`1 \text{ км} = 1000 \text{ м} \\ 1 \text{ м} = 100 \text{ см} \\ 1 \text{ кг} = 1000 \text{ г} \\ 1 \text{ т} = 1000 \text{ кг} \\ 1 \text{ га} = 10000 \text{ м}^2 \\ 1 \text{ ц} = 100 \text{ кг} \\ 1 \text{ л} = 1 \text{ дм}^3` }
             ],
             6: [
-                { title: "1. Делимость", content: String.raw`a = bk \\ \text{НОД} \cdot \text{НОК} = ab \\ \text{Признак 2: чет} \\ \text{Признак 3: } \sum : 3 \\ \text{Признак 5: 0, 5} \\ \text{Признак 9: } \sum : 9 \\ \text{Признак 10: 0}` },
-                { title: "2. Дроби (рац)", content: String.raw`\frac{a}{b} = \frac{ac}{bc} \\ \frac{a}{b} \cdot \frac{c}{d} = \frac{ac}{bd} \\ \frac{a}{b} : \frac{c}{d} = \frac{ad}{bc} \\ x \cdot \frac{1}{x} = 1 \\ \frac{a}{b} \pm \frac{c}{d} = \frac{ad \pm bc}{bd} \\ \frac{a}{1} = a \\ (a/b)^n = a^n/b^n` },
-                { title: "3. Пропорции", content: String.raw`a/b = c/d \\ ad = bc \\ a = bc/d \\ b = ad/c \\ k = a/b \\ \text{Масштаб: } L_m/L_r \\ y=kx` },
-                { title: "4. Круг", content: String.raw`d = 2r \\ C = \pi d \\ C = 2\pi r \\ S = \pi r^2 \\ \pi \approx 3,14 \\ \text{Дуга: } \frac{\pi r \alpha}{180} \\ \text{Сектор: } \frac{\pi r^2 \alpha}{360}` },
-                { title: "5. Числа со знаком", content: String.raw`|a| = a \text{ или } -a \\ -a-b = -(a+b) \\ a-b = a+(-b) \\ -a \cdot (-b) = ab \\ -a \cdot b = -ab \\ -a:(-b) = a/b \\ a:(-b) = -a/b` },
+                { title: "1. Делимость", content: String.raw`a = bk \\ \text{НОД} \cdot \text{НОК} = ab \\ \text{Признак 2: четные} \\ \text{Признак 3: } \sum cif : 3 \\ \text{Признак 5: 0, 5} \\ \text{Признак 9: } \sum cif : 9 \\ \text{Признак 10: 0}` },
+                { title: "2. Дроби", content: String.raw`\frac{a}{b} = \frac{ac}{bc} \\ \frac{a}{b} \cdot \frac{c}{d} = \frac{ac}{bd} \\ \frac{a}{b} : \frac{c}{d} = \frac{ad}{bc} \\ x \cdot \frac{1}{x} = 1 \\ \frac{a}{b} \pm \frac{c}{d} = \frac{ad \pm bc}{bd} \\ a^1 = a \\ (a/b)^n = a^n/b^n` },
+                { title: "3. Пропорции", content: String.raw`a:b = c:d \\ ad = bc \\ a = bc/d \\ b = ad/c \\ k = a/b \\ \text{Масштаб: } L_m/L_r \\ y=kx` },
+                { title: "4. Круг и Окружность", content: String.raw`d = 2r \\ C = \pi d \\ C = 2\pi r \\ S = \pi r^2 \\ \pi \approx 3,14 \\ \text{Длина дуги: } \frac{\pi r \alpha}{180} \\ \text{Сектор: } \frac{\pi r^2 \alpha}{360}` },
+                { title: "5. Целые числа", content: String.raw`|a| = a, -a \\ -a-b = -(a+b) \\ a-b = a+(-b) \\ -a \cdot (-b) = ab \\ -a \cdot b = -ab \\ -a:(-b) = a/b \\ a:(-b) = -a/b` },
                 { title: "6. Координаты", content: String.raw`A(x; y) \\ \text{OX - абсцисс} \\ \text{OY - ординат} \\ \text{Расстояние: } |x_2-x_1| \\ \text{I: (+;+)} \\ \text{II: (-;+)} \\ \text{III: (-;-)}` },
-                { title: "7. Уравнения 6 кл", content: String.raw`a+(b-c)=a+b-c \\ a-(b-c)=a-b+c \\ a(b+c)=ab+ac \\ x+a=b \to x=b-a \\ ax=b \to x=b/a \\ a \to -a \\ 2x+3x=5x` }
+                { title: "7. Уравнения", content: String.raw`a+(b-c)=a+b-c \\ a-(b-c)=a-b+c \\ a(b+c)=ab+ac \\ x+a=b \to x=b-a \\ ax=b \to x=b/a \\ a \to -a \\ 2x+3x=5x` }
             ],
             7: [
-                { title: "1. Линейные", content: String.raw`ax=b \\ x=b/a \text{ (a } \neq 0) \\ 0x=0 \to \infty \\ 0x=b \to \emptyset \\ ax+b=c \\ x=2 \Leftrightarrow 2x=4 \\ f(x)=y \text{ (корень)}` },
-                { title: "2. Степени", content: String.raw`a^n a^m = a^{n+m} \\ a^n : a^m = a^{n-m} \\ (a^n)^m = a^{nm} \\ (ab)^n = a^nb^n \\ (a/b)^n = a^n/b^n \\ a^0 = 1 \\ a^1 = a` },
-                { title: "3. Многочлены", content: String.raw`a(b+c)=ab+ac \\ (a+b)(c+d)=ac+ad+bc+bd \\ \text{Стандарт: } 5x^2y \\ \text{Степень: } \sum n_i \\ \text{Вынос за скобки} \\ \text{Группировка} \\ (a+b)+(c+d)` },
-                { title: "4. Квадраты (ФСУ)", content: String.raw`(a \pm b)^2 = a^2 \pm 2ab+b^2 \\ a^2-b^2 = (a-b)(a+b) \\ (-a-b)^2 = (a+b)^2 \\ (a-b)^2 = (b-a)^2 \\ x^2+2x+1 = (x+1)^2 \\ 4x^2-9 = (2x-3)(2x+3) \\ (a+b+c)^2` },
-                { title: "5. Кубы (ФСУ)", content: String.raw`(a \pm b)^3 = a^3 \pm 3a^2b+3ab^2 \pm b^3 \\ a^3 \pm b^3 = (a \pm b)(a^2 \mp ab+b^2) \\ \text{Разность кубов} \\ \text{Сумма кубов} \\ \text{Куб суммы} \\ \text{Куб разности} \\ \text{Группировка кубов}` },
-                { title: "6. Линейная функция", content: String.raw`y=kx+b \\ k \text{ - наклон} \\ b \text{ - сдвиг OY} \\ k_1=k_2 \to \parallel \\ y=kx \to (0;0) \\ \text{Прямая по 2 точкам} \\ y=b \to \text{горизонт}` },
-                { title: "7. Треугольники", content: String.raw`\sum \angle = 180^\circ \\ \triangle \text{ призн: СУС, УСУ, ССС} \\ \text{Биссектриса } \angle_1=\angle_2 \\ \text{Медиана } m_1=m_2 \\ \angle_{внеш} = \sum \angle_{не\_смеж} \\ a+b > c \\ \text{Прямоуг: } 90^\circ` }
+                { title: "1. Линейные ур-я", content: String.raw`ax=b \\ x=b/a \quad (a \neq 0) \\ 0x=0 \to \infty \\ 0x=b \to \emptyset \\ ax+b=c \\ x=a \Leftrightarrow kx=ka \\ f(x)=y` },
+                { title: "2. Свойства степеней", content: String.raw`a^n \cdot a^m = a^{n+m} \\ a^n : a^m = a^{n-m} \\ (a^n)^m = a^{nm} \\ (ab)^n = a^n b^n \\ (a/b)^n = a^n/b^n \\ a^0 = 1 \\ a^1 = a` },
+                { title: "3. Многочлены", content: String.raw`a(b+c)=ab+ac \\ (a+b)(c+d)=ac+ad+bc+bd \\ \text{Стандарт: } ax^n \\ \text{Степень: } \sum n_i \\ \text{Вынос за скобки} \\ \text{Группировка} \\ (a+b)+(c+d)` },
+                { title: "4. Квадраты (ФСУ)", content: String.raw`(a \pm b)^2 = a^2 \pm 2ab+b^2 \\ a^2-b^2 = (a-b)(a+b) \\ (-a-b)^2 = (a+b)^2 \\ (a-b)^2 = (b-a)^2 \\ x^2+2x+1 = (x+1)^2 \\ 4x^2-9 = (2x-3)(2x+3) \\ \text{Выделение квадрата}` },
+                { title: "5. Кубы (ФСУ)", content: String.raw`(a \pm b)^3 = a^3 \pm 3a^2b+3ab^2 \pm b^3 \\ a^3 \pm b^3 = (a \pm b)(a^2 \mp ab+b^2) \\ \text{Разность кубов} \\ \text{Сумма кубов} \\ \text{Куб разности} \\ \text{Куб суммы} \\ \text{Группировка}` },
+                { title: "6. Функции", content: String.raw`y=kx+b \\ k \text{ - наклон} \\ b \text{ - сдвиг OY} \\ k_1=k_2 \to \parallel \\ y=kx \to (0;0) \\ y=b \to \text{горизонт} \\ \text{Точка: } (x; y)` },
+                { title: "7. Треугольники", content: String.raw`Sum \angle = 180^\circ \\ \text{Признаки: СУС, УСУ, ССС} \\ \text{Биссектриса: } 1=2 \\ \text{Медиана: } 1=2 \\ \angle_{внеш} = \sum \angle_{не\_смеж} \\ a+b > c \\ \text{Равнобедр: } \alpha = \beta` }
             ],
             8: [
-                { title: "1. Рац. выражения", content: String.raw`\frac{A}{B} \pm \frac{C}{D} = \frac{AD \pm BC}{BD} \\ \frac{A}{B} \cdot \frac{C}{D} = \frac{AC}{BD} \\ \frac{A}{B} : \frac{C}{D} = \frac{AD}{BC} \\ \frac{A}{B} = \frac{AK}{BK} \\ -\frac{a}{b} = \frac{-a}{b} \\ \text{Сокращение} \\ B \neq 0` },
-                { title: "2. Кв. корни", content: String.raw`\sqrt{a^2} = |a| \\ \sqrt{ab} = \sqrt{a}\sqrt{b} \\ \sqrt{a/b} = \sqrt{a}/\sqrt{b} \\ (\sqrt{a})^2 = a \\ \sqrt{a^{2n}} = a^n \\ a < b \Rightarrow \sqrt{a} < \sqrt{b} \\ \frac{1}{\sqrt{a}} = \frac{\sqrt{a}}{a}` },
+                { title: "1. Рац. дроби", content: String.raw`\frac{A}{B} \pm \frac{C}{D} = \frac{AD \pm BC}{BD} \\ \frac{A}{B} \cdot \frac{C}{D} = \frac{AC}{BD} \\ \frac{A}{B} : \frac{C}{D} = \frac{AD}{BC} \\ \frac{A}{B} = \frac{AK}{BK} \\ -\frac{a}{b} = \frac{-a}{b} \\ B \neq 0 \\ \text{ФСУ в дробях}` },
+                { title: "2. Квадратные корни", content: String.raw`\sqrt{a^2} = |a| \\ \sqrt{ab} = \sqrt{a}\sqrt{b} \\ \sqrt{a/b} = \sqrt{a}/\sqrt{b} \\ (\sqrt{a})^2 = a \\ \sqrt{a^{2n}} = a^n \\ a < b \Rightarrow \sqrt{a} < \sqrt{b} \\ \frac{1}{\sqrt{a}} = \frac{\sqrt{a}}{a}` },
                 { title: "3. Кв. уравнения", content: String.raw`ax^2+bx+c=0 \\ D = b^2-4ac \\ x = \frac{-b \pm \sqrt{D}}{2a} \\ x_1+x_2 = -b/a \\ x_1x_2 = c/a \\ ax^2+bx+c = a(x-x_1)(x-x_2) \\ x^2=a \to \pm\sqrt{a}` },
-                { title: "4. Неравенства", content: String.raw`a>b, c>0 \to ac>bc \\ a>b, c<0 \to ac<bc \\ |x|<a \to -a<x<a \\ |x|>a \to x<-a \cup x>a \\ a>b, c>d \to a+c>b+d \\ \text{Интервалы} \\ \text{Система: } \cap` },
-                { title: "5. Степени", content: String.raw`a^{-n} = 1/a^n \\ (a/b)^{-n} = (b/a)^n \\ a \cdot 10^n \text{ (ст. вид)} \\ 1 \le a < 10 \\ 10^{-k} = 0,0..1 \\ a^n a^m = a^{n+m} \\ (a^n)^m = a^{nm}` },
-                { title: "6. Четырехугольники", content: String.raw`S_{пар} = ah \\ S_{ромб} = 0,5 d_1 d_2 \\ S_{трап} = \frac{a+b}{2}h \\ S_{прям} = ab \\ S_{кв} = a^2 \\ \angle 1+\angle 2 = 180^\circ \\ d_1 \perp d_2 \text{ (ромб)}` },
-                { title: "7. Пифагор и S", content: String.raw`a^2+b^2=c^2 \\ \sin = a/c, \cos = b/c \\ tg = a/b \\ \sin^2 + \cos^2 = 1 \\ S_{\triangle} = 0,5 ab \sin \gamma \\ S = \sqrt{p(p-a)(p-b)(p-c)} \\ \text{Сред. лин: } 0,5 a` }
+                { title: "4. Неравенства", content: String.raw`a>b, c>0 \to ac>bc \\ a>b, c<0 \to ac<bc \\ |x|<a \to -a<x<a \\ |x|>a \to x<-a \cup x>a \\ a>b, c>d \to a+c > b+d \\ \text{Метод интервалов} \\ \text{Система: } \cap` },
+                { title: "5. Степень и Вид", content: String.raw`a^{-n} = 1/a^n \\ (a/b)^{-n} = (b/a)^n \\ a \cdot 10^n \quad (1 \le a < 10) \\ 10^{-k} = 0,00..1 \\ a^n a^m = a^{n+m} \\ (a^n)^m = a^{nm} \\ a^n : a^m = a^{n-m}` },
+                { title: "6. Четырехугольники", content: String.raw`S_{пар} = ah = ab \sin \alpha \\ S_{ромб} = 0,5 d_1 d_2 \\ S_{трап} = \frac{a+b}{2}h \\ S_{прям} = ab \\ S_{кв} = a^2 \\ \angle 1+\angle 2 = 180^\circ \\ d_1 \perp d_2 \text{ (ромб)}` },
+                { title: "7. Треугольники", content: String.raw`a^2+b^2=c^2 \\ \sin = a/c \\ \cos = b/c \\ tg = a/b \\ \sin^2 + \cos^2 = 1 \\ S = 0,5 ab \sin \gamma \\ S = pr` }
             ],
             9: [
-                { title: "1. Кв. функция", content: String.raw`y = ax^2+bx+c \\ x_0 = -b/2a \\ y_0 = f(x_0) \\ a>0 \uparrow, a<0 \downarrow \\ c \text{ - сдвиг OY} \\ \text{Корни - OX} \\ \text{Вершина } (x_0, y_0)` },
+                { title: "1. Кв. функция", content: String.raw`y = ax^2+bx+c \\ x_0 = -b/2a \\ y_0 = f(x_0) \\ a>0 \uparrow, a<0 \downarrow \\ c = f(0) \\ D>0 \to 2 \text{ корня} \\ D=0 \to 1 \text{ корень}` },
                 { title: "2. Прогрессии", content: String.raw`a_n = a_1+d(n-1) \\ S_n = \frac{a_1+a_n}{2}n \\ b_n = b_1 q^{n-1} \\ S_n = \frac{b_1(q^n-1)}{q-1} \\ S = \frac{b_1}{1-q} \\ d = a_2-a_1 \\ q = b_2/b_1` },
-                { title: "3. Тригонометрия 9", content: String.raw`a^2 = b^2+c^2-2bc \cos A \\ a/\sin A = b/\sin B = 2R \\ \sin(180-x) = \sin x \\ \cos(180-x) = -\cos x \\ S = 0,5 ab \sin C \\ S = pr \\ S = abc/4R` },
+                { title: "3. Синусы/Косинусы", content: String.raw`a^2 = b^2+c^2-2bc \cos A \\ \frac{a}{\sin A} = \frac{b}{\sin B} = 2R \\ \sin(180-x) = \sin x \\ \cos(180-x) = -\cos x \\ S = 0,5 ab \sin C \\ S = \sqrt{p(p-a)(p-b)(p-c)} \\ R = \frac{abc}{4S}` },
                 { title: "4. Векторы", content: String.raw`|\vec{a}| = \sqrt{x^2+y^2} \\ \vec{a} \cdot \vec{b} = x_1x_2+y_1y_2 \\ \vec{a} \cdot \vec{b} = |\vec{a}||\vec{b}| \cos \alpha \\ \vec{a}+\vec{b} = (x_1+x_2; y_1+y_2) \\ k\vec{a} = (kx; ky) \\ \vec{a} \perp \vec{b} \to \vec{a}\vec{b}=0 \\ x_1/x_2 = y_1/y_2` },
-                { title: "5. Окружность (углы)", content: String.raw`(x-x_0)^2+(y-y_0)^2 = R^2 \\ \angle_{впис} = 0,5 \cup \\ \angle_{центр} = \cup \\ \angle \text{ на диам} = 90^\circ \\ \text{Кас } \perp \text{ Рад} \\ ab=cd \text{ (хорды)} \\ \text{Отрезки кас. равны}` },
-                { title: "6. Правильные n-уг", content: String.raw`Sum \angle = 180(n-2) \\ \angle_n = \frac{180(n-2)}{n} \\ a_6 = R \\ a_4 = R\sqrt{2} \\ a_3 = R\sqrt{3} \\ S = 0,5 Pr \\ r = 2S/P` },
+                { title: "5. Окружность", content: String.raw`(x-x_0)^2+(y-y_0)^2 = R^2 \\ \angle_{впис} = 0,5 \angle_{центр} \\ \angle \text{ на диам} = 90^\circ \\ \text{Кас } \perp \text{ Рад} \\ ab=cd \text{ (хорды)} \\ \text{Отрезки кас. равны} \\ S_{сект} = \frac{\pi r^2 \alpha}{360}` },
+                { title: "6. n-угольники", content: String.raw`Sum \angle = 180(n-2) \\ \alpha_n = \frac{180(n-2)}{n} \\ a_6 = R \\ a_4 = R\sqrt{2} \\ a_3 = R\sqrt{3} \\ S = 0,5 Pr \\ r = a_3 \sqrt{3}/6` },
                 { title: "7. Вероятность", content: String.raw`P(A) = m/n \\ P(\bar{A}) = 1-P(A) \\ \text{Медиана} \\ \text{Мода} \\ \text{Размах} \\ m/N \text{ (частота)} \\ 0 \le P \le 1` }
             ],
             10: [
-                { title: "1. Тождества", content: String.raw`\sin^2 + \cos^2 = 1 \\ tg \cdot ctg = 1 \\ tg = \sin/\cos \\ ctg = \cos/\sin \\ 1+tg^2 = 1/\cos^2 \\ 1+ctg^2 = 1/\sin^2 \\ \sin(-x) = -\sin x` },
-                { title: "2. Сложение/Двойной", content: String.raw`\sin(a \pm b) = \sin a \cos b \pm \cos a \sin b \\ \cos(a \pm b) = \cos a \cos b \mp \sin a \sin b \\ \sin 2a = 2\sin a \cos a \\ \cos 2a = \cos^2 a - \sin^2 a \\ \cos 2a = 2\cos^2 a - 1 \\ \cos 2a = 1 - 2\sin^2 a \\ tg 2a = \frac{2tg a}{1-tg^2 a}` },
-                { title: "3. Уравнения (триг)", content: String.raw`\sin x = a \to (-1)^k \arcsin a + \pi k \\ \cos x = a \to \pm \arccos a + 2\pi k \\ tg x = a \to arctg a + \pi k \\ \sin x=0 \to \pi k \\ \cos x=0 \to \pi/2+\pi k \\ \sin x=1 \to \pi/2+2\pi k \\ \cos x=1 \to 2\pi k` },
-                { title: "4. Производная (база)", content: String.raw`C'=0, x'=1 \\ (x^n)' = nx^{n-1} \\ (\sin x)' = \cos x \\ (\cos x)' = -\sin x \\ (tg x)' = 1/\cos^2 x \\ (e^x)' = e^x \\ (\ln x)' = 1/x` },
-                { title: "5. Правила дифф.", content: String.raw`(u \pm v)' = u' \pm v' \\ (uv)' = u'v+uv' \\ (u/v)' = \frac{u'v-uv'}{v^2} \\ (Cu)' = Cu' \\ f(g)' = f'(g)g' \\ v(t) = s'(t) \\ a(t) = v'(t)` },
-                { title: "6. Стереометрия 1", content: String.raw`V_{призма} = S_{осн} h \\ S_{бок} = P_{осн} h \\ d^2 = a^2+b^2+c^2 \\ S_{полн} = S_{бок} + 2S_{осн} \\ \text{ТТП} \\ \angle \text{ (пр, пл)} \\ \angle \text{ (пл, пл)}` },
-                { title: "7. Пирамиды/Кон", content: String.raw`V_{пир} = \frac{1}{3} S_{осн} h \\ S_{бок} = 0,5 P_{осн} l \\ V_{кон} = \frac{1}{3} \pi r^2 h \\ S_{бок\_кон} = \pi rl \\ l^2 = r^2+h^2 \\ V_{цил} = \pi r^2 h \\ S_{бок\_цил} = 2\pi rh` }
+                { title: "1. Тригонометрия", content: String.raw`\sin^2 + \cos^2 = 1 \\ tg \cdot ctg = 1 \\ tg = \sin/\cos \\ ctg = \cos/\sin \\ 1+tg^2 = 1/\cos^2 \\ 1+ctg^2 = 1/\sin^2 \\ \sin(-x) = -\sin x` },
+                { title: "2. Формулы", content: String.raw`\sin(a \pm b) = \sin a \cos b \pm \cos a \sin b \\ \cos(a \pm b) = \cos a \cos b \mp \sin a \sin b \\ \sin 2a = 2\sin a \cos a \\ \cos 2a = \cos^2 a - \sin^2 a \\ \cos 2a = 2\cos^2 a - 1 \\ \cos 2a = 1 - 2\sin^2 a \\ tg 2a = \frac{2tg a}{1-tg^2 a}` },
+                { title: "3. Уравнения", content: String.raw`x = (-1)^k \arcsin a + \pi k \\ x = \pm \arccos a + 2\pi k \\ tg x = a \to arctg a + \pi k \\ \sin x=0 \to \pi k \\ \cos x=0 \to \pi/2+\pi k \\ \sin x=1 \to \pi/2+2\pi k \\ \cos x=1 \to 2\pi k` },
+                { title: "4. Производная", content: String.raw`C'=0, x'=1 \\ (x^n)' = nx^{n-1} \\ (\sin x)' = \cos x \\ (\cos x)' = -\sin x \\ (tg x)' = 1/\cos^2 x \\ (e^x)' = e^x \\ (\ln x)' = 1/x` },
+                { title: "5. Правила", content: String.raw`(u \pm v)' = u' \pm v' \\ (uv)' = u'v+uv' \\ (u/v)' = \frac{u'v-uv'}{v^2} \\ (Cu)' = Cu' \\ f(g)' = f'(g)g' \\ v(t) = s'(t) \\ a(t) = v'(t)` },
+                { title: "6. Призмы", content: String.raw`V = S_{осн} h \\ S_{бок} = P_{осн} h \\ d^2 = a^2+b^2+c^2 \\ S_{полн} = S_{бок} + 2S_{осн} \\ \text{ТТП} \\ \angle \text{ (пр, пл)} \\ \angle \text{ (пл, пл)}` },
+                { title: "7. Пирамиды/Кон", content: String.raw`V = \frac{1}{3} S_{осн} h \\ S_{бок} = 0,5 P_{осн} l \\ V_{кон} = \frac{1}{3} \pi r^2 h \\ S_{бок\_кон} = \pi rl \\ l^2 = r^2+h^2 \\ V_{цил} = \pi r^2 h \\ S_{бок\_цил} = 2\pi rh` }
             ],
             11: [
                 { title: "1. Логарифмы", content: String.raw`a^{\log_a b} = b \\ \log_a bc = \log_a b + \log_a c \\ \log_a (b/c) = \log_a b - \log_a c \\ \log_a b^n = n \log_a b \\ \log_{a^k} b = \frac{1}{k} \log_a b \\ \log_a b = \frac{\log_c b}{\log_c a} \\ \ln x = \log_e x` },
                 { title: "2. Лог. уравнения", content: String.raw`\log_a f = b \to f = a^b \\ \log_a f = \log_a g \to f=g \\ f>0, a>0, a \neq 1 \\ t = \log_a x \\ a^{\log_c b} = b^{\log_c a} \\ \log_a b = 1/\log_b a \\ \log_a 1 = 0` },
-                { title: "3. Рационализация", content: String.raw`(a-1)(f-g) \gtrless 0 \\ |f|-|g| \to (f-g)(f+g) \\ (h-1)(f-1) \gtrless 0 \text{ (log)} \\ \sqrt{f}-\sqrt{g} \to f-g \\ \text{ОДЗ!} \\ (f-g)/h \to \text{интерв} \\ a^f - a^g \to (a-1)(f-g)` },
-                { title: "4. Объемы/S", content: String.raw`V_{шар} = \frac{4}{3} \pi r^3 \\ S_{сфера} = 4\pi r^2 \\ V_{цил} = \pi r^2 h \\ S_{бок\_цил} = 2\pi rh \\ V_{кон} = \frac{1}{3} \pi r^2 h \\ S_{бок\_кон} = \pi rl \\ S_{полн\_кон} = \pi r(r+l)` },
-                { title: "5. Касательная/Int", content: String.raw`y = f(x_0) + f'(x_0)(x-x_0) \\ k = tg \alpha = f'(x_0) \\ \int x^n dx = \frac{x^{n+1}}{n+1} \\ \int e^x = e^x \\ \int \cos = \sin \\ \int 1/x = \ln|x| \\ S = \int_a^b f dx` },
-                { title: "6. Экономика ЕГЭ", content: String.raw`X = S \frac{k^n(k-1)}{k^n-1} \\ k = 1 + r/100 \\ \text{Дифф: } \sum \text{выплат} \\ \text{Доход} = Выруч - Затр \\ f'(x)=0 \\ S_n = S(1+r/100)^n \\ \sum P - S = \text{перепл}` },
-                { title: "7. Параметры", content: String.raw`z = a+bi \\ i^2 = -1 \\ |z| = \sqrt{a^2+b^2} \\ (x-a)^2+(y-b)^2 = R^2 \\ D>0 \to 2 \\ \text{Сдвиг} \\ f(x,a)=0` }
+                { title: "3. Рационализация", content: String.raw`(a-1)(f-g) \gtrless 0 \\ |f|-|g| \to (f-g)(f+g) \\ (h-1)(f-1) \gtrless 0 \\ \sqrt{f}-\sqrt{g} \to f-g \\ \text{ОДЗ обязательно} \\ (f-g)/h \to \text{интервалы} \\ a^f - a^g \to (a-1)(f-g)` },
+                { title: "4. Объемы/S", content: String.raw`V_{шар} = \frac{4}{3} \pi r^3 \\ S_{сфера} = 4\pi r^2 \\ V_{цил} = \pi r^2 h \\ S_{бок} = 2\pi rh \\ V_{кон} = \frac{1}{3} \pi r^2 h \\ S_{бок\_кон} = \pi rl \\ S_{полн} = \pi r(r+l)` },
+                { title: "5. Касательная/Int", content: String.raw`y = f(x_0) + f'(x_0)(x-x_0) \\ k = tg \alpha = f'(x_0) \\ \int x^n dx = \frac{x^{n+1}}{n+1} \\ \int e^x dx = e^x \\ \int \cos dx = \sin x \\ \int 1/x dx = \ln|x| \\ S = \int_a^b f(x) dx` },
+                { title: "6. Экономика ЕГЭ", content: String.raw`X = S \frac{k^n(k-1)}{k^n-1} \\ k = 1 + r/100 \\ \text{Дифф: } \sum \text{выплат} \\ \text{Доход} = Выруч - Затр \\ f'(x)=0 \to opt \\ S_n = S(1+r/100)^n \\ \text{Переплата} = \sum P - S` },
+                { title: "7. Системы и Параметры", content: String.raw`\begin{cases} x \ge a \\ y = f(x) \end{cases} \\ |z| = \sqrt{a^2+b^2} \\ (x-a)^2+(y-b)^2 = R^2 \\ D>0 \to 2 \\ \text{Сдвиг} \\ f(x,a)=0 \\ \text{Инвариантность}` }
             ]
         };
 
         let state = {
-            name: localStorage.getItem('school_user_name') || "",
-            class: localStorage.getItem('school_user_class') || 0,
+            name: localStorage.getItem('math_user_name') || "",
+            class: localStorage.getItem('math_user_class') || 0,
             lives: 5,
-            coins: parseInt(localStorage.getItem('school_user_coins')) || 0,
+            coins: parseInt(localStorage.getItem('math_user_coins')) || 0,
             wrongTopics: [],
             currentQuestions: [], currentQIndex: 0,
             isCorrection: false
@@ -194,12 +190,18 @@
 
         if (state.name) document.getElementById('username-input').value = state.name;
 
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
         function selectClass(cls) {
             const n = document.getElementById('username-input').value;
             if (!n) return alert("Введите имя!");
             state.name = n; state.class = cls;
-            localStorage.setItem('school_user_name', n);
-            localStorage.setItem('school_user_class', cls);
+            localStorage.setItem('math_user_name', n);
+            localStorage.setItem('math_user_class', cls);
             document.body.className = `class-${cls}`;
             document.getElementById('welcome-text').innerText = `Курсант ${n}, сектор ${cls}`;
             updateStats();
@@ -212,27 +214,19 @@
                 const el = document.getElementById(id);
                 if (el) el.innerText = id.includes('lives') ? state.lives : state.coins;
             });
-            localStorage.setItem('school_user_coins', state.coins);
+            localStorage.setItem('math_user_coins', state.coins);
         }
 
         function renderShop() {
-            const items = [
-                { name: "Стиль 'Новичок'", price: 30 },
-                { name: "Стиль 'Профи'", price: 70 },
-                { name: "Статус 'Легенда'", price: 150 }
-            ];
-            const cont = document.getElementById('shop-items');
-            cont.innerHTML = "";
+            const items = [{ name: "Стиль 'Новичок'", price: 30 }, { name: "Стиль 'Профи'", price: 70 }, { name: "Статус 'Легенда'", price: 150 }];
+            const cont = document.getElementById('shop-items'); cont.innerHTML = "";
             items.forEach(it => {
                 const div = document.createElement('div');
-                div.className = "shop-item";
+                div.className = "theory-card";
                 div.innerHTML = `<strong>${it.name}</strong><br>Цена: ${it.price} 🪙`;
                 div.onclick = () => {
                     if (state.coins >= it.price) openExternalFeedback();
-                    else {
-                        alert(`Не хватает ${it.price - state.coins} монет!`);
-                        selectClass(state.class); // Возврат в меню выбора
-                    }
+                    else { alert(`Не хватает ${it.price - state.coins} монет!`); location.reload(); }
                 };
                 cont.appendChild(div);
             });
@@ -246,9 +240,7 @@
                 const csv = await res.text();
                 const rows = csv.split(/\r?\n/).slice(1).map(l => l.split(','));
                 let filtered = rows.filter(r => r[0] && r[0].trim() == state.class.toString());
-                
                 if (topics) filtered = filtered.filter(r => topics.includes(r[7]));
-
                 state.currentQuestions = filtered.sort(() => 0.5 - Math.random()).slice(0, state.class <= 7 ? 5 : 10);
                 renderQuestion();
             } catch (e) { alert("Сбой связи!"); showScreen('screen-menu'); }
@@ -269,10 +261,12 @@
                     const btn = document.createElement('button'); btn.className = "btn";
                     btn.style.background = "#fff"; btn.style.color = "#000";
                     btn.innerHTML = opt.replace(/\$/g, "");
-                    renderMathInElement(btn, { delimiters: [{left: "$", right: "$", display: false}] });
+                    renderMathInElement(btn, { delimiters: [{left: "$", right: "$", display: false}, {left: "\\(", right: "\\)", display: false}] });
                     btn.onclick = () => {
                         const corr = parseInt(q[6].replace(/\D/g, ""));
                         document.querySelectorAll('#answers-block .btn').forEach(btn => btn.disabled = true);
+                        const fblock = document.getElementById('feedback-block');
+                        fblock.style.display = "flex";
                         if (i + 1 === corr) {
                             btn.style.background = "#2ecc71"; state.coins += 10;
                             document.getElementById('feedback-title').innerText = "✅ Верно!";
@@ -281,10 +275,9 @@
                             state.wrongTopics.push(q[7]);
                             document.getElementById('feedback-title').innerText = "❌ Ошибка!";
                         }
-                        const solEl = document.getElementById('feedback-solution');
-                        solEl.innerHTML = q[8].replace(/\$/g, "");
-                        renderMathInElement(solEl, { delimiters: [{left: "$", right: "$", display: false}] });
-                        document.getElementById('feedback-block').style.display = "block";
+                        const sol = document.getElementById('feedback-solution');
+                        sol.innerHTML = q[8].replace(/\$/g, "") || "";
+                        renderMathInElement(sol, { delimiters: [{left: "$", right: "$", display: false}, {left: "\\(", right: "\\)", display: false}] });
                         document.getElementById('next-q-btn').onclick = () => {
                             state.currentQIndex++;
                             if (state.lives > 0) renderQuestion(); else finishQuiz(false);
@@ -304,7 +297,7 @@
         function finishQuiz(win) {
             if (state.wrongTopics.length > 0) {
                 showScreen('screen-error-proposal');
-                document.getElementById('error-summary').innerText = `Завершено. Ошибок: ${state.wrongTopics.length}`;
+                document.getElementById('error-summary').innerText = `Миссия завершена. Ошибок: ${state.wrongTopics.length}`;
             } else {
                 showScreen('screen-results');
                 document.getElementById('result-message').innerText = win ? "Миссия выполнена! 🎉" : "Связь потеряна 💀";
@@ -323,12 +316,6 @@
                     showScreen('screen-theory-read');
                 }; l.appendChild(b);
             }); showScreen('screen-theory-select');
-        }
-
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            window.scrollTo(0,0);
         }
 
         function openExternalFeedback() { tg.openTelegramLink('https://t.me/supertutor15'); }
