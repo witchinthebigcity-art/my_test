@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>School App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&family=Quicksand:wght@400;700&family=Montserrat:wght@400;700&family=Gotham+Pro&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- БАЗОВЫЕ СТИЛИ --- */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --accent-color: #3390ec;
+            --font-main: 'Roboto', sans-serif;
+            --btn-radius: 12px;
+            --btn-text: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        .screen {
+            display: none;
+            padding: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .active { display: flex; }
+
+        h1, h2, h3 { margin: 0 0 15px 0; text-align: center; width: 100%; }
+        
+        .btn {
+            background-color: var(--accent-color);
+            color: var(--btn-text);
+            border: none;
+            padding: 15px;
+            border-radius: var(--btn-radius);
+            font-size: 16px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+
+        .btn:active { transform: scale(0.98); }
+
+        input, select, textarea {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: var(--btn-radius);
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        /* --- ВЕРХНЯЯ ПАНЕЛЬ --- */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .stat-item { font-weight: bold; display: flex; align-items: center; gap: 5px; }
+
+        /* --- СТИЛИЗАЦИЯ КЛАССОВ --- */
+        
+        /* 5 Класс: Яркие, Nunito */
+        body.class-5 {
+            --bg-color: #E0F7FA; 
+            --text-color: #01579B; 
+            --accent-color: #FF6F00; /* Оранжевый */
+            --font-main: 'Nunito', sans-serif;
+            background-image: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%); /* Лайм-Голубой */
+        }
+
+        /* 6 Класс: Sci-Fi, Геометрия */
+        body.class-6 {
+            --bg-color: #2c3e50; 
+            --text-color: #00E5FF; 
+            --accent-color: #651FFF; /* Фиолетовый */
+            --font-main: 'Montserrat', sans-serif;
+            background: linear-gradient(to bottom, #20002c, #cbb4d4);
+        }
+
+        /* 7 Класс: Киберпанк */
+        body.class-7 {
+            --bg-color: #050511; 
+            --text-color: #00ff41; 
+            --accent-color: #d60270; /* Неон маджента */
+            --font-main: 'Orbitron', sans-serif;
+            background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
+        }
+
+        /* 8 Класс: Брутализм */
+        body.class-8 {
+            --bg-color: #ffffff; 
+            --text-color: #000000; 
+            --accent-color: #FFD600; /* Желтый */
+            --font-main: 'Oswald', sans-serif;
+            --btn-text: #000;
+        }
+        body.class-8 .btn { border: 3px solid black; border-radius: 0; box-shadow: 5px 5px 0px #000; }
+        body.class-8 .top-bar { border: 2px solid black; background: #fff; color: black; border-radius: 0;}
+
+        /* 9 Класс: Функциональность */
+        body.class-9 {
+            --bg-color: #f0f2f5; 
+            --text-color: #1c1e21; 
+            --accent-color: #1877f2; /* Синий */
+            --font-main: 'Roboto', sans-serif;
+        }
+
+        /* 10 Класс: StudyCafe (Korea) */
+        body.class-10 {
+            --bg-color: #E3E1D9; 
+            --text-color: #4A4A4A; 
+            --accent-color: #7B8D76; /* Sage Green */
+            --font-main: 'Open Sans', sans-serif;
+        }
+
+        /* 11 Класс: Night Mode (Deep Focus) */
+        body.class-11 {
+            --bg-color: #0f172a; 
+            --text-color: #cbd5e1; 
+            --accent-color: #3b82f6; 
+            --font-main: system-ui, -apple-system, sans-serif;
+        }
+
+        /* --- БЛОКИ ТЕОРИИ --- */
+        .theory-container {
+            width: 100%;
+            max-width: 600px;
+        }
+        .theory-card {
+            background: rgba(255,255,255,0.95);
+            color: #000;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        /* Спец. стиль карточки для темных тем */
+        body.class-6 .theory-card, body.class-7 .theory-card, body.class-11 .theory-card {
+            background: rgba(30,30,40, 0.9);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        body.class-8 .theory-card {
+            border: 3px solid black;
+            border-radius: 0;
+            background: white;
+            color: black;
+            box-shadow: 5px 5px 0 black;
+        }
+
+        /* Контейнер для формул */
+        .katex-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 10px 0;
+            margin: 0.5em 0;
+            text-align: left !important; /* Выравнивание формул */
+        }
+        
+        .katex { font-size: 1.1em; }
+
+        /* Персонаж (Placeholder) */
+        .character-box {
+            width: 100px;
+            height: 100px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin: 0 auto 10px;
+            display: none; /* Включится JS-ом */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="screen-welcome" class="screen active">
+        <h1 style="font-size: 32px;">🎓 School App</h1>
+        <p>Твой личный помощник в учебе.</p>
+        
+        <input type="text" id="username-input" placeholder="Как тебя зовут?">
+        
+        <h3>Выбери свой класс:</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width:100%; max-width:400px;">
+            <button class="btn" style="background: #FF6F00" onclick="selectClass(5)">5 класс</button>
+            <button class="btn" style="background: #651FFF" onclick="selectClass(6)">6 класс</button>
+            <button class="btn" style="background: #d60270" onclick="selectClass(7)">7 класс</button>
+            <button class="btn" style="background: #000000; color: #FFD600; border:1px solid #FFD600" onclick="selectClass(8)">8 класс</button>
+            <button class="btn" style="background: #007AFF" onclick="selectClass(9)">9 класс</button>
+            <button class="btn" style="background: #7B8D76" onclick="selectClass(10)">10 класс</button>
+            <button class="btn" style="background: #1e293b" onclick="selectClass(11)">11 класс</button>
+        </div>
+        
+        <button class="btn" style="margin-top:30px; background:#555;" onclick="openExternalFeedback()">💬 Служба поддержки</button>
+    </div>
+
+    <div id="screen-menu" class="screen">
+        <div class="top-bar">
+            <div class="stat-item">❤️ <span id="lives-display">5</span></div>
+            <div class="stat-item">🪙 <span id="coins-display">0</span></div>
+        </div>
+        
+        <div id="char-display" class="character-box"></div>
+        <h1 id="menu-title">Меню</h1>
+        <p id="welcome-text"></p>
+
+        <div style="width:100%; max-width:400px;">
+            <button class="btn" onclick="showTheorySelection()">📚 Теория</button>
+            <button class="btn" onclick="startPractice()">✏️ Практика</button>
+            <button class="btn" onclick="showScreen('screen-shop')">🛒 Магазин</button>
+            <button class="btn" style="background: transparent; border: 1px solid currentColor; color: inherit;" onclick="location.reload()">↩ Сменить класс</button>
+        </div>
+    </div>
+
+    <div id="screen-theory-select" class="screen">
+        <div class="top-bar">
+            <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showScreen('screen-menu')">⬅ Назад</button>
+        </div>
+        <h2>Темы обучения</h2>
+        <div id="topics-list" style="width: 100%; max-width: 400px;"></div>
+    </div>
+
+    <div id="screen-theory-read" class="screen">
+        <div class="top-bar">
+            <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showTheorySelection()">⬅ К темам</button>
+            <button class="btn" style="width: auto; padding: 5px 15px; margin:0; background: #c0392b;" onclick="openExternalFeedback()">⚠️ Ошибка</button>
+        </div>
+        
+        <div id="theory-content" class="theory-container">
+            </div>
+
+        <button class="btn" onclick="startPractice()">Пройти тест по этой теме</button>
+    </div>
+
+    <div id="screen-practice" class="screen">
+        <div class="top-bar">
+            <div class="stat-item">❤️ <span id="quiz-lives">5</span></div>
+            <div class="stat-item">🪙 <span id="quiz-coins">0</span></div>
+        </div>
+        
+        <div style="width: 100%; max-width: 500px; flex-grow: 1; display: flex; flex-direction: column;">
+            <div class="theory-card" style="margin-top: 20px;">
+                <h3 id="question-text">Загрузка...</h3>
+            </div>
+
+            <div id="answers-block"></div>
+
+            <div id="feedback-block" style="display:none; margin-top:20px; padding:15px; background:rgba(255,255,255,0.95); border-radius:10px; color:#000; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+                <strong id="feedback-title" style="font-size: 18px; display:block; margin-bottom:10px;"></strong>
+                <p id="feedback-solution" style="font-size: 14px; line-height: 1.5;"></p>
+                <button class="btn" id="next-q-btn" onclick="nextQuestion()">Далее ➡</button>
+            </div>
+        </div>
+
+        <button class="btn" style="margin-top:20px; background: transparent; color: #888; font-size:12px; width: auto;" onclick="openExternalFeedback()">Сообщить об ошибке в задании</button>
+    </div>
+
+    <div id="screen-results" class="screen">
+        <h1>Результат</h1>
+        <h2 id="result-message" style="font-size: 40px; margin: 20px 0;"></h2>
+        
+        <div class="theory-card">
+            <p>Заработано монет: <span id="earned-coins" style="font-weight:bold; color: #f1c40f;">0</span></p>
+            <p>Осталось жизней: <span id="final-lives">0</span></p>
+        </div>
+        
+        <div id="consent-block" style="margin: 20px 0; font-size: 12px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: left;">
+            <label style="display: flex; gap: 10px; align-items: flex-start;">
+                <input type="checkbox" id="consent-checkbox" style="width: 20px; height: 20px; margin:0;"> 
+                <span>Даю согласие на обработку и хранение результатов прохождения тестирования.</span>
+            </label>
+            <p style="margin-top:5px; font-style: italic; opacity: 0.7;">p.s. это для того, чтобы можно было проанализировать свои результаты за большой период</p>
+        </div>
+
+        <div style="width: 100%; max-width: 400px;">
+            <button class="btn" onclick="startPractice()">🔄 Пройти тест снова</button>
+            <button class="btn" onclick="showScreen('screen-shop')">🛒 В магазин</button>
+            <button class="btn" style="background:#7f8c8d;" onclick="saveAndFinish()">🏠 В меню</button>
+        </div>
+    </div>
+
+    <div id="screen-shop" class="screen">
+        <h1>Магазин</h1>
+        <p>Баланс: <span id="shop-balance" style="font-weight:bold; color:gold;">0</span> 🪙</p>
+        
+        <div class="theory-container">
+            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="text-align: left; margin:0;">Стиль "Новичок"</h3>
+                    <small>Набор стикеров</small>
+                </div>
+                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(30)">30 🪙</button>
+            </div>
+
+            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="text-align: left; margin:0;">Стиль "Профи"</h3>
+                    <small>Новые фоны</small>
+                </div>
+                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(50)">50 🪙</button>
+            </div>
+
+            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="text-align: left; margin:0;">Стиль "Легенда"</h3>
+                    <small>Секретный персонаж</small>
+                </div>
+                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(100)">100 🪙</button>
+            </div>
+        </div>
+
+        <button class="btn" onclick="openExternalFeedback()">💬 Обратная связь</button>
+        <button class="btn" style="margin-top:20px;" onclick="showScreen('screen-menu')">🏠 Главное меню</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Раскрыть на весь экран
+
+        const theoryData = {
+            5: [
+                {
+                    title: "Блок 1: Натуральные числа",
+                    content: String.raw`
+                        \textbf{1. Свойства действий:} \\
+                        a + b = b + a \quad \text{(Переместительное)} \\
+                        (a + b) + c = a + (b + c) \quad \text{(Сочетательное)} \\
+                        a \cdot (b + c) = ab + ac \quad \text{(Распределительное)} \\
+                        a : b = q \text{ (ост. } r), \quad a = bq + r, \text{ где } r < b \quad \text{(Деление с остатком)}
+                    `
+                },
+                {
+                    title: "Блок 2: Геометрия",
+                    content: String.raw`
+                        \textbf{2. Фигуры на плоскости и в пространстве:} \\
+                        P = 2(a + b) \quad \text{(Периметр прямоугольника)} \\
+                        S = a \cdot b \quad \text{(Площадь прямоугольника)} \\
+                        S = a^2 \quad \text{(Площадь квадрата)} \\
+                        V = a \cdot b \cdot c \quad \text{(Объем параллелепипеда)} \\
+                        V = a^3 \quad \text{(Объем куба)}
+                    `
+                },
+                {
+                    title: "Блок 3: Задачи на движение",
+                    content: String.raw`
+                        \textbf{3. Движение и стоимость:} \\
+                        s = v \cdot t \quad \text{(Расстояние)} \\
+                        v_{по \ теч.} = v_{собств.} + v_{теч.} \\
+                        v_{пр. \ теч.} = v_{собств.} - v_{теч.} \\
+                        C = n \cdot p \quad \text{(Стоимость = кол-во } \cdot \text{ цена)}
+                    `
+                },
+                {
+                    title: "Блок 4: Обыкновенные дроби",
+                    content: String.raw`
+                        \textbf{4. Дроби (одинаковые знаменатели):} \\
+                        \frac{a}{c} + \frac{b}{c} = \frac{a+b}{c} \\
+                        \frac{a}{c} - \frac{b}{c} = \frac{a-b}{c}
+                    `
+                },
+                {
+                    title: "Блок 5: Десятичные дроби и статистика",
+                    content: String.raw`
+                        \textbf{5. Среднее и проценты:} \\
+                        \text{Среднее арифметическое} = \frac{x_1 + x_2 + \dots + x_n}{n} \\
+                        1\% = \frac{1}{100} = 0,01
+                    `
+                }
+            ],
+            6: [
+                {
+                    title: "Блок 1: Делимость чисел",
+                    content: String.raw`
+                        \textbf{1. Делимость:} \\
+                        \text{НОД}(a; b) \cdot \text{НОК}(a; b) = a \cdot b
+                    `
+                },
+                {
+                    title: "Блок 2: Обыкновенные дроби",
+                    content: String.raw`
+                        \textbf{2. Основное свойство и операции:} \\
+                        \frac{a}{b} = \frac{a \cdot c}{b \cdot c} \quad \text{(Основное свойство)} \\
+                        \frac{a}{b} \cdot \frac{c}{d} = \frac{ac}{bd} \\
+                        \frac{a}{b} : \frac{c}{d} = \frac{a \cdot d}{b \cdot c}
+                    `
+                },
+                {
+                    title: "Блок 3: Пропорции и окружность",
+                    content: String.raw`
+                        \textbf{3. Пропорции и геометрия:} \\
+                        \frac{a}{b} = \frac{c}{d} \Rightarrow a \cdot d = b \cdot c \quad \text{(Основное свойство пропорции)} \\
+                        C = 2\pi r = \pi d \quad \text{(Длина окружности)} \\
+                        S = \pi r^2 \quad \text{(Площадь круга)} \\
+                        M = \frac{L_{\text{плана}}}{L_{\text{реальности}}} \quad \text{(Масштаб)}
+                    `
+                },
+                {
+                    title: "Блок 4: Рациональные числа",
+                    content: String.raw`
+                        \textbf{4. Модуль и знаки:} \\
+                        |a| = \begin{cases} a, & \text{если } a \ge 0 \\ -a, & \text{если } a < 0 \end{cases} \\
+                        -a \cdot (-b) = ab \\
+                        -a \cdot b = -ab
+                    `
+                },
+                {
+                    title: "Блок 5: Уравнения",
+                    content: String.raw`
+                        \textbf{5. Раскрытие скобок:} \\
+                        a + (b - c) = a + b - c \\
+                        a - (b - c) = a - b + c \\
+                        a(b + c) = ab + ac \quad \text{(Коэффициент)}
+                    `
+                }
+            ],
+            7: [
+                {
+                    title: "Блок 1: Линейные уравнения",
+                    content: String.raw`
+                        \textbf{1. Линейное уравнение:} \\
+                        ax = b \Rightarrow x = \frac{b}{a} \quad (a \neq 0)
+                    `
+                },
+                {
+                    title: "Блок 2: Степень",
+                    content: String.raw`
+                        \textbf{2. Свойства степеней:} \\
+                        a^n \cdot a^m = a^{n+m} \\
+                        a^n : a^m = a^{n-m} \quad (a \neq 0, n > m) \\
+                        (a^n)^m = a^{nm} \\
+                        (ab)^n = a^n b^n \\
+                        \left(\frac{a}{b}\right)^n = \frac{a^n}{b^n}
+                    `
+                },
+                {
+                    title: "Блок 3: ФСУ",
+                    content: String.raw`
+                        \textbf{3. Сокращенное умножение:} \\
+                        (a + b)^2 = a^2 + 2ab + b^2 \quad \text{(Квадрат суммы)} \\
+                        (a - b)^2 = a^2 - 2ab + b^2 \quad \text{(Квадрат разности)} \\
+                        a^2 - b^2 = (a - b)(a + b) \quad \text{(Разность квадратов)} \\
+                        (a + b)^3 = a^3 + 3a^2b + 3ab^2 + b^3 \quad \text{(Куб суммы)} \\
+                        a^3 \pm b^3 = (a \pm b)(a^2 \mp ab + b^2)
+                    `
+                },
+                {
+                    title: "Блок 4: Функции",
+                    content: String.raw`
+                        \textbf{4. Линейная функция:} \\
+                        y = kx + b \\
+                        k = \text{угловой коэффициент} \\
+                        b = \text{точка пересечения с осью Y}
+                    `
+                },
+                {
+                    title: "Блок 5: Геометрия",
+                    content: String.raw`
+                        \textbf{5. Треугольники и углы:} \\
+                        \angle A + \angle B + \angle C = 180^\circ \quad \text{(Сумма углов)} \\
+                        \alpha + \beta = 180^\circ \quad \text{(Смежные углы)} \\
+                        \angle 1 = \angle 2 \quad \text{(Вертикальные углы)}
+                    `
+                }
+            ],
+            8: [
+                {
+                    title: "Алгебра: Рациональные и Корни",
+                    content: String.raw`
+                        \textbf{1. Рациональные выражения и степени} \\
+                        a^{-n} = \frac{1}{a^n} \quad (a \neq 0) \\
+                        (ab)^n = a^n b^n, \quad \left(\frac{a}{b}\right)^n = \frac{a^n}{b^n}, \quad (a^n)^m = a^{nm} \\
+                        \textbf{2. Квадратные корни} \\
+                        \sqrt{a} \ge 0, \quad (\sqrt{a})^2 = a \quad (a \ge 0) \\
+                        \sqrt{a^2} = |a| \\
+                        \sqrt{ab} = \sqrt{a} \cdot \sqrt{b} \quad (a, b \ge 0) \\
+                        \sqrt{\frac{a}{b}} = \frac{\sqrt{a}}{\sqrt{b}} \quad (a \ge 0, b > 0)
+                    `
+                },
+                {
+                    title: "Алгебра: Квадратные уравнения",
+                    content: String.raw`
+                        \textbf{3. Квадратные уравнения} \\
+                        ax^2 + bx + c = 0 \quad (a \neq 0) \\
+                        D = b^2 - 4ac \\
+                        x_{1,2} = \frac{-b \pm \sqrt{D}}{2a} \\
+                        \text{Теорема Виета: } 
+                        \begin{cases} x_1 + x_2 = -\frac{b}{a} \\ x_1 x_2 = \frac{c}{a} \end{cases} \\
+                        ax^2 + bx + c = a(x - x_1)(x - x_2)
+                    `
+                },
+                {
+                    title: "Алгебра: Неравенства",
+                    content: String.raw`
+                        \textbf{4. Неравенства} \\
+                        \text{Если } a > b \text{ и } c > 0 \Rightarrow ac > bc \\
+                        \text{Если } a > b \text{ и } c < 0 \Rightarrow ac < bc \\
+                        |x| < a \Rightarrow -a < x < a \\
+                        |x| > a \Rightarrow x < -a \text{ или } x > a
+                    `
+                },
+                {
+                    title: "Геометрия: Четырехугольники",
+                    content: String.raw`
+                        S_{\text{прямоуг}} = ab \\
+                        S_{\text{парал}} = a \cdot h_a = ab \sin \alpha \\
+                        S_{\text{треуг}} = \frac{1}{2} a \cdot h_a = \frac{1}{2} ab \sin \alpha \\
+                        S_{\text{трапеции}} = \frac{a+b}{2} \cdot h \\
+                        S_{\text{ромба}} = \frac{1}{2} d_1 d_2
+                    `
+                },
+                {
+                    title: "Геометрия: Треугольники",
+                    content: String.raw`
+                        \textbf{Подобие:} \frac{P_1}{P_2} = k, \quad \frac{S_1}{S_2} = k^2 \\
+                        \textbf{Пифагор:} c^2 = a^2 + b^2 \\
+                        \sin \alpha = \frac{a}{c}, \quad \cos \alpha = \frac{b}{c}, \quad \text{tg } \alpha = \frac{a}{b} \\
+                        \sin^2 \alpha + \cos^2 \alpha = 1
+                    `
+                }
+            ],
+            9: [
+                {
+                    title: "Алгебра: Функции и Прогрессии",
+                    content: String.raw`
+                        \textbf{1. Квадратичная функция} \\
+                        x_0 = -\frac{b}{2a}, \quad y_0 = f(x_0) \\
+                        \textbf{2. Прогрессии} \\
+                        \text{Арифм: } a_n = a_1 + d(n-1); \quad S_n = \frac{a_1 + a_n}{2} \cdot n \\
+                        \text{Геом: } b_n = b_1 \cdot q^{n-1}; \quad S_n = \frac{b_1(q^n - 1)}{q - 1}
+                    `
+                },
+                {
+                    title: "Алгебра: Вероятность",
+                    content: String.raw`
+                        \textbf{3. Вероятность} \\
+                        P(A) = \frac{m}{n} \quad \text{(благоприятные / все исходы)}
+                    `
+                },
+                {
+                    title: "Геометрия: Векторы",
+                    content: String.raw`
+                        |\vec{a}| = \sqrt{x^2 + y^2} \\
+                        \vec{a} \cdot \vec{b} = x_1 x_2 + y_1 y_2 \\
+                        (x - x_0)^2 + (y - y_0)^2 = R^2 \quad \text{(Окружность)}
+                    `
+                },
+                {
+                    title: "Геометрия: Треугольники",
+                    content: String.raw`
+                        \frac{a}{\sin A} = \frac{b}{\sin B} = \frac{c}{\sin C} = 2R \quad \text{(Т. Синусов)} \\
+                        a^2 = b^2 + c^2 - 2bc \cos A \quad \text{(Т. Косинусов)} \\
+                        S = \frac{1}{2} ab \sin C
+                    `
+                }
+            ],
+            10: [
+                {
+                    title: "Тригонометрия: Тождества",
+                    content: String.raw`
+                        \sin^2 \alpha + \cos^2 \alpha = 1 \\
+                        \text{tg } \alpha = \frac{\sin \alpha}{\cos \alpha}, \quad \text{ctg } \alpha = \frac{\cos \alpha}{\sin \alpha} \\
+                        \text{tg } \alpha \cdot \text{ctg } \alpha = 1 \\
+                        \sin(\frac{\pi}{2} \pm \alpha) = \cos \alpha; \quad \cos(\pi \pm \alpha) = -\cos \alpha
+                    `
+                },
+                {
+                    title: "Тригонометрия: Формулы",
+                    content: String.raw`
+                        \sin 2\alpha = 2 \sin \alpha \cos \alpha \\
+                        \cos 2\alpha = \cos^2 \alpha - \sin^2 \alpha = 1 - 2\sin^2 \alpha \\
+                        \sin(\alpha \pm \beta) = \sin \alpha \cos \beta \pm \cos \alpha \sin \beta \\
+                        \cos(\alpha \pm \beta) = \cos \alpha \cos \beta \mp \sin \alpha \sin \beta
+                    `
+                },
+                {
+                    title: "Тригонометрия: Уравнения",
+                    content: String.raw`
+                        \sin x = a \Rightarrow x = (-1)^k \arcsin a + \pi k \\
+                        \cos x = a \Rightarrow x = \pm \arccos a + 2\pi k
+                    `
+                },
+                {
+                    title: "Степени и Производная",
+                    content: String.raw`
+                        \sqrt[n]{ab} = \sqrt[n]{a} \cdot \sqrt[n]{b}, \quad a^{\frac{m}{n}} = \sqrt[n]{a^m} \\
+                        (x^n)' = n x^{n-1} \\
+                        (\sin x)' = \cos x; \quad (\cos x)' = -\sin x \\
+                        (uv)' = u'v + uv' \\
+                        \left(\frac{u}{v}\right)' = \frac{u'v - uv'}{v^2}
+                    `
+                },
+                {
+                    title: "Стереометрия",
+                    content: String.raw`
+                        \text{ТТП: } a \perp b \iff a \perp pr_{\alpha} b \\
+                        \cos \varphi = \frac{|\vec{n_1} \cdot \vec{n_2}|}{|\vec{n_1}| \cdot |\vec{n_2}|}
+                    `
+                }
+            ],
+            11: [
+                {
+                    title: "ЕГЭ: Логарифмы",
+                    content: String.raw`
+                        \log_a b^n = n \log_a b; \quad \log_{a^k} b = \frac{1}{k} \log_a b \\
+                        \log_a b = \frac{\log_c b}{\log_c a} \\
+                        a^{\log_a b} = b
+                    `
+                },
+                {
+                    title: "ЕГЭ: Рационализация (№15)",
+                    content: String.raw`
+                        \log_{h(x)} f(x) \gtrless 0 \iff (h(x)-1)(f(x)-1) \gtrless 0 \\
+                        \text{ОДЗ: } f(x)>0, h(x)>0, h(x) \neq 1
+                    `
+                },
+                {
+                    title: "ЕГЭ: Геометрия",
+                    content: String.raw`
+                        S = \sqrt{p(p-a)(p-b)(p-c)} \quad \text{(Герон)} \\
+                        V_{\text{призмы}} = S_{осн} \cdot h; \quad V_{\text{пирамиды}} = \frac{1}{3} S_{осн} \cdot h \\
+                        \text{Векторы: } \vec{a} \cdot \vec{b} = |\vec{a}| \cdot |\vec{b}| \cos \alpha = x_1x_2 + y_1y_2 + z_1z_2
+                    `
+                },
+                {
+                    title: "ЕГЭ: Мат. Анализ",
+                    content: String.raw`
+                        (x^n)' = n x^{n-1}; \quad (\ln x)' = \frac{1}{x}; \quad (e^x)' = e^x \\
+                        f(x) \approx f(x_0) + f'(x_0)(x - x_0) \quad \text{(Касательная)} \\
+                        k = \text{tg } \alpha = f'(x_0)
+                    `
+                },
+                {
+                    title: "ЕГЭ: Экономика (№16)",
+                    content: String.raw`
+                        \text{Аннуитет: } X = S \cdot \frac{k^n(k-1)}{k^n-1}, \text{ где } k = 1 + \frac{r}{100}
+                    `
+                }
+            ]
+        };
+
+        let state = {
+            name: "",
+            class: 0,
+            lives: 5,
+            coins: 0,
+            coinsToday: 0,
+            lastCoinDate: null,
+            currentQuestions: [],
+            currentQIndex: 0
+        };
+
+        // --- ФУНКЦИИ ПЕРЕХОДА ---
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        // НОВАЯ ФУНКЦИЯ ОБРАТНОЙ СВЯЗИ
+        function openExternalFeedback() {
+            tg.openTelegramLink('https://t.me/supertutor15');
+        }
+
+        function selectClass(cls) {
+            const inputName = document.getElementById('username-input').value;
+            if(!inputName) {
+                alert("Пожалуйста, введи свое имя!");
+                return;
+            }
+            state.name = inputName;
+            state.class = cls;
+            
+            document.body.className = `class-${cls}`;
+            
+            loadState();
+            updateStats();
+            
+            document.getElementById('welcome-text').innerText = `Привет, ${state.name}! Ты в ${cls} классе.`;
+            showScreen('screen-menu');
+        }
+
+        function showTheorySelection() {
+            const list = document.getElementById('topics-list');
+            list.innerHTML = "";
+            const topics = theoryData[state.class] || [];
+            
+            if (topics.length === 0) {
+                list.innerHTML = "<p>Для этого класса теория еще загружается...</p>";
+            }
+
+            topics.forEach((topic, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.innerText = topic.title;
+                btn.onclick = () => openTopic(idx);
+                list.appendChild(btn);
+            });
+            showScreen('screen-theory-select');
+        }
+
+        function openTopic(index) {
+            const topic = theoryData[state.class][index];
+            const container = document.getElementById('theory-content');
+            
+            container.innerHTML = `
+                <div class="theory-card">
+                    <h3>${topic.title}</h3>
+                    <div class="latex-render-area">${topic.content}</div>
+                </div>
+            `;
+            
+            const area = container.querySelector('.latex-render-area');
+            try {
+                katex.render(topic.content, area, {
+                    throwOnError: false,
+                    displayMode: true,
+                    fleqn: false
+                });
+            } catch(e) {
+                area.innerText = "Ошибка отображения формул";
+            }
+            
+            showScreen('screen-theory-read');
+        }
+
+        async function startPractice() {
+            state.lives = 5;
+            state.currentQIndex = 0;
+            updateStats();
+            
+            showScreen('screen-practice');
+            document.getElementById('question-text').innerText = "Загружаем вопросы...";
+            document.getElementById('answers-block').innerHTML = "";
+            document.getElementById('feedback-block').style.display = 'none';
+            
+            try {
+                const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
+                const response = await fetch(url);
+                const csvText = await response.text();
+                
+                parseQuestions(csvText);
+                
+                if (state.currentQuestions.length > 0) {
+                    renderQuestion();
+                } else {
+                    alert("Вопросов для твоего класса пока нет в базе.");
+                    showScreen('screen-menu');
+                }
+            } catch (e) {
+                alert("Ошибка интернета или доступа к таблице.");
+                showScreen('screen-menu');
+            }
+        }
+
+        function parseQuestions(csv) {
+            const rows = csv.split('\n').map(row => row.split(','));
+            state.currentQuestions = rows.filter(r => r[1] && r[1].trim() == state.class)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, state.class >= 9 ? 10 : 5);
+        }
+
+        function renderQuestion() {
+            document.getElementById('feedback-block').style.display = 'none';
+            document.getElementById('answers-block').style.display = 'block';
+            document.getElementById('next-q-btn').style.display = 'none';
+            
+            const q = state.currentQuestions[state.currentQIndex];
+            document.getElementById('question-text').innerText = `Вопрос ${state.currentQIndex + 1}: ${q[3]}`; 
+            
+            const answersDiv = document.getElementById('answers-block');
+            answersDiv.innerHTML = "";
+            
+            const opts = [q[4], q[5], q[6], q[7]];
+            
+            opts.forEach((optText, i) => {
+                if(optText && optText.trim() !== "") {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn';
+                    btn.style.background = "#fff";
+                    btn.style.color = "#000";
+                    btn.style.border = "1px solid #ccc";
+                    btn.innerText = optText;
+                    btn.onclick = () => checkAnswer(i + 1, btn);
+                    answersDiv.appendChild(btn);
+                }
+            });
+        }
+
+        function checkAnswer(selectedIdx, btnElement) {
+            const q = state.currentQuestions[state.currentQIndex];
+            const correctIdx = parseInt(q[8]);
+            
+            const feedbackDiv = document.getElementById('feedback-block');
+            const title = document.getElementById('feedback-title');
+            const expl = document.getElementById('feedback-solution');
+            
+            const allBtns = document.getElementById('answers-block').querySelectorAll('.btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            if (selectedIdx === correctIdx) {
+                btnElement.style.background = "#2ecc71";
+                btnElement.style.color = "#fff";
+                title.innerText = "✅ Верно!";
+                title.style.color = "green";
+                addCoins(10);
+            } else {
+                btnElement.style.background = "#e74c3c";
+                btnElement.style.color = "#fff";
+                title.innerText = "❌ Ошибка!";
+                title.style.color = "red";
+                state.lives--;
+            }
+            
+            expl.innerText = q[9] || "Решение загружается..."; 
+            updateStats();
+
+            feedbackDiv.style.display = 'block';
+            const nextBtn = document.getElementById('next-q-btn');
+            nextBtn.style.display = 'block';
+            nextBtn.onclick = nextQuestion;
+
+            if (state.lives <= 0) {
+                setTimeout(() => finishQuiz(false), 1500);
+            }
+        }
+
+        function nextQuestion() {
+            state.currentQIndex++;
+            if (state.currentQIndex >= state.currentQuestions.length) {
+                finishQuiz(true);
+            } else {
+                renderQuestion();
+            }
+        }
+
+        function finishQuiz(success) {
+            showScreen('screen-results');
+            const msg = document.getElementById('result-message');
+            const finalLives = document.getElementById('final-lives');
+            finalLives.innerText = state.lives;
+            
+            if (success) {
+                msg.innerText = "🎉 Тест пройден!";
+                msg.style.color = "#2ecc71";
+            } else {
+                msg.innerText = "💀 Потрачено";
+                msg.style.color = "#e74c3c";
+            }
+            localStorage.setItem('schoolAppState', JSON.stringify(state));
+        }
+
+        function addCoins(amount) {
+            const now = new Date().getTime();
+            const twelveHours = 12 * 60 * 60 * 1000;
+            if (state.lastCoinDate && (now - state.lastCoinDate > twelveHours)) {
+                state.coinsToday = 0; 
+            }
+            if (state.coinsToday < 100) {
+                state.coins += amount;
+                state.coinsToday += amount;
+                state.lastCoinDate = now;
+            }
+            updateStats();
+        }
+
+        function buyItem(price) {
+            if (state.coins >= price) {
+                alert("Функция скачивания PDF будет доступна скоро! (Списывание не произошло)");
+            } else {
+                alert("Недостаточно монет! Проходи тесты.");
+            }
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('schoolAppState');
+            if (saved) {
+                const p = JSON.parse(saved);
+                state.coins = p.coins || 0;
+                state.coinsToday = p.coinsToday || 0;
+                state.lastCoinDate = p.lastCoinDate;
+            }
+        }
+
+        function updateStats() {
+            const els = ['lives-display', 'coins-display', 'quiz-lives', 'quiz-coins', 'shop-balance', 'earned-coins'];
+            els.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    if (id.includes('lives')) el.innerText = state.lives;
+                    else el.innerText = state.coins;
+                }
+            });
+        }
+
+        async function saveAndFinish() {
+            if (document.getElementById('consent-checkbox').checked) {
+                const data = {
+                    action: "save_result",
+                    username: state.name + " (@" + (tg.initDataUnsafe?.user?.username || "no_tg") + ")",
+                    class: state.class,
+                    correct: state.currentQuestions.length - (5 - state.lives),
+                    errors: (5 - state.lives)
+                };
+                try {
+                    await fetch('/api/save_stats', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                } catch(e) { console.log("Бэкенд недоступен"); }
+            }
+            showScreen('screen-menu');
+        }
+
+    </script>
+</body>
+</html>
