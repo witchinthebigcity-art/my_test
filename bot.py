@@ -61,7 +61,7 @@ async def main():
     app.router.add_get("/index.html", handle_index)
     
     # Для Railway важно брать порт из переменных окружения
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", 8080))
     
     # Запуск веб-сервера
     runner = web.AppRunner(app)
