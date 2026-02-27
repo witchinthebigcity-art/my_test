@@ -1,83 +1,89 @@
 import asyncio
+import json
 import os
-import logging
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
-from aiogram.types import WebAppInfo, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from datetime import datetime
 from aiohttp import web
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.filters import CommandStart
 
-# --- НАСТРОЙКИ ---
-TOKEN = "8510677565:AAFkWjGuF2f7PiTj_zHV_RqInrT3D9wTrYw"
-# Твой домен на Railway
-WEBAPP_URL = "https://mytest-production-5084.up.railway.app"
+# Получаем переменные окружения (Railway задаст их автоматически)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBAPP_URL = os.getenv("WEBAPP_URL") # Сюда впишем домен, который даст Railway
+ADMIN_GROUP_ID = os.getenv("ADMIN_GROUP_ID", "-1003677230845")
+PORT = int(os.getenv("PORT", 8080)) # Railway сам назначает порт
 
-# 1. ЛОГИКА ВЕБ-СЕРВЕРА (отдача Mini App)
-async def handle_index(request):
-    """Отдает файл index.html при переходе по ссылке"""
-    try:
-        # Пытаемся открыть файл index.html в той же папке
-        with open("index.html", "r", encoding="utf-8") as f:
-            return web.Response(text=f.read(), content_type="text/html")
-    except FileNotFoundError:
-        return web.Response(text="Файл index.html не найден на сервере!", status=404)
-
-# 2. ЛОГИКА TELEGRAM БОТА
-bot = Bot(token=TOKEN)
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Постоянная кнопка под строкой ввода
-main_kb = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text="🎓 Выбрать класс")]], 
-    resize_keyboard=True
-)
+# Временная память для имен (при перезагрузке сервера будет сбрасываться, 
+# в идеале потом подключим SQLite)
+user_data_db = {}
 
+# --- ЛОГИКА БОТА ---
 @dp.message(CommandStart())
-async def start_cmd(message: types.Message):
-    """Приветствие при команде /start"""
-    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Начать обучение", web_app=WebAppInfo(url=WEBAPP_URL))]
-    ])
-    
-    await message.answer(
-        f"Привет, {message.from_user.first_name}! 👋\n\n"
-        "Добро пожаловать в Math Universe. Твоя лаборатория знаний готова.",
-        reply_markup=main_kb
+async def cmd_start(message: Message):
+    # Кнопка для запуска Web App
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="Прокачать матан 🚀", web_app=WebAppInfo(url=WEBAPP_URL))]],
+        resize_keyboard=True
     )
-    await message.answer("Нажми на кнопку ниже, чтобы войти:", reply_markup=inline_kb)
+    # Если имя не знаем, можно спросить, но для простоты сразу даем кнопку
+    await message.answer(
+        "Привет! Готов прокачать свои знания? Нажимай на кнопку ниже и выбирай свой класс!", 
+        reply_markup=kb
+    )
 
-@dp.message(lambda m: m.text == "🎓 Выбрать класс")
-async def open_app_via_menu(message: types.Message):
-    """Открытие приложения через кнопку меню"""
-    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Открыть Math Universe 🚀", web_app=WebAppInfo(url=WEBAPP_URL))]
-    ])
-    await message.answer("Твоя база знаний ждет тебя:", reply_markup=inline_kb)
+@dp.message(F.web_app_data)
+async def web_app_data_handler(message: Message):
+    data = json.loads(message.web_app_data.data)
+    action = data.get('action')
+    username = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
 
-# 3. ЗАПУСК ОБОИХ СЕРВИСОВ
+    if action == 'report_error':
+        error_context = data.get('context')
+        grade = data.get('class')
+        text = f"⚠️ Ошибка от {username}\nКласс: {grade}\nКонтекст: {error_context}"
+        await bot.send_message(chat_id=ADMIN_GROUP_ID, message_thread_id=1, text=text)
+
+    elif action == 'support_request':
+        text = f"✉️ {username} запрашивает поддержку. Напишите ему в личные сообщения!"
+        await bot.send_message(chat_id=ADMIN_GROUP_ID, message_thread_id=1, text=text)
+
+    elif action == 'save_result':
+        grade = data.get('class')
+        topic = data.get('topic')
+        is_correct = data.get('isCorrect')
+        result_text = "Верно" if is_correct else "Ошибка"
+        date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Здесь будет логика записи в Google Таблицу через gspread
+        # gc = gspread.service_account(filename='credentials.json')
+        # sh = gc.open_by_url("ТВОЯ_ССЫЛКА_НА_ПРИВАТНУЮ_ТАБЛИЦУ")
+        # worksheet = sh.sheet1
+        # worksheet.append_row([date_str, username, grade, topic, result_text])
+        
+        print(f"Результат сохранен: {username}, Класс: {grade}, Тема: {topic}, Итог: {result_text}")
+
+# --- ЛОГИКА ВЕБ-СЕРВЕРА ---
+async def handle_index(request):
+    # Отдаем наш HTML файл, когда Telegram запрашивает WEBAPP_URL
+    return web.FileResponse('index.html')
+
 async def main():
-    # Настройка веб-приложения
+    # Настраиваем aiohttp сервер
     app = web.Application()
-    app.router.add_get("/", handle_index)
-    app.router.add_get("/index.html", handle_index)
+    app.router.add_get('/', handle_index)
     
-    # Для Railway важно брать порт из переменных окружения
-    port = int(os.getenv("PORT", 8080))
-    
-    # Запуск веб-сервера
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    
-    logging.info(f"--- ВЕБ-СЕРВЕР ЗАПУЩЕН НА ПОРТУ {port} ---")
+    site = web.TCPSite(runner, '0.0.0.0', PORT)
     await site.start()
-
-    # Запуск бота (Polling)
-    logging.info("--- БОТ ЗАПУЩЕН И ГОТОВ К РАБОТЕ ---")
+    
+    print(f"Сервер запущен на порту {PORT}")
+    
+    # Запускаем бота параллельно с сервером
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("--- СЕРВЕР ОСТАНОВЛЕН ---")
+    asyncio.run(main())
