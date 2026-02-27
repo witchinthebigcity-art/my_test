@@ -2,1983 +2,434 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>School App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Прокачать матан</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&family=Quicksand:wght@400;700&family=Montserrat:wght@400;700&family=Gotham+Pro&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <style>
-        /* --- БАЗОВЫЕ СТИЛИ --- */
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --accent-color: #3390ec;
-            --font-main: 'Roboto', sans-serif;
-            --btn-radius: 12px;
-            --btn-text: #ffffff;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--font-main);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: all 0.3s ease;
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-        }
-
-        .screen {
-            display: none;
-            padding: 20px;
-            min-height: 100vh;
-            box-sizing: border-box;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .active { display: flex; }
-
-        h1, h2, h3 { margin: 0 0 15px 0; text-align: center; width: 100%; }
-        
-        .btn {
-            background-color: var(--accent-color);
-            color: var(--btn-text);
-            border: none;
-            padding: 15px;
-            border-radius: var(--btn-radius);
-            font-size: 16px;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.1s;
-        }
-
-        .btn:active { transform: scale(0.98); }
-
-        input, select, textarea {
-            width: 100%;
-            max-width: 400px;
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: var(--btn-radius);
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-
-        /* --- ВЕРХНЯЯ ПАНЕЛЬ --- */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 400px;
-            background: rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .stat-item { font-weight: bold; display: flex; align-items: center; gap: 5px; }
-
-        /* --- СТИЛИЗАЦИЯ КЛАССОВ --- */
-        
-        /* 5 Класс: Яркие, Nunito */
-        body.class-5 {
-            --bg-color: #E0F7FA; 
-            --text-color: #01579B; 
-            --accent-color: #FF6F00; /* Оранжевый */
-            --font-main: 'Nunito', sans-serif;
-            background-image: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%); /* Лайм-Голубой */
-        }
-
-        /* 6 Класс: Sci-Fi, Геометрия */
-        body.class-6 {
-            --bg-color: #2c3e50; 
-            --text-color: #00E5FF; 
-            --accent-color: #651FFF; /* Фиолетовый */
-            --font-main: 'Montserrat', sans-serif;
-            background: linear-gradient(to bottom, #20002c, #cbb4d4);
-        }
-
-        /* 7 Класс: Киберпанк */
-        body.class-7 {
-            --bg-color: #050511; 
-            --text-color: #00ff41; 
-            --accent-color: #d60270; /* Неон маджента */
-            --font-main: 'Orbitron', sans-serif;
-            background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
-        }
-
-        /* 8 Класс: Брутализм */
-        body.class-8 {
-            --bg-color: #ffffff; 
-            --text-color: #000000; 
-            --accent-color: #FFD600; /* Желтый */
-            --font-main: 'Oswald', sans-serif;
-            --btn-text: #000;
-        }
-        body.class-8 .btn { border: 3px solid black; border-radius: 0; box-shadow: 5px 5px 0px #000; }
-        body.class-8 .top-bar { border: 2px solid black; background: #fff; color: black; border-radius: 0;}
-
-        /* 9 Класс: Функциональность */
-        body.class-9 {
-            --bg-color: #f0f2f5; 
-            --text-color: #1c1e21; 
-            --accent-color: #1877f2; /* Синий */
-            --font-main: 'Roboto', sans-serif;
-        }
-
-        /* 10 Класс: StudyCafe (Korea) */
-        body.class-10 {
-            --bg-color: #E3E1D9; 
-            --text-color: #4A4A4A; 
-            --accent-color: #7B8D76; /* Sage Green */
-            --font-main: 'Open Sans', sans-serif;
-        }
-
-        /* 11 Класс: Night Mode (Deep Focus) */
-        body.class-11 {
-            --bg-color: #0f172a; 
-            --text-color: #cbd5e1; 
-            --accent-color: #3b82f6; 
-            --font-main: system-ui, -apple-system, sans-serif;
-        }
-
-        /* --- БЛОКИ ТЕОРИИ --- */
-        .theory-container {
-            width: 100%;
-            max-width: 600px;
-        }
-        .theory-card {
-            background: rgba(255,255,255,0.95);
-            color: #000;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        /* Спец. стиль карточки для темных тем */
-        body.class-6 .theory-card, body.class-7 .theory-card, body.class-11 .theory-card {
-            background: rgba(30,30,40, 0.9);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        body.class-8 .theory-card {
-            border: 3px solid black;
-            border-radius: 0;
-            background: white;
-            color: black;
-            box-shadow: 5px 5px 0 black;
-        }
-
-        /* Контейнер для формул */
-        .katex-display {
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 10px 0;
-            margin: 0.5em 0;
-            text-align: left !important; /* Выравнивание формул */
-        }
-        
-        .katex { font-size: 1.1em; }
-
-        /* Персонаж (Placeholder) */
-        .character-box {
-            width: 100px;
-            height: 100px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            margin: 0 auto 10px;
-            display: none; /* Включится JS-ом */
-        }
-
+        :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); margin: 0; padding: 20px; transition: all 0.3s ease; }
+        .screen { display: none; } .active { display: block; }
+        .btn { background-color: var(--accent-color); color: white; border: none; padding: 15px 20px; border-radius: 10px; font-size: 16px; cursor: pointer; width: 100%; margin-bottom: 10px; font-weight: bold; }
+        .stats { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; font-size: 18px; }
+        details.theory-section { background: rgba(128, 128, 128, 0.1); border-radius: 10px; margin-bottom: 15px; overflow: hidden; }
+        details.theory-section summary { padding: 15px; font-weight: bold; font-size: 16px; cursor: pointer; list-style: none; background: rgba(128, 128, 128, 0.2); }
+        details.theory-section summary::-webkit-details-marker { display: none; }
+        .theory-content { padding: 15px; }
+        .theory-item { margin-bottom: 20px; border-bottom: 1px solid rgba(128, 128, 128, 0.2); padding-bottom: 15px; }
+        .theory-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .math-block { overflow-x: auto; display: flex; justify-content: center; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; }
+        .theory-class-container { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="screen-welcome" class="screen active">
-        <h1 style="font-size: 32px;">🎓 School App</h1>
-        <p>Твой личный помощник в учебе.</p>
-        
-        <input type="text" id="username-input" placeholder="Как тебя зовут?">
-        
-        <h3>Выбери свой класс:</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width:100%; max-width:400px;">
-            <button class="btn" style="background: #FF6F00" onclick="selectClass(5)">5 класс</button>
-            <button class="btn" style="background: #651FFF" onclick="selectClass(6)">6 класс</button>
-            <button class="btn" style="background: #d60270" onclick="selectClass(7)">7 класс</button>
-            <button class="btn" style="background: #000000; color: #FFD600; border:1px solid #FFD600" onclick="selectClass(8)">8 класс</button>
-            <button class="btn" style="background: #007AFF" onclick="selectClass(9)">9 класс</button>
-            <button class="btn" style="background: #7B8D76" onclick="selectClass(10)">10 класс</button>
-            <button class="btn" style="background: #1e293b" onclick="selectClass(11)">11 класс</button>
-        </div>
-        
-        <button class="btn" style="margin-top:30px; background:#555;" onclick="showScreen('screen-feedback')">💬 Служба поддержки</button>
+    <div id="classSelection" class="screen active">
+        <h2 id="greetingText">Привет! Выбери свой класс:</h2>
+        <div id="classButtons"></div>
+        <button class="btn" onclick="openSupport()" style="background-color: #666;">Служба поддержки</button>
     </div>
 
-    <div id="screen-menu" class="screen">
-        <div class="top-bar">
-            <div class="stat-item">❤️ <span id="lives-display">5</span></div>
-            <div class="stat-item">🪙 <span id="coins-display">0</span></div>
-        </div>
-        
-        <div id="char-display" class="character-box"></div>
-        <h1 id="menu-title">Меню</h1>
-        <p id="welcome-text"></p>
-
-        <div style="width:100%; max-width:400px;">
-            <button class="btn" onclick="showTheorySelection()">📚 Теория</button>
-            <button class="btn" onclick="startPractice()">✏️ Практика</button>
-            <button class="btn" onclick="showScreen('screen-shop')">🛒 Магазин</button>
-            <button class="btn" style="background: transparent; border: 1px solid currentColor; color: inherit;" onclick="location.reload()">↩ Сменить класс</button>
-        </div>
+    <div id="mainMenu" class="screen">
+        <div class="stats"><span>❤️ Жизни: <span id="livesCount">5</span></span><span>🪙 Монеты: <span id="coinsCount">0</span></span></div>
+        <h2 id="classTitle"></h2>
+        <button class="btn" onclick="openTheory()">Теория</button>
+        <button class="btn" onclick="startPractice()">Практика</button>
+        <button class="btn" onclick="showScreen('shopScreen')">Магазин</button>
+        <button class="btn" onclick="showScreen('classSelection')" style="background-color: #888;">Сменить класс</button>
     </div>
 
-    <div id="screen-theory-select" class="screen">
-        <div class="top-bar">
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showScreen('screen-menu')">⬅ Назад</button>
-        </div>
-        <h2>Темы обучения</h2>
-        <div id="topics-list" style="width: 100%; max-width: 400px;"></div>
+    <div id="consentScreen" class="screen">
+        <h2>Согласие</h2>
+        <p>Даете ли вы согласие на обработку и хранение информации с результатами прохождения тестирования?</p>
+        <p style="font-size: 12px; color: #555;"><i>p.s. это для того, чтобы можно было проанализировать свои результаты за большой период</i></p>
+        <button class="btn" onclick="acceptConsent()">Да, даю согласие</button>
+        <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #888;">Нет, назад в меню</button>
     </div>
 
-    <div id="screen-theory-read" class="screen">
-        <div class="top-bar">
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showTheorySelection()">⬅ К темам</button>
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0; background: #c0392b;" onclick="reportError('theory')">⚠️ Ошибка</button>
-        </div>
-        
-        <div id="theory-content" class="theory-container">
-            </div>
-
-        <button class="btn" onclick="startPractice()">Пройти тест по этой теме</button>
-    </div>
-
-    <div id="screen-practice" class="screen">
-        <div class="top-bar">
-            <div class="stat-item">❤️ <span id="quiz-lives">5</span></div>
-            <div class="stat-item">🪙 <span id="quiz-coins">0</span></div>
-        </div>
-        
-        <div style="width: 100%; max-width: 500px; flex-grow: 1; display: flex; flex-direction: column;">
-            <div class="theory-card" style="margin-top: 20px;">
-                <h3 id="question-text">Загрузка...</h3>
-            </div>
-
-            <div id="answers-block"></div>
-
-            <div id="feedback-block" style="display:none; margin-top:20px; padding:15px; background:rgba(255,255,255,0.95); border-radius:10px; color:#000; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                <strong id="feedback-title" style="font-size: 18px; display:block; margin-bottom:10px;"></strong>
-                <p id="feedback-solution" style="font-size: 14px; line-height: 1.5;"></p>
-                <button class="btn" id="next-q-btn" onclick="nextQuestion()">Далее ➡</button>
-            </div>
-        </div>
-
-        <button class="btn" style="margin-top:20px; background: transparent; color: #888; font-size:12px; width: auto;" onclick="reportError('question')">Сообщить об ошибке в задании</button>
-    </div>
-
-    <div id="screen-results" class="screen">
-        <h1>Результат</h1>
-        <h2 id="result-message" style="font-size: 40px; margin: 20px 0;"></h2>
-        
-        <div class="theory-card">
-            <p>Заработано монет: <span id="earned-coins" style="font-weight:bold; color: #f1c40f;">0</span></p>
-            <p>Осталось жизней: <span id="final-lives">0</span></p>
-        </div>
-        
-        <div id="consent-block" style="margin: 20px 0; font-size: 12px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: left;">
-            <label style="display: flex; gap: 10px; align-items: flex-start;">
-                <input type="checkbox" id="consent-checkbox" style="width: 20px; height: 20px; margin:0;"> 
-                <span>Даю согласие на обработку и хранение результатов прохождения тестирования.</span>
-            </label>
-            <p style="margin-top:5px; font-style: italic; opacity: 0.7;">p.s. это для того, чтобы можно было проанализировать свои результаты за большой период</p>
-        </div>
-
-        <div style="width: 100%; max-width: 400px;">
-            <button class="btn" onclick="startPractice()">🔄 Пройти тест снова</button>
-            <button class="btn" onclick="showScreen('screen-shop')">🛒 В магазин</button>
-            <button class="btn" style="background:#7f8c8d;" onclick="saveAndFinish()">🏠 В меню</button>
+    <div id="quizScreen" class="screen">
+        <div class="stats"><span>❤️ Жизни: <span id="quizLives">5</span></span><span>🪙 Монеты: <span id="quizCoins">0</span></span></div>
+        <h3 id="quizTopic" style="color: var(--accent-color); font-size: 14px;"></h3>
+        <h2 id="quizQuestionText">Загрузка...</h2>
+        <div id="quizOptions"></div>
+        <div id="quizFeedback" style="display: none; margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+            <h4 id="feedbackTitle" style="margin-top: 0;"></h4>
+            <p id="feedbackText"></p>
+            <button class="btn" onclick="nextQuestion()">Далее</button>
+            <button class="btn" style="background-color: #ff4444; margin-top: 10px;" onclick="reportError('Ошибка в задании: ' + currentQuestionData.question)">Сообщить об ошибке</button>
         </div>
     </div>
 
-    <div id="screen-shop" class="screen">
-        <h1>Магазин</h1>
-        <p>Баланс: <span id="shop-balance" style="font-weight:bold; color:gold;">0</span> 🪙</p>
-        
-        <div class="theory-container">
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Новичок"</h3>
-                    <small>Набор стикеров</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(30)">30 🪙</button>
-            </div>
-
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Профи"</h3>
-                    <small>Новые фоны</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(50)">50 🪙</button>
-            </div>
-
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Легенда"</h3>
-                    <small>Секретный персонаж</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(100)">100 🪙</button>
-            </div>
-        </div>
-
-        <button class="btn" onclick="showScreen('screen-feedback')">💬 Обратная связь</button>
-        <button class="btn" style="margin-top:20px;" onclick="showScreen('screen-menu')">🏠 Главное меню</button>
+    <div id="resultScreen" class="screen">
+        <h2>Результаты</h2>
+        <p>Осталось жизней: <span id="resultLives"></span> ❤️</p>
+        <p>Заработано монет: <span id="resultCoins"></span> 🪙</p>
+        <p id="limitWarning" style="color: #ff4444; font-size: 12px; display: none;">Достигнут лимит монет (100/100). Приходи через <span id="timeToReset"></span> за новыми!</p>
+        <div id="resultActions"></div>
+        <button class="btn" onclick="showScreen('shopScreen')">Перейти в магазин</button>
+        <button class="btn" onclick="showScreen('classSelection')" style="background-color: #888;">Поменять класс</button>
+        <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555;">Главное меню</button>
     </div>
 
-    <div id="screen-feedback" class="screen">
-        <h2>Обратная связь</h2>
-        <p style="opacity: 0.8; text-align: center;">Опишите проблему или предложение</p>
+    <div id="theoryScreen" class="screen">
+        <h2>Теория: <span id="theoryClassLabel"></span> класс</h2>
         
-        <textarea id="feedback-text" rows="6" placeholder="Введите сообщение..."></textarea>
-        
-        <div style="width: 100%; max-width: 400px; margin-bottom: 20px;">
-            <label for="feedback-file" style="display: block; margin-bottom: 5px;">Прикрепить скриншот:</label>
-            <input type="file" id="feedback-file" accept="image/*">
+        <div id="theory-data-11" class="theory-class-container">
+            <details class="theory-section"><summary>Раздел 1: Свойства степеней и корней</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Любое число в нулевой степени:</p><div class="math-block">$$a^0=1$$</div></div><div class="theory-item"><p>2. Отрицательная степень:</p><div class="math-block">$$a^{-n}=\frac{1}{a^n}$$</div></div><div class="theory-item"><p>3. Умножение степеней:</p><div class="math-block">$$a^m\cdot a^n=a^{m+n}$$</div></div><div class="theory-item"><p>4. Деление степеней:</p><div class="math-block">$$\frac{a^m}{a^n}=a^{m-n}$$</div></div><div class="theory-item"><p>5. Возведение степени в степень:</p><div class="math-block">$$(a^m)^n=a^{m\cdot n}$$</div></div><div class="theory-item"><p>6. Степень произведения:</p><div class="math-block">$$(ab)^n=a^n\cdot b^n$$</div></div><div class="theory-item"><p>7. Степень дроби:</p><div class="math-block">$$(\frac{a}{b})^n=\frac{a^n}{b^n}$$</div></div><div class="theory-item"><p>8. Корень из произведения:</p><div class="math-block">$$\sqrt[n]{ab}=\sqrt[n]{a}\cdot\sqrt[n]{b}$$</div></div><div class="theory-item"><p>9. Корень из дроби:</p><div class="math-block">$$\sqrt[n]{\frac{a}{b}}=\frac{\sqrt[n]{a}}{\sqrt[n]{b}}$$</div></div><div class="theory-item"><p>10. Переход к дробной степени:</p><div class="math-block">$$a^{\frac{m}{n}}=\sqrt[n]{a^m}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 2: Логарифмы</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Основное логарифмическое тождество:</p><div class="math-block">$$a^{\log_a{b}}=b$$</div></div><div class="theory-item"><p>2. Логарифм основания:</p><div class="math-block">$$\log_a{a}=1$$</div></div><div class="theory-item"><p>3. Логарифм единицы:</p><div class="math-block">$$\log_a{1}=0$$</div></div><div class="theory-item"><p>4. Логарифм произведения:</p><div class="math-block">$$\log_a{(bc)}=\log_a{b}+\log_a{c}$$</div></div><div class="theory-item"><p>5. Логарифм частного:</p><div class="math-block">$$\log_a{(\frac{b}{c})}=\log_a{b}-\log_a{c}$$</div></div><div class="theory-item"><p>6. Степень аргумента логарифма:</p><div class="math-block">$$\log_a{b^p}=p\cdot\log_a{b}$$</div></div><div class="theory-item"><p>7. Степень основания логарифма:</p><div class="math-block">$$\log_{a^q}{b}=\frac{1}{q}\cdot\log_a{b}$$</div></div><div class="theory-item"><p>8. Переход к новому основанию:</p><div class="math-block">$$\log_a{b}=\frac{\log_c{b}}{\log_c{a}}$$</div></div><div class="theory-item"><p>9. Смена основания и аргумента:</p><div class="math-block">$$\log_a{b}=\frac{1}{\log_b{a}}$$</div></div><div class="theory-item"><p>10. Замена основания и аргумента:</p><div class="math-block">$$a^{\log_c{b}}=b^{\log_c{a}}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 3: Тригонометрия (Базовые тождества)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Основное тождество:</p><div class="math-block">$$\sin^2{\alpha}+\cos^2{\alpha}=1$$</div></div><div class="theory-item"><p>2. Определение тангенса:</p><div class="math-block">$$\text{tg}{\alpha}=\frac{\sin{\alpha}}{\cos{\alpha}}$$</div></div><div class="theory-item"><p>3. Определение котангенса:</p><div class="math-block">$$\text{ctg}{\alpha}=\frac{\cos{\alpha}}{\sin{\alpha}}$$</div></div><div class="theory-item"><p>4. Связь тангенса и котангенса:</p><div class="math-block">$$\text{tg}{\alpha}\cdot\text{ctg}{\alpha}=1$$</div></div><div class="theory-item"><p>5. Косинус через тангенс:</p><div class="math-block">$$1+\text{tg}^2{\alpha}=\frac{1}{\cos^2{\alpha}}$$</div></div><div class="theory-item"><p>6. Синус через котангенс:</p><div class="math-block">$$1+\text{ctg}^2{\alpha}=\frac{1}{\sin^2{\alpha}}$$</div></div><div class="theory-item"><p>7. Четность косинуса:</p><div class="math-block">$$\cos(-\alpha)=\cos{\alpha}$$</div></div><div class="theory-item"><p>8. Нечетность синуса:</p><div class="math-block">$$\sin(-\alpha)=-\sin{\alpha}$$</div></div><div class="theory-item"><p>9. Нечетность тангенса:</p><div class="math-block">$$\text{tg}(-\alpha)=-\text{tg}{\alpha}$$</div></div><div class="theory-item"><p>10. Нечетность котангенса:</p><div class="math-block">$$\text{ctg}(-\alpha)=-\text{ctg}{\alpha}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 4: Тригонометрия (Сложение и двойной угол)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Синус двойного угла:</p><div class="math-block">$$\sin{2\alpha}=2\sin{\alpha}\cos{\alpha}$$</div></div><div class="theory-item"><p>2. Косинус двойного угла (базовая):</p><div class="math-block">$$\cos{2\alpha}=\cos^2{\alpha}-\sin^2{\alpha}$$</div></div><div class="theory-item"><p>3. Косинус двойного угла (через cos):</p><div class="math-block">$$\cos{2\alpha}=2\cos^2{\alpha}-1$$</div></div><div class="theory-item"><p>4. Косинус двойного угла (через sin):</p><div class="math-block">$$\cos{2\alpha}=1-2\sin^2{\alpha}$$</div></div><div class="theory-item"><p>5. Тангенс двойного угла:</p><div class="math-block">$$\text{tg}{2\alpha}=\frac{2\text{tg}{\alpha}}{1-\text{tg}^2{\alpha}}$$</div></div><div class="theory-item"><p>6. Синус суммы:</p><div class="math-block">$$\sin(\alpha+\beta)=\sin{\alpha}\cos{\beta}+\cos{\alpha}\sin{\beta}$$</div></div><div class="theory-item"><p>7. Синус разности:</p><div class="math-block">$$\sin(\alpha-\beta)=\sin{\alpha}\cos{\beta}-\cos{\alpha}\sin{\beta}$$</div></div><div class="theory-item"><p>8. Косинус суммы:</p><div class="math-block">$$\cos(\alpha+\beta)=\cos{\alpha}\cos{\beta}-\sin{\alpha}\sin{\beta}$$</div></div><div class="theory-item"><p>9. Косинус разности:</p><div class="math-block">$$\cos(\alpha-\beta)=\cos{\alpha}\cos{\beta}+\sin{\alpha}\sin{\beta}$$</div></div><div class="theory-item"><p>10. Формула понижения степени:</p><div class="math-block">$$\sin^2{\alpha}=\frac{1-\cos{2\alpha}}{2}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 5: Производная и касательная</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Производная константы:</p><div class="math-block">$$(C)'=0$$</div></div><div class="theory-item"><p>2. Производная переменной:</p><div class="math-block">$$(x)'=1$$</div></div><div class="theory-item"><p>3. Производная степенной функции:</p><div class="math-block">$$(x^n)'=n\cdot x^{n-1}$$</div></div><div class="theory-item"><p>4. Производная квадратного корня:</p><div class="math-block">$$(\sqrt{x})'=\frac{1}{2\sqrt{x}}$$</div></div><div class="theory-item"><p>5. Производная синуса:</p><div class="math-block">$$(\sin{x})'=\cos{x}$$</div></div><div class="theory-item"><p>6. Производная косинуса:</p><div class="math-block">$$(\cos{x})'=-\sin{x}$$</div></div><div class="theory-item"><p>7. Производная суммы/разности:</p><div class="math-block">$$(u\pm v)'=u'\pm v'$$</div></div><div class="theory-item"><p>8. Производная произведения:</p><div class="math-block">$$(u\cdot v)'=u'v+uv'$$</div></div><div class="theory-item"><p>9. Производная частного:</p><div class="math-block">$$(\frac{u}{v})'=\frac{u'v-uv'}{v^2}$$</div></div><div class="theory-item"><p>10. Уравнение касательной:</p><div class="math-block">$$y=f(x_0)+f'(x_0)(x-x_0)$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 6: Планиметрия (Площади и треугольники)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Площадь треугольника (через высоту):</p><div class="math-block">$$S=\frac{1}{2}ah_a$$</div></div><div class="theory-item"><p>2. Площадь треугольника (через синус):</p><div class="math-block">$$S=\frac{1}{2}ab\sin{\gamma}$$</div></div><div class="theory-item"><p>3. Формула Герона:</p><div class="math-block">$$S=\sqrt{p(p-a)(p-b)(p-c)}$$</div></div><div class="theory-item"><p>4. Площадь через вписанную окружность:</p><div class="math-block">$$S=p\cdot r$$</div></div><div class="theory-item"><p>5. Площадь через описанную окружность:</p><div class="math-block">$$S=\frac{abc}{4R}$$</div></div><div class="theory-item"><p>6. Теорема синусов:</p><div class="math-block">$$\frac{a}{\sin{\alpha}}=\frac{b}{\sin{\beta}}=\frac{c}{\sin{\gamma}}=2R$$</div></div><div class="theory-item"><p>7. Теорема косинусов:</p><div class="math-block">$$c^2=a^2+b^2-2ab\cos{\gamma}$$</div></div><div class="theory-item"><p>8. Площадь параллелограмма:</p><div class="math-block">$$S=ab\sin{\alpha}$$</div></div><div class="theory-item"><p>9. Площадь трапеции:</p><div class="math-block">$$S=\frac{a+b}{2}\cdot h$$</div></div><div class="theory-item"><p>10. Площадь четырехугольника:</p><div class="math-block">$$S=\frac{1}{2}d_1d_2\sin{\phi}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 7: Стереометрия (Объемы и поверхности)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Объем призмы и цилиндра:</p><div class="math-block">$$V=S_{\text{осн}}\cdot h$$</div></div><div class="theory-item"><p>2. Объем пирамиды и конуса:</p><div class="math-block">$$V=\frac{1}{3}S_{\text{осн}}\cdot h$$</div></div><div class="theory-item"><p>3. Объем прямоугольного параллелепипеда:</p><div class="math-block">$$V=abc$$</div></div><div class="theory-item"><p>4. Диагональ прямоугольного параллелепипеда:</p><div class="math-block">$$d^2=a^2+b^2+c^2$$</div></div><div class="theory-item"><p>5. Объем шара:</p><div class="math-block">$$V=\frac{4}{3}\pi R^3$$</div></div><div class="theory-item"><p>6. Площадь сферы:</p><div class="math-block">$$S=4\pi R^2$$</div></div><div class="theory-item"><p>7. Площадь боковой поверхности цилиндра:</p><div class="math-block">$$S_{\text{бок}}=2\pi Rh$$</div></div><div class="theory-item"><p>8. Площадь полной поверхности цилиндра:</p><div class="math-block">$$S_{\text{полн}}=2\pi R(h+R)$$</div></div><div class="theory-item"><p>9. Площадь боковой поверхности конуса:</p><div class="math-block">$$S_{\text{бок}}=\pi Rl$$</div></div><div class="theory-item"><p>10. Площадь полной поверхности конуса:</p><div class="math-block">$$S_{\text{полн}}=\pi R(l+R)$$</div></div>
+            </div></details>
         </div>
 
-        <button class="btn" onclick="sendFeedback()">Отправить</button>
-        <button class="btn" style="background: transparent; color: inherit; border: 1px solid currentColor;" onclick="showScreen('screen-menu')">Отмена</button>
+        <div id="theory-data-10" class="theory-class-container">
+            <details class="theory-section"><summary>Раздел 1: Тригонометрия (Основы и приведение)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Основное тригонометрическое тождество:</p><div class="math-block">$$\sin^2{\alpha}+\cos^2{\alpha}=1$$</div></div><div class="theory-item"><p>2. Определение тангенса:</p><div class="math-block">$$\text{tg}{\alpha}=\frac{\sin{\alpha}}{\cos{\alpha}}$$</div></div><div class="theory-item"><p>3. Определение котангенса:</p><div class="math-block">$$\text{ctg}{\alpha}=\frac{\cos{\alpha}}{\sin{\alpha}}$$</div></div><div class="theory-item"><p>4. Связь тангенса и котангенса:</p><div class="math-block">$$\text{tg}{\alpha}\cdot\text{ctg}{\alpha}=1$$</div></div><div class="theory-item"><p>5. Выражение косинуса через тангенс:</p><div class="math-block">$$1+\text{tg}^2{\alpha}=\frac{1}{\cos^2{\alpha}}$$</div></div><div class="theory-item"><p>6. Выражение синуса через котангенс:</p><div class="math-block">$$1+\text{ctg}^2{\alpha}=\frac{1}{\sin^2{\alpha}}$$</div></div><div class="theory-item"><p>7. Четность косинуса:</p><div class="math-block">$$\cos(-\alpha)=\cos{\alpha}$$</div></div><div class="theory-item"><p>8. Нечетность синуса:</p><div class="math-block">$$\sin(-\alpha)=-\sin{\alpha}$$</div></div><div class="theory-item"><p>9. Формула приведения (пример 1):</p><div class="math-block">$$\sin(\frac{\pi}{2}-\alpha)=\cos{\alpha}$$</div></div><div class="theory-item"><p>10. Формула приведения (пример 2):</p><div class="math-block">$$\cos(\pi-\alpha)=-\cos{\alpha}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 2: Тригонометрия (Сложение и двойной угол)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Синус суммы:</p><div class="math-block">$$\sin(\alpha+\beta)=\sin{\alpha}\cos{\beta}+\cos{\alpha}\sin{\beta}$$</div></div><div class="theory-item"><p>2. Косинус суммы:</p><div class="math-block">$$\cos(\alpha+\beta)=\cos{\alpha}\cos{\beta}-\sin{\alpha}\sin{\beta}$$</div></div><div class="theory-item"><p>3. Синус двойного угла:</p><div class="math-block">$$\sin{2\alpha}=2\sin{\alpha}\cos{\alpha}$$</div></div><div class="theory-item"><p>4. Косинус двойного угла (базовая):</p><div class="math-block">$$\cos{2\alpha}=\cos^2{\alpha}-\sin^2{\alpha}$$</div></div><div class="theory-item"><p>5. Косинус двойного угла (через синус):</p><div class="math-block">$$\cos{2\alpha}=1-2\sin^2{\alpha}$$</div></div><div class="theory-item"><p>6. Косинус двойного угла (через косинус):</p><div class="math-block">$$\cos{2\alpha}=2\cos^2{\alpha}-1$$</div></div><div class="theory-item"><p>7. Тангенс двойного угла:</p><div class="math-block">$$\text{tg}{2\alpha}=\frac{2\text{tg}{\alpha}}{1-\text{tg}^2{\alpha}}$$</div></div><div class="theory-item"><p>8. Понижение степени (синус):</p><div class="math-block">$$\sin^2{\alpha}=\frac{1-\cos{2\alpha}}{2}$$</div></div><div class="theory-item"><p>9. Понижение степени (косинус):</p><div class="math-block">$$\cos^2{\alpha}=\frac{1+\cos{2\alpha}}{2}$$</div></div><div class="theory-item"><p>10. Сумма синусов:</p><div class="math-block">$$\sin{\alpha}+\sin{\beta}=2\sin{\frac{\alpha+\beta}{2}}\cos{\frac{\alpha-\beta}{2}}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 3: Простейшие тригонометрические уравнения</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Уравнение $\sin x = a$:</p><div class="math-block">$$x=(-1)^k\arcsin{a}+\pi k$$</div></div><div class="theory-item"><p>2. Уравнение $\cos x = a$:</p><div class="math-block">$$x=\pm\arccos{a}+2\pi k$$</div></div><div class="theory-item"><p>3. Уравнение $\text{tg } x = a$:</p><div class="math-block">$$x=\text{arctg}{a}+\pi k$$</div></div><div class="theory-item"><p>4. Уравнение $\text{ctg } x = a$:</p><div class="math-block">$$x=\text{arcctg}{a}+\pi k$$</div></div><div class="theory-item"><p>5. Частный случай $\sin x = 0$:</p><div class="math-block">$$x=\pi k$$</div></div><div class="theory-item"><p>6. Частный случай $\sin x = 1$:</p><div class="math-block">$$x=\frac{\pi}{2}+2\pi k$$</div></div><div class="theory-item"><p>7. Частный случай $\sin x = -1$:</p><div class="math-block">$$x=-\frac{\pi}{2}+2\pi k$$</div></div><div class="theory-item"><p>8. Частный случай $\cos x = 0$:</p><div class="math-block">$$x=\frac{\pi}{2}+\pi k$$</div></div><div class="theory-item"><p>9. Частный случай $\cos x = 1$:</p><div class="math-block">$$x=2\pi k$$</div></div><div class="theory-item"><p>10. Частный случай $\cos x = -1$:</p><div class="math-block">$$x=\pi+2\pi k$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 4: Корни n-ой степени и рациональные показатели</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Определение рациональной степени:</p><div class="math-block">$$a^{\frac{m}{n}}=\sqrt[n]{a^m}$$</div></div><div class="theory-item"><p>2. Корень из произведения:</p><div class="math-block">$$\sqrt[n]{ab}=\sqrt[n]{a}\cdot\sqrt[n]{b}$$</div></div><div class="theory-item"><p>3. Корень из дроби:</p><div class="math-block">$$\sqrt[n]{\frac{a}{b}}=\frac{\sqrt[n]{a}}{\sqrt[n]{b}}$$</div></div><div class="theory-item"><p>4. Корень из корня:</p><div class="math-block">$$\sqrt[n]{\sqrt[m]{a}}=\sqrt[n\cdot m]{a}$$</div></div><div class="theory-item"><p>5. Возведение корня в степень:</p><div class="math-block">$$(\sqrt[n]{a})^m=\sqrt[n]{a^m}$$</div></div><div class="theory-item"><p>6. Основное свойство корня:</p><div class="math-block">$$\sqrt[n\cdot k]{a^{m\cdot k}}=\sqrt[n]{a^m}$$</div></div><div class="theory-item"><p>7. Корень четной степени из квадрата:</p><div class="math-block">$$\sqrt[2k]{a^{2k}}=|a|$$</div></div><div class="theory-item"><p>8. Умножение степеней:</p><div class="math-block">$$a^p\cdot a^q=a^{p+q}$$</div></div><div class="theory-item"><p>9. Деление степеней:</p><div class="math-block">$$\frac{a^p}{a^q}=a^{p-q}$$</div></div><div class="theory-item"><p>10. Возведение степени в степень:</p><div class="math-block">$$(a^p)^q=a^{p\cdot q}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 5: Производная (Правила и формулы)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Производная константы:</p><div class="math-block">$$(C)'=0$$</div></div><div class="theory-item"><p>2. Производная линейной функции:</p><div class="math-block">$$(kx+b)'=k$$</div></div><div class="theory-item"><p>3. Производная степенной функции:</p><div class="math-block">$$(x^n)'=n\cdot x^{n-1}$$</div></div><div class="theory-item"><p>4. Производная корня:</p><div class="math-block">$$(\sqrt{x})'=\frac{1}{2\sqrt{x}}$$</div></div><div class="theory-item"><p>5. Производная обратной функции:</p><div class="math-block">$$(\frac{1}{x})'=-\frac{1}{x^2}$$</div></div><div class="theory-item"><p>6. Производная синуса:</p><div class="math-block">$$(\sin{x})'=\cos{x}$$</div></div><div class="theory-item"><p>7. Производная косинуса:</p><div class="math-block">$$(\cos{x})'=-\sin{x}$$</div></div><div class="theory-item"><p>8. Производная суммы/разности:</p><div class="math-block">$$(u\pm v)'=u'\pm v'$$</div></div><div class="theory-item"><p>9. Производная произведения:</p><div class="math-block">$$(u\cdot v)'=u'v+uv'$$</div></div><div class="theory-item"><p>10. Производная частного:</p><div class="math-block">$$(\frac{u}{v})'=\frac{u'v-uv'}{v^2}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 6: Стереометрия (Прямые, плоскости и векторы)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Диагональ прямоугольного параллелепипеда:</p><div class="math-block">$$d^2=a^2+b^2+c^2$$</div></div><div class="theory-item"><p>2. Связь наклонной, проекции и перпендикуляра:</p><div class="math-block">$$l^2=h^2+p^2$$</div></div><div class="theory-item"><p>3. Площадь ортогональной проекции:</p><div class="math-block">$$S_{\text{пр}}=S\cdot\cos{\phi}$$</div></div><div class="theory-item"><p>4. Скалярное произведение векторов:</p><div class="math-block">$$\vec{a}\cdot\vec{b}=x_1x_2+y_1y_2+z_1z_2$$</div></div><div class="theory-item"><p>5. Длина вектора в пространстве:</p><div class="math-block">$$|\vec{a}|=\sqrt{x^2+y^2+z^2}$$</div></div><div class="theory-item"><p>6. Координаты середины отрезка:</p><div class="math-block">$$x_m=\frac{x_1+x_2}{2}$$</div></div><div class="theory-item"><p>7. Расстояние между точками:</p><div class="math-block">$$d=\sqrt{(x_2-x_1)^2+(y_2-y_1)^2+(z_2-z_1)^2}$$</div></div><div class="theory-item"><p>8. Угол между скрещивающимися прямыми:</p><div class="math-block">$$\cos{\phi}=\frac{|\vec{a}\cdot\vec{b}|}{|\vec{a}|\cdot|\vec{b}|}$$</div></div><div class="theory-item"><p>9. Общее уравнение плоскости:</p><div class="math-block">$$Ax+By+Cz+D=0$$</div></div><div class="theory-item"><p>10. Угол между плоскостями:</p><div class="math-block">$$\cos{\phi}=\frac{|\vec{n_1}\cdot\vec{n_2}|}{|\vec{n_1}|\cdot|\vec{n_2}|}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 7: Стереометрия (Площади и объемы многогранников)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Объем призмы:</p><div class="math-block">$$V=S_{\text{осн}}\cdot h$$</div></div><div class="theory-item"><p>2. Площадь боковой поверхности прямой призмы:</p><div class="math-block">$$S_{\text{бок}}=P_{\text{осн}}\cdot h$$</div></div><div class="theory-item"><p>3. Объем прямоугольного параллелепипеда:</p><div class="math-block">$$V=a\cdot b\cdot c$$</div></div><div class="theory-item"><p>4. Объем куба:</p><div class="math-block">$$V=a^3$$</div></div><div class="theory-item"><p>5. Площадь полной поверхности куба:</p><div class="math-block">$$S=6a^2$$</div></div><div class="theory-item"><p>6. Объем пирамиды:</p><div class="math-block">$$V=\frac{1}{3}S_{\text{осн}}\cdot h$$</div></div><div class="theory-item"><p>7. Площадь боковой поверхности правильной пирамиды:</p><div class="math-block">$$S_{\text{бок}}=\frac{1}{2}P_{\text{осн}}\cdot l$$</div></div><div class="theory-item"><p>8. Площадь полной поверхности призмы:</p><div class="math-block">$$S_{\text{полн}}=S_{\text{бок}}+2S_{\text{осн}}$$</div></div><div class="theory-item"><p>9. Объем усеченной пирамиды:</p><div class="math-block">$$V=\frac{1}{3}h(S_1+\sqrt{S_1S_2}+S_2)$$</div></div><div class="theory-item"><p>10. Теорема Эйлера (Вершины, Ребра, Грани):</p><div class="math-block">$$В-Р+Г=2$$</div></div>
+            </div></details>
+        </div>
+
+        <div id="theory-data-9" class="theory-class-container">
+            <details class="theory-section"><summary>Раздел 1: Квадратичная функция и парабола</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Уравнение квадратичной функции:</p><div class="math-block">$$y=ax^2+bx+c$$</div></div><div class="theory-item"><p>2. Координата X вершины параболы:</p><div class="math-block">$$x_0=-\frac{b}{2a}$$</div></div><div class="theory-item"><p>3. Координата Y вершины параболы:</p><div class="math-block">$$y_0=y(x_0)$$</div></div><div class="theory-item"><p>4. Уравнение оси симметрии параболы:</p><div class="math-block">$$x=-\frac{b}{2a}$$</div></div><div class="theory-item"><p>5. Дискриминант:</p><div class="math-block">$$D=b^2-4ac$$</div></div><div class="theory-item"><p>6. Корни при D > 0:</p><div class="math-block">$$x_{1,2}=\frac{-b\pm\sqrt{D}}{2a}$$</div></div><div class="theory-item"><p>7. Корень при D = 0:</p><div class="math-block">$$x=-\frac{b}{2a}$$</div></div><div class="theory-item"><p>8. Теорема Виета (сумма корней):</p><div class="math-block">$$x_1+x_2=-\frac{b}{a}$$</div></div><div class="theory-item"><p>9. Теорема Виета (произведение корней):</p><div class="math-block">$$x_1\cdot x_2=\frac{c}{a}$$</div></div><div class="theory-item"><p>10. Разложение квадратного трехчлена:</p><div class="math-block">$$ax^2+bx+c=a(x-x_1)(x-x_2)$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 2: Арифметическая прогрессия</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Формула разности прогрессии:</p><div class="math-block">$$d=a_n-a_{n-1}$$</div></div><div class="theory-item"><p>2. Формула n-го члена:</p><div class="math-block">$$a_n=a_1+d(n-1)$$</div></div><div class="theory-item"><p>3. Свойство соседних членов:</p><div class="math-block">$$a_n=\frac{a_{n-1}+a_{n+1}}{2}$$</div></div><div class="theory-item"><p>4. Сумма n первых членов:</p><div class="math-block">$$S_n=\frac{a_1+a_n}{2}\cdot n$$</div></div><div class="theory-item"><p>5. Сумма n первых членов (через разность):</p><div class="math-block">$$S_n=\frac{2a_1+d(n-1)}{2}\cdot n$$</div></div><div class="theory-item"><p>6. Разность через любые два члена:</p><div class="math-block">$$d=\frac{a_n-a_m}{n-m}$$</div></div><div class="theory-item"><p>7. Связь элементов:</p><div class="math-block">$$a_k+a_m=a_p+a_q \text{ (если } k+m=p+q)$$</div></div><div class="theory-item"><p>8. Нахождение члена через сумму:</p><div class="math-block">$$a_n=S_n-S_{n-1}$$</div></div><div class="theory-item"><p>9. Выражение любого члена через другой:</p><div class="math-block">$$a_n=a_k+d(n-k)$$</div></div><div class="theory-item"><p>10. Условие возрастания:</p><div class="math-block">$$d>0 \Rightarrow a_{n+1}>a_n$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 3: Геометрическая прогрессия</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Знаменатель прогрессии:</p><div class="math-block">$$q=\frac{b_n}{b_{n-1}}$$</div></div><div class="theory-item"><p>2. Формула n-го члена:</p><div class="math-block">$$b_n=b_1\cdot q^{n-1}$$</div></div><div class="theory-item"><p>3. Свойство соседних членов (модуль):</p><div class="math-block">$$|b_n|=\sqrt{b_{n-1}\cdot b_{n+1}}$$</div></div><div class="theory-item"><p>4. Квадрат n-го члена:</p><div class="math-block">$$b_n^2=b_{n-1}\cdot b_{n+1}$$</div></div><div class="theory-item"><p>5. Сумма n первых членов:</p><div class="math-block">$$S_n=\frac{b_1(q^n-1)}{q-1}$$</div></div><div class="theory-item"><p>6. Сумма убывающей прогрессии (|q| < 1):</p><div class="math-block">$$S=\frac{b_1}{1-q}$$</div></div><div class="theory-item"><p>7. Выражение любого члена через другой:</p><div class="math-block">$$b_n=b_k\cdot q^{n-k}$$</div></div><div class="theory-item"><p>8. Связь элементов:</p><div class="math-block">$$b_k\cdot b_m=b_p\cdot b_q \text{ (если } k+m=p+q)$$</div></div><div class="theory-item"><p>9. Условие знакочередования:</p><div class="math-block">$$q<0$$</div></div><div class="theory-item"><p>10. Нахождение знаменателя через 2 члена:</p><div class="math-block">$$q^{n-m}=\frac{b_n}{b_m}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 4: Элементы комбинаторики и вероятности</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Классическая вероятность:</p><div class="math-block">$$P(A)=\frac{m}{n}$$</div></div><div class="theory-item"><p>2. Вероятность достоверного события:</p><div class="math-block">$$P=1$$</div></div><div class="theory-item"><p>3. Вероятность невозможного события:</p><div class="math-block">$$P=0$$</div></div><div class="theory-item"><p>4. Сумма вероятностей противоположных событий:</p><div class="math-block">$$P(A)+P(\bar{A})=1$$</div></div><div class="theory-item"><p>5. Теорема сложения:</p><div class="math-block">$$P(A+B)=P(A)+P(B)$$</div></div><div class="theory-item"><p>6. Теорема умножения:</p><div class="math-block">$$P(A\cdot B)=P(A)\cdot P(B)$$</div></div><div class="theory-item"><p>7. Факториал числа:</p><div class="math-block">$$n!=1\cdot 2\cdot 3\cdot ... \cdot n$$</div></div><div class="theory-item"><p>8. Перестановки:</p><div class="math-block">$$P_n=n!$$</div></div><div class="theory-item"><p>9. Среднее арифметическое:</p><div class="math-block">$$\bar{x}=\frac{x_1+x_2+...+x_n}{n}$$</div></div><div class="theory-item"><p>10. Относительная частота события:</p><div class="math-block">$$W(A)=\frac{m}{n}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 5: Теоремы синусов, косинусов и площади</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Теорема синусов:</p><div class="math-block">$$\frac{a}{\sin{\alpha}}=\frac{b}{\sin{\beta}}=\frac{c}{\sin{\gamma}}=2R$$</div></div><div class="theory-item"><p>2. Теорема косинусов:</p><div class="math-block">$$c^2=a^2+b^2-2ab\cos{\gamma}$$</div></div><div class="theory-item"><p>3. Косинус угла из теоремы косинусов:</p><div class="math-block">$$\cos{\gamma}=\frac{a^2+b^2-c^2}{2ab}$$</div></div><div class="theory-item"><p>4. Площадь треугольника (через синус):</p><div class="math-block">$$S=\frac{1}{2}ab\sin{\gamma}$$</div></div><div class="theory-item"><p>5. Радиус описанной окружности:</p><div class="math-block">$$R=\frac{abc}{4S}$$</div></div><div class="theory-item"><p>6. Радиус вписанной окружности:</p><div class="math-block">$$r=\frac{S}{p}$$</div></div><div class="theory-item"><p>7. Формула Герона:</p><div class="math-block">$$S=\sqrt{p(p-a)(p-b)(p-c)}$$</div></div><div class="theory-item"><p>8. Полупериметр:</p><div class="math-block">$$p=\frac{a+b+c}{2}$$</div></div><div class="theory-item"><p>9. Площадь выпуклого четырехугольника:</p><div class="math-block">$$S=\frac{1}{2}d_1 d_2 \sin{\phi}$$</div></div><div class="theory-item"><p>10. Сумма углов n-угольника:</p><div class="math-block">$$\Sigma=180^\circ(n-2)$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 6: Векторы и метод координат</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Координаты вектора через точки:</p><div class="math-block">$$\vec{AB}=\{x_2-x_1; y_2-y_1\}$$</div></div><div class="theory-item"><p>2. Длина (модуль) вектора:</p><div class="math-block">$$|\vec{a}|=\sqrt{x^2+y^2}$$</div></div><div class="theory-item"><p>3. Сложение векторов:</p><div class="math-block">$$\vec{a}+\vec{b}=\{x_1+x_2; y_1+y_2\}$$</div></div><div class="theory-item"><p>4. Умножение вектора на число:</p><div class="math-block">$$k\cdot\vec{a}=\{kx; ky\}$$</div></div><div class="theory-item"><p>5. Скалярное произведение:</p><div class="math-block">$$\vec{a}\cdot\vec{b}=x_1 x_2 + y_1 y_2$$</div></div><div class="theory-item"><p>6. Скалярное произведение (через косинус):</p><div class="math-block">$$\vec{a}\cdot\vec{b}=|\vec{a}|\cdot|\vec{b}|\cos{\alpha}$$</div></div><div class="theory-item"><p>7. Косинус угла между векторами:</p><div class="math-block">$$\cos{\alpha}=\frac{x_1 x_2 + y_1 y_2}{\sqrt{x_1^2+y_1^2}\cdot\sqrt{x_2^2+y_2^2}}$$</div></div><div class="theory-item"><p>8. Условие перпендикулярности:</p><div class="math-block">$$x_1 x_2 + y_1 y_2 = 0$$</div></div><div class="theory-item"><p>9. Координаты середины отрезка:</p><div class="math-block">$$x_m=\frac{x_1+x_2}{2}, \quad y_m=\frac{y_1+y_2}{2}$$</div></div><div class="theory-item"><p>10. Расстояние между двумя точками:</p><div class="math-block">$$d=\sqrt{(x_2-x_1)^2+(y_2-y_1)^2}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 7: Правильные многоугольники и окружность</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Длина окружности:</p><div class="math-block">$$C=2\pi R$$</div></div><div class="theory-item"><p>2. Длина дуги окружности:</p><div class="math-block">$$l=\frac{\pi R \alpha}{180^\circ}$$</div></div><div class="theory-item"><p>3. Площадь круга:</p><div class="math-block">$$S=\pi R^2$$</div></div><div class="theory-item"><p>4. Площадь кругового сектора:</p><div class="math-block">$$S=\frac{\pi R^2 \alpha}{360^\circ}$$</div></div><div class="theory-item"><p>5. Вписанная окружность (прав. треугольник):</p><div class="math-block">$$r=\frac{a\sqrt{3}}{6}$$</div></div><div class="theory-item"><p>6. Описанная окружность (прав. треугольник):</p><div class="math-block">$$R=\frac{a\sqrt{3}}{3}$$</div></div><div class="theory-item"><p>7. Вписанная окружность (квадрат):</p><div class="math-block">$$r=\frac{a}{2}$$</div></div><div class="theory-item"><p>8. Описанная окружность (квадрат):</p><div class="math-block">$$R=\frac{a\sqrt{2}}{2}$$</div></div><div class="theory-item"><p>9. Вписанная окружность (прав. шестиугольник):</p><div class="math-block">$$r=\frac{a\sqrt{3}}{2}$$</div></div><div class="theory-item"><p>10. Описанная окружность (прав. шестиугольник):</p><div class="math-block">$$R=a$$</div></div>
+            </div></details>
+        </div>
+
+        <div id="theory-data-8" class="theory-class-container">
+            <details class="theory-section"><summary>Раздел 1: Квадратные корни и степени</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Основное свойство корня:</p><div class="math-block">$$(\sqrt{a})^2=a \quad (a\ge 0)$$</div></div><div class="theory-item"><p>2. Корень из квадрата:</p><div class="math-block">$$\sqrt{a^2}=|a|$$</div></div><div class="theory-item"><p>3. Корень из произведения:</p><div class="math-block">$$\sqrt{ab}=\sqrt{a}\cdot\sqrt{b} \quad (a\ge 0, b\ge 0)$$</div></div><div class="theory-item"><p>4. Корень из дроби:</p><div class="math-block">$$\sqrt{\frac{a}{b}}=\frac{\sqrt{a}}{\sqrt{b}} \quad (a\ge 0, b>0)$$</div></div><div class="theory-item"><p>5. Внесение множителя под корень:</p><div class="math-block">$$x\sqrt{y}=\sqrt{x^2 y} \quad (x\ge 0)$$</div></div><div class="theory-item"><p>6. Степень с нулевым показателем:</p><div class="math-block">$$a^0=1 \quad (a\ne 0)$$</div></div><div class="theory-item"><p>7. Степень с отрицательным показателем:</p><div class="math-block">$$a^{-n}=\frac{1}{a^n}$$</div></div><div class="theory-item"><p>8. Дробь в отрицательной степени:</p><div class="math-block">$$(\frac{a}{b})^{-n}=(\frac{b}{a})^n$$</div></div><div class="theory-item"><p>9. Умножение степеней:</p><div class="math-block">$$a^m\cdot a^n=a^{m+n}$$</div></div><div class="theory-item"><p>10. Деление степеней:</p><div class="math-block">$$a^m : a^n=a^{m-n}$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 2: Квадратные уравнения и неравенства</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Полное квадратное уравнение:</p><div class="math-block">$$ax^2+bx+c=0$$</div></div><div class="theory-item"><p>2. Дискриминант:</p><div class="math-block">$$D=b^2-4ac$$</div></div><div class="theory-item"><p>3. Корни квадратного уравнения:</p><div class="math-block">$$x_{1,2}=\frac{-b\pm\sqrt{D}}{2a}$$</div></div><div class="theory-item"><p>4. Теорема Виета (сумма):</p><div class="math-block">$$x_1+x_2=-\frac{b}{a}$$</div></div><div class="theory-item"><p>5. Теорема Виета (произведение):</p><div class="math-block">$$x_1\cdot x_2=\frac{c}{a}$$</div></div><div class="theory-item"><p>6. Разложение на множители:</p><div class="math-block">$$ax^2+bx+c=a(x-x_1)(x-x_2)$$</div></div><div class="theory-item"><p>7. Неполное уравнение (c=0):</p><div class="math-block">$$ax^2+bx=0 \Rightarrow x(ax+b)=0$$</div></div><div class="theory-item"><p>8. Неполное уравнение (b=0):</p><div class="math-block">$$ax^2+c=0 \Rightarrow x^2=-\frac{c}{a}$$</div></div><div class="theory-item"><p>9. Модуль числа (положительное):</p><div class="math-block">$$|x|=x \quad (x\ge 0)$$</div></div><div class="theory-item"><p>10. Модуль числа (отрицательное):</p><div class="math-block">$$|x|=-x \quad (x<0)$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 3: Четырехугольники и площади (Геометрия)</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Сумма углов четырехугольника:</p><div class="math-block">$$\Sigma=360^\circ$$</div></div><div class="theory-item"><p>2. Теорема Пифагора:</p><div class="math-block">$$c^2=a^2+b^2$$</div></div><div class="theory-item"><p>3. Площадь прямоугольника:</p><div class="math-block">$$S=a\cdot b$$</div></div><div class="theory-item"><p>4. Площадь параллелограмма:</p><div class="math-block">$$S=a\cdot h_a$$</div></div><div class="theory-item"><p>5. Площадь ромба через диагонали:</p><div class="math-block">$$S=\frac{1}{2}d_1 d_2$$</div></div><div class="theory-item"><p>6. Площадь треугольника:</p><div class="math-block">$$S=\frac{1}{2}a\cdot h_a$$</div></div><div class="theory-item"><p>7. Площадь прямоугольного треугольника:</p><div class="math-block">$$S=\frac{1}{2}a\cdot b$$</div></div><div class="theory-item"><p>8. Площадь трапеции:</p><div class="math-block">$$S=\frac{a+b}{2}\cdot h$$</div></div><div class="theory-item"><p>9. Средняя линия треугольника:</p><div class="math-block">$$m=\frac{1}{2}a$$</div></div><div class="theory-item"><p>10. Средняя линия трапеции:</p><div class="math-block">$$m=\frac{a+b}{2}$$</div></div>
+            </div></details>
+        </div>
+
+        <div id="theory-data-7" class="theory-class-container">
+            <details class="theory-section"><summary>Раздел 1: Свойства степеней и ФСУ</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Умножение степеней:</p><div class="math-block">$$a^n\cdot a^m=a^{n+m}$$</div></div><div class="theory-item"><p>2. Деление степеней:</p><div class="math-block">$$a^n : a^m=a^{n-m}$$</div></div><div class="theory-item"><p>3. Возведение степени в степень:</p><div class="math-block">$$(a^n)^m=a^{n\cdot m}$$</div></div><div class="theory-item"><p>4. Степень произведения:</p><div class="math-block">$$(ab)^n=a^n\cdot b^n$$</div></div><div class="theory-item"><p>5. Степень дроби:</p><div class="math-block">$$(\frac{a}{b})^n=\frac{a^n}{b^n}$$</div></div><div class="theory-item"><p>6. Квадрат суммы:</p><div class="math-block">$$(a+b)^2=a^2+2ab+b^2$$</div></div><div class="theory-item"><p>7. Квадрат разности:</p><div class="math-block">$$(a-b)^2=a^2-2ab+b^2$$</div></div><div class="theory-item"><p>8. Разность квадратов:</p><div class="math-block">$$a^2-b^2=(a-b)(a+b)$$</div></div><div class="theory-item"><p>9. Куб суммы:</p><div class="math-block">$$(a+b)^3=a^3+3a^2 b+3ab^2+b^3$$</div></div><div class="theory-item"><p>10. Сумма кубов:</p><div class="math-block">$$a^3+b^3=(a+b)(a^2-ab+b^2)$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 2: Линейная функция и уравнения</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Линейное уравнение:</p><div class="math-block">$$ax+b=0$$</div></div><div class="theory-item"><p>2. Корень линейного уравнения:</p><div class="math-block">$$x=-\frac{b}{a}$$</div></div><div class="theory-item"><p>3. Линейная функция:</p><div class="math-block">$$y=kx+b$$</div></div><div class="theory-item"><p>4. Прямая пропорциональность:</p><div class="math-block">$$y=kx$$</div></div><div class="theory-item"><p>5. Угловой коэффициент прямой:</p><div class="math-block">$$k=\frac{y_2-y_1}{x_2-x_1}$$</div></div><div class="theory-item"><p>6. Условие параллельности:</p><div class="math-block">$$k_1=k_2$$</div></div><div class="theory-item"><p>7. Условие пересечения:</p><div class="math-block">$$k_1\ne k_2$$</div></div><div class="theory-item"><p>8. Распределительное свойство:</p><div class="math-block">$$a(b+c)=ab+ac$$</div></div><div class="theory-item"><p>9. Вынесение общего множителя:</p><div class="math-block">$$ab+ac=a(b+c)$$</div></div><div class="theory-item"><p>10. Метод группировки:</p><div class="math-block">$$ab+ac+db+dc=(b+c)(a+d)$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 3: Треугольники и углы</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Сумма углов треугольника:</p><div class="math-block">$$\angle A+\angle B+\angle C=180^\circ$$</div></div><div class="theory-item"><p>2. Сумма смежных углов:</p><div class="math-block">$$\alpha+\beta=180^\circ$$</div></div><div class="theory-item"><p>3. Вертикальные углы:</p><div class="math-block">$$\angle 1=\angle 2$$</div></div><div class="theory-item"><p>4. Внешний угол треугольника:</p><div class="math-block">$$\angle_{внеш}=\angle A+\angle B$$</div></div><div class="theory-item"><p>5. Неравенство треугольника:</p><div class="math-block">$$a<b+c$$</div></div><div class="theory-item"><p>6. Периметр треугольника:</p><div class="math-block">$$P=a+b+c$$</div></div><div class="theory-item"><p>7. Свойство равнобедренного (углы):</p><div class="math-block">$$\angle A=\angle C$$</div></div><div class="theory-item"><p>8. Прямоугольный треугольник (угол 30°):</p><div class="math-block">$$a=\frac{1}{2}c$$</div></div><div class="theory-item"><p>9. Накрест лежащие углы:</p><div class="math-block">$$\angle 1=\angle 2 \Rightarrow a \parallel b$$</div></div><div class="theory-item"><p>10. Односторонние углы:</p><div class="math-block">$$\angle 1+\angle 2=180^\circ$$</div></div>
+            </div></details>
+        </div>
+
+        <div id="theory-data-6" class="theory-class-container">
+            <details class="theory-section"><summary>Раздел 1: Обыкновенные дроби и делимость</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Основное свойство дроби:</p><div class="math-block">$$\frac{a}{b}=\frac{a\cdot c}{b\cdot c}$$</div></div><div class="theory-item"><p>2. Сложение дробей:</p><div class="math-block">$$\frac{a}{c}+\frac{b}{c}=\frac{a+b}{c}$$</div></div><div class="theory-item"><p>3. Вычитание дробей:</p><div class="math-block">$$\frac{a}{c}-\frac{b}{c}=\frac{a-b}{c}$$</div></div><div class="theory-item"><p>4. Умножение дробей:</p><div class="math-block">$$\frac{a}{b}\cdot\frac{c}{d}=\frac{ac}{bd}$$</div></div><div class="theory-item"><p>5. Деление дробей:</p><div class="math-block">$$\frac{a}{b} : \frac{c}{d}=\frac{a\cdot d}{b\cdot c}$$</div></div><div class="theory-item"><p>6. Связь НОД и НОК:</p><div class="math-block">$$\text{НОД}(a; b)\cdot\text{НОК}(a; b)=a\cdot b$$</div></div><div class="theory-item"><p>7. Перевод в неправильную дробь:</p><div class="math-block">$$a\frac{b}{c}=\frac{a\cdot c+b}{c}$$</div></div><div class="theory-item"><p>8. Нахождение части от числа:</p><div class="math-block">$$b=a\cdot\frac{m}{n}$$</div></div><div class="theory-item"><p>9. Нахождение числа по части:</p><div class="math-block">$$a=b : \frac{m}{n}$$</div></div><div class="theory-item"><p>10. Взаимно обратные числа:</p><div class="math-block">$$\frac{a}{b}\cdot\frac{b}{a}=1$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 2: Пропорции, проценты и окружность</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Основное свойство пропорции:</p><div class="math-block">$$\frac{a}{b}=\frac{c}{d} \Rightarrow a\cdot d=b\cdot c$$</div></div><div class="theory-item"><p>2. Определение процента:</p><div class="math-block">$$1\%=\frac{1}{100}=0,01$$</div></div><div class="theory-item"><p>3. Нахождение p процентов:</p><div class="math-block">$$B=A\cdot\frac{p}{100}$$</div></div><div class="theory-item"><p>4. Число по его проценту:</p><div class="math-block">$$A=B : \frac{p}{100}$$</div></div><div class="theory-item"><p>5. Процентное отношение:</p><div class="math-block">$$\frac{A}{B}\cdot 100\%$$</div></div><div class="theory-item"><p>6. Масштаб:</p><div class="math-block">$$M=\frac{L_{\text{карта}}}{L_{\text{реальность}}}$$</div></div><div class="theory-item"><p>7. Длина окружности (радиус):</p><div class="math-block">$$C=2\pi r$$</div></div><div class="theory-item"><p>8. Длина окружности (диаметр):</p><div class="math-block">$$C=\pi d$$</div></div><div class="theory-item"><p>9. Площадь круга:</p><div class="math-block">$$S=\pi r^2$$</div></div><div class="theory-item"><p>10. Диаметр окружности:</p><div class="math-block">$$d=2r$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 3: Рациональные числа</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Модуль положительного:</p><div class="math-block">$$|a|=a \quad (a>0)$$</div></div><div class="theory-item"><p>2. Модуль отрицательного:</p><div class="math-block">$$|-a|=a$$</div></div><div class="theory-item"><p>3. Модуль нуля:</p><div class="math-block">$$|0|=0$$</div></div><div class="theory-item"><p>4. Противоположное число:</p><div class="math-block">$$-(-a)=a$$</div></div><div class="theory-item"><p>5. Сумма противоположных:</p><div class="math-block">$$a+(-a)=0$$</div></div><div class="theory-item"><p>6. Сложение (одинаковые знаки):</p><div class="math-block">$$-a+(-b)=-(a+b)$$</div></div><div class="theory-item"><p>7. Умножение (разные знаки):</p><div class="math-block">$$-a\cdot b=-ab$$</div></div><div class="theory-item"><p>8. Умножение двух отрицательных:</p><div class="math-block">$$-a\cdot (-b)=ab$$</div></div><div class="theory-item"><p>9. Деление (разные знаки):</p><div class="math-block">$$-a : b=-\frac{a}{b}$$</div></div><div class="theory-item"><p>10. Деление двух отрицательных:</p><div class="math-block">$$-a : (-b)=\frac{a}{b}$$</div></div>
+            </div></details>
+        </div>
+
+        <div id="theory-data-5" class="theory-class-container">
+            <details class="theory-section"><summary>Раздел 1: Натуральные числа</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Переместительное (сложение):</p><div class="math-block">$$a+b=b+a$$</div></div><div class="theory-item"><p>2. Сочетательное (сложение):</p><div class="math-block">$$(a+b)+c=a+(b+c)$$</div></div><div class="theory-item"><p>3. Свойство нуля:</p><div class="math-block">$$a+0=a$$</div></div><div class="theory-item"><p>4. Переместительное (умножение):</p><div class="math-block">$$a\cdot b=b\cdot a$$</div></div><div class="theory-item"><p>5. Сочетательное (умножение):</p><div class="math-block">$$(a\cdot b)\cdot c=a\cdot (b\cdot c)$$</div></div><div class="theory-item"><p>6. Распределительное (сложение):</p><div class="math-block">$$a(b+c)=ab+ac$$</div></div><div class="theory-item"><p>7. Распределительное (вычитание):</p><div class="math-block">$$a(b-c)=ab-ac$$</div></div><div class="theory-item"><p>8. Умножение на 1 и 0:</p><div class="math-block">$$a\cdot 1=a, \quad a\cdot 0=0$$</div></div><div class="theory-item"><p>9. Деление на 1 и на себя:</p><div class="math-block">$$a : 1=a, \quad a : a=1$$</div></div><div class="theory-item"><p>10. Деление с остатком:</p><div class="math-block">$$a=bq+r \quad (r<b)$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 2: Геометрические фигуры</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Периметр прямоугольника:</p><div class="math-block">$$P=2(a+b)$$</div></div><div class="theory-item"><p>2. Периметр квадрата:</p><div class="math-block">$$P=4a$$</div></div><div class="theory-item"><p>3. Площадь прямоугольника:</p><div class="math-block">$$S=a\cdot b$$</div></div><div class="theory-item"><p>4. Площадь квадрата:</p><div class="math-block">$$S=a^2$$</div></div><div class="theory-item"><p>5. Объем параллелепипеда:</p><div class="math-block">$$V=a\cdot b\cdot c$$</div></div><div class="theory-item"><p>6. Объем куба:</p><div class="math-block">$$V=a^3$$</div></div><div class="theory-item"><p>7. Перевод длины:</p><div class="math-block">$$1 \text{ км}=1000 \text{ м}$$</div></div><div class="theory-item"><p>8. Перевод массы:</p><div class="math-block">$$1 \text{ кг}=1000 \text{ г}$$</div></div><div class="theory-item"><p>9. Перевод площади (ар):</p><div class="math-block">$$1 \text{ а}=100 \text{ м}^2$$</div></div><div class="theory-item"><p>10. Перевод площади (гектар):</p><div class="math-block">$$1 \text{ га}=10000 \text{ м}^2$$</div></div>
+            </div></details>
+            <details class="theory-section"><summary>Раздел 3: Задачи и среднее арифметическое</summary><div class="theory-content">
+                <div class="theory-item"><p>1. Формула пути:</p><div class="math-block">$$s=v\cdot t$$</div></div><div class="theory-item"><p>2. Формула скорости:</p><div class="math-block">$$v=s : t$$</div></div><div class="theory-item"><p>3. Формула времени:</p><div class="math-block">$$t=s : v$$</div></div><div class="theory-item"><p>4. Скорость сближения:</p><div class="math-block">$$v_{\text{сбл}}=v_1+v_2$$</div></div><div class="theory-item"><p>5. Скорость удаления:</p><div class="math-block">$$v_{\text{уд}}=v_1+v_2$$</div></div><div class="theory-item"><p>6. Скорость по течению:</p><div class="math-block">$$v_{\text{по}}=v_{\text{собств}}+v_{\text{теч}}$$</div></div><div class="theory-item"><p>7. Скорость против течения:</p><div class="math-block">$$v_{\text{пр}}=v_{\text{собств}}-v_{\text{теч}}$$</div></div><div class="theory-item"><p>8. Стоимость покупки:</p><div class="math-block">$$C=n\cdot p$$</div></div><div class="theory-item"><p>9. Среднее арифметическое двух чисел:</p><div class="math-block">$$x_{\text{ср}}=\frac{a+b}{2}$$</div></div><div class="theory-item"><p>10. Среднее арифметическое n чисел:</p><div class="math-block">$$x_{\text{ср}}=\frac{x_1+...+x_n}{n}$$</div></div>
+            </div></details>
+        </div>
+
+        <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555; margin-top: 15px;">Назад в меню</button>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Раскрыть на весь экран
+    <div id="shopScreen" class="screen">
+        <h2>Магазин</h2>
+        <button class="btn" disabled>Предмет 1 (30 🪙)</button>
+        <button class="btn" disabled>Предмет 2 (50 🪙)</button>
+        <button class="btn" disabled>Предмет 3 (100 🪙)</button>
+        <button class="btn" onclick="showScreen('mainMenu')">Главное меню</button>
+        <button class="btn" onclick="openSupport()" style="background-color: #ff4444;">Обратная связь</button>
+    </div>
 
-        // ==========================================================
-        // БАЗА ЗНАНИЙ (ПОЛНАЯ, КАК ТЫ ПРОСИЛ)
-        // Используем String.raw`...` для LaTeX, чтобы не экранировать бэкслеши
-        // Двойной бэкслеш \\ в конце строк нужен для переноса формул
-        // ==========================================================
-        const theoryData = {
-            5: [
-                {
-                    title: "Блок 1: Натуральные числа",
-                    content: String.raw`
-                        \textbf{1. Свойства действий:} \\
-                        a + b = b + a \quad \text{(Переместительное)} \\
-                        (a + b) + c = a + (b + c) \quad \text{(Сочетательное)} \\
-                        a \cdot (b + c) = ab + ac \quad \text{(Распределительное)} \\
-                        a : b = q \text{ (ост. } r), \quad a = bq + r, \text{ где } r < b \quad \text{(Деление с остатком)}
-                    `
-                },
-                {
-                    title: "Блок 2: Геометрия",
-                    content: String.raw`
-                        \textbf{2. Фигуры на плоскости и в пространстве:} \\
-                        P = 2(a + b) \quad \text{(Периметр прямоугольника)} \\
-                        S = a \cdot b \quad \text{(Площадь прямоугольника)} \\
-                        S = a^2 \quad \text{(Площадь квадрата)} \\
-                        V = a \cdot b \cdot c \quad \text{(Объем параллелепипеда)} \\
-                        V = a^3 \quad \text{(Объем куба)}
-                    `
-                },
-                {
-                    title: "Блок 3: Задачи на движение",
-                    content: String.raw`
-                        \textbf{3. Движение и стоимость:} \\
-                        s = v \cdot t \quad \text{(Расстояние)} \\
-                        v_{по \ теч.} = v_{собств.} + v_{теч.} \\
-                        v_{пр. \ теч.} = v_{собств.} - v_{теч.} \\
-                        C = n \cdot p \quad \text{(Стоимость = кол-во } \cdot \text{ цена)}
-                    `
-                },
-                {
-                    title: "Блок 4: Обыкновенные дроби",
-                    content: String.raw`
-                        \textbf{4. Дроби (одинаковые знаменатели):} \\
-                        \frac{a}{c} + \frac{b}{c} = \frac{a+b}{c} \\
-                        \frac{a}{c} - \frac{b}{c} = \frac{a-b}{c}
-                    `
-                },
-                {
-                    title: "Блок 5: Десятичные дроби и статистика",
-                    content: String.raw`
-                        \textbf{5. Среднее и проценты:} \\
-                        \text{Среднее арифметическое} = \frac{x_1 + x_2 + \dots + x_n}{n} \\
-                        1\% = \frac{1}{100} = 0,01
-                    `
-                }
-            ],
-            6: [
-                {
-                    title: "Блок 1: Делимость чисел",
-                    content: String.raw`
-                        \textbf{1. Делимость:} \\
-                        \text{НОД}(a; b) \cdot \text{НОК}(a; b) = a \cdot b
-                    `
-                },
-                {
-                    title: "Блок 2: Обыкновенные дроби",
-                    content: String.raw`
-                        \textbf{2. Основное свойство и операции:} \\
-                        \frac{a}{b} = \frac{a \cdot c}{b \cdot c} \quad \text{(Основное свойство)} \\
-                        \frac{a}{b} \cdot \frac{c}{d} = \frac{ac}{bd} \\
-                        \frac{a}{b} : \frac{c}{d} = \frac{a \cdot d}{b \cdot c}
-                    `
-                },
-                {
-                    title: "Блок 3: Пропорции и окружность",
-                    content: String.raw`
-                        \textbf{3. Пропорции и геометрия:} \\
-                        \frac{a}{b} = \frac{c}{d} \Rightarrow a \cdot d = b \cdot c \quad \text{(Основное свойство пропорции)} \\
-                        C = 2\pi r = \pi d \quad \text{(Длина окружности)} \\
-                        S = \pi r^2 \quad \text{(Площадь круга)} \\
-                        M = \frac{L_{\text{плана}}}{L_{\text{реальности}}} \quad \text{(Масштаб)}
-                    `
-                },
-                {
-                    title: "Блок 4: Рациональные числа",
-                    content: String.raw`
-                        \textbf{4. Модуль и знаки:} \\
-                        |a| = \begin{cases} a, & \text{если } a \ge 0 \\ -a, & \text{если } a < 0 \end{cases} \\
-                        -a \cdot (-b) = ab \\
-                        -a \cdot b = -ab
-                    `
-                },
-                {
-                    title: "Блок 5: Уравнения",
-                    content: String.raw`
-                        \textbf{5. Раскрытие скобок:} \\
-                        a + (b - c) = a + b - c \\
-                        a - (b - c) = a - b + c \\
-                        a(b + c) = ab + ac \quad \text{(Коэффициент)}
-                    `
-                }
-            ],
-            7: [
-                {
-                    title: "Блок 1: Линейные уравнения",
-                    content: String.raw`
-                        \textbf{1. Линейное уравнение:} \\
-                        ax = b \Rightarrow x = \frac{b}{a} \quad (a \neq 0)
-                    `
-                },
-                {
-                    title: "Блок 2: Степень",
-                    content: String.raw`
-                        \textbf{2. Свойства степеней:} \\
-                        a^n \cdot a^m = a^{n+m} \\
-                        a^n : a^m = a^{n-m} \quad (a \neq 0, n > m) \\
-                        (a^n)^m = a^{nm} \\
-                        (ab)^n = a^n b^n \\
-                        \left(\frac{a}{b}\right)^n = \frac{a^n}{b^n}
-                    `
-                },
-                {
-                    title: "Блок 3: ФСУ",
-                    content: String.raw`
-                        \textbf{3. Сокращенное умножение:} \\
-                        (a + b)^2 = a^2 + 2ab + b^2 \quad \text{(Квадрат суммы)} \\
-                        (a - b)^2 = a^2 - 2ab + b^2 \quad \text{(Квадрат разности)} \\
-                        a^2 - b^2 = (a - b)(a + b) \quad \text{(Разность квадратов)} \\
-                        (a + b)^3 = a^3 + 3a^2b + 3ab^2 + b^3 \quad \text{(Куб суммы)} \\
-                        a^3 \pm b^3 = (a \pm b)(a^2 \mp ab + b^2)
-                    `
-                },
-                {
-                    title: "Блок 4: Функции",
-                    content: String.raw`
-                        \textbf{4. Линейная функция:} \\
-                        y = kx + b \\
-                        k = \text{угловой коэффициент} \\
-                        b = \text{точка пересечения с осью Y}
-                    `
-                },
-                {
-                    title: "Блок 5: Геометрия",
-                    content: String.raw`
-                        \textbf{5. Треугольники и углы:} \\
-                        \angle A + \angle B + \angle C = 180^\circ \quad \text{(Сумма углов)} \\
-                        \alpha + \beta = 180^\circ \quad \text{(Смежные углы)} \\
-                        \angle 1 = \angle 2 \quad \text{(Вертикальные углы)}
-                    `
-                }
-            ],
-            8: [
-                {
-                    title: "Алгебра: Рациональные и Корни",
-                    content: String.raw`
-                        \textbf{1. Рациональные выражения и степени} \\
-                        a^{-n} = \frac{1}{a^n} \quad (a \neq 0) \\
-                        (ab)^n = a^n b^n, \quad \left(\frac{a}{b}\right)^n = \frac{a^n}{b^n}, \quad (a^n)^m = a^{nm} \\
-                        \textbf{2. Квадратные корни} \\
-                        \sqrt{a} \ge 0, \quad (\sqrt{a})^2 = a \quad (a \ge 0) \\
-                        \sqrt{a^2} = |a| \\
-                        \sqrt{ab} = \sqrt{a} \cdot \sqrt{b} \quad (a, b \ge 0) \\
-                        \sqrt{\frac{a}{b}} = \frac{\sqrt{a}}{\sqrt{b}} \quad (a \ge 0, b > 0)
-                    `
-                },
-                {
-                    title: "Алгебра: Квадратные уравнения",
-                    content: String.raw`
-                        \textbf{3. Квадратные уравнения} \\
-                        ax^2 + bx + c = 0 \quad (a \neq 0) \\
-                        D = b^2 - 4ac \\
-                        x_{1,2} = \frac{-b \pm \sqrt{D}}{2a} \\
-                        \text{Теорема Виета: } 
-                        \begin{cases} x_1 + x_2 = -\frac{b}{a} \\ x_1 x_2 = \frac{c}{a} \end{cases} \\
-                        ax^2 + bx + c = a(x - x_1)(x - x_2)
-                    `
-                },
-                {
-                    title: "Алгебра: Неравенства",
-                    content: String.raw`
-                        \textbf{4. Неравенства} \\
-                        \text{Если } a > b \text{ и } c > 0 \Rightarrow ac > bc \\
-                        \text{Если } a > b \text{ и } c < 0 \Rightarrow ac < bc \\
-                        |x| < a \Rightarrow -a < x < a \\
-                        |x| > a \Rightarrow x < -a \text{ или } x > a
-                    `
-                },
-                {
-                    title: "Геометрия: Четырехугольники",
-                    content: String.raw`
-                        S_{\text{прямоуг}} = ab \\
-                        S_{\text{парал}} = a \cdot h_a = ab \sin \alpha \\
-                        S_{\text{треуг}} = \frac{1}{2} a \cdot h_a = \frac{1}{2} ab \sin \alpha \\
-                        S_{\text{трапеции}} = \frac{a+b}{2} \cdot h \\
-                        S_{\text{ромба}} = \frac{1}{2} d_1 d_2
-                    `
-                },
-                {
-                    title: "Геометрия: Треугольники",
-                    content: String.raw`
-                        \textbf{Подобие:} \frac{P_1}{P_2} = k, \quad \frac{S_1}{S_2} = k^2 \\
-                        \textbf{Пифагор:} c^2 = a^2 + b^2 \\
-                        \sin \alpha = \frac{a}{c}, \quad \cos \alpha = \frac{b}{c}, \quad \text{tg } \alpha = \frac{a}{b} \\
-                        \sin^2 \alpha + \cos^2 \alpha = 1
-                    `
-                }
-            ],
-            9: [
-                {
-                    title: "Алгебра: Функции и Прогрессии",
-                    content: String.raw`
-                        \textbf{1. Квадратичная функция} \\
-                        x_0 = -\frac{b}{2a}, \quad y_0 = f(x_0) \\
-                        \textbf{2. Прогрессии} \\
-                        \text{Арифм: } a_n = a_1 + d(n-1); \quad S_n = \frac{a_1 + a_n}{2} \cdot n \\
-                        \text{Геом: } b_n = b_1 \cdot q^{n-1}; \quad S_n = \frac{b_1(q^n - 1)}{q - 1}
-                    `
-                },
-                {
-                    title: "Алгебра: Вероятность",
-                    content: String.raw`
-                        \textbf{3. Вероятность} \\
-                        P(A) = \frac{m}{n} \quad \text{(благоприятные / все исходы)}
-                    `
-                },
-                {
-                    title: "Геометрия: Векторы",
-                    content: String.raw`
-                        |\vec{a}| = \sqrt{x^2 + y^2} \\
-                        \vec{a} \cdot \vec{b} = x_1 x_2 + y_1 y_2 \\
-                        (x - x_0)^2 + (y - y_0)^2 = R^2 \quad \text{(Окружность)}
-                    `
-                },
-                {
-                    title: "Геометрия: Треугольники",
-                    content: String.raw`
-                        \frac{a}{\sin A} = \frac{b}{\sin B} = \frac{c}{\sin C} = 2R \quad \text{(Т. Синусов)} \\
-                        a^2 = b^2 + c^2 - 2bc \cos A \quad \text{(Т. Косинусов)} \\
-                        S = \frac{1}{2} ab \sin C
-                    `
-                }
-            ],
-            10: [
-                {
-                    title: "Тригонометрия: Тождества",
-                    content: String.raw`
-                        \sin^2 \alpha + \cos^2 \alpha = 1 \\
-                        \text{tg } \alpha = \frac{\sin \alpha}{\cos \alpha}, \quad \text{ctg } \alpha = \frac{\cos \alpha}{\sin \alpha} \\
-                        \text{tg } \alpha \cdot \text{ctg } \alpha = 1 \\
-                        \sin(\frac{\pi}{2} \pm \alpha) = \cos \alpha; \quad \cos(\pi \pm \alpha) = -\cos \alpha
-                    `
-                },
-                {
-                    title: "Тригонометрия: Формулы",
-                    content: String.raw`
-                        \sin 2\alpha = 2 \sin \alpha \cos \alpha \\
-                        \cos 2\alpha = \cos^2 \alpha - \sin^2 \alpha = 1 - 2\sin^2 \alpha \\
-                        \sin(\alpha \pm \beta) = \sin \alpha \cos \beta \pm \cos \alpha \sin \beta \\
-                        \cos(\alpha \pm \beta) = \cos \alpha \cos \beta \mp \sin \alpha \sin \beta
-                    `
-                },
-                {
-                    title: "Тригонометрия: Уравнения",
-                    content: String.raw`
-                        \sin x = a \Rightarrow x = (-1)^k \arcsin a + \pi k \\
-                        \cos x = a \Rightarrow x = \pm \arccos a + 2\pi k
-                    `
-                },
-                {
-                    title: "Степени и Производная",
-                    content: String.raw`
-                        \sqrt[n]{ab} = \sqrt[n]{a} \cdot \sqrt[n]{b}, \quad a^{\frac{m}{n}} = \sqrt[n]{a^m} \\
-                        (x^n)' = n x^{n-1} \\
-                        (\sin x)' = \cos x; \quad (\cos x)' = -\sin x \\
-                        (uv)' = u'v + uv' \\
-                        \left(\frac{u}{v}\right)' = \frac{u'v - uv'}{v^2}
-                    `
-                },
-                {
-                    title: "Стереометрия",
-                    content: String.raw`
-                        \text{ТТП: } a \perp b \iff a \perp pr_{\alpha} b \\
-                        \cos \varphi = \frac{|\vec{n_1} \cdot \vec{n_2}|}{|\vec{n_1}| \cdot |\vec{n_2}|}
-                    `
-                }
-            ],
-            11: [
-                {
-                    title: "ЕГЭ: Логарифмы",
-                    content: String.raw`
-                        \log_a b^n = n \log_a b; \quad \log_{a^k} b = \frac{1}{k} \log_a b \\
-                        \log_a b = \frac{\log_c b}{\log_c a} \\
-                        a^{\log_a b} = b
-                    `
-                },
-                {
-                    title: "ЕГЭ: Рационализация (№15)",
-                    content: String.raw`
-                        \log_{h(x)} f(x) \gtrless 0 \iff (h(x)-1)(f(x)-1) \gtrless 0 \\
-                        \text{ОДЗ: } f(x)>0, h(x)>0, h(x) \neq 1
-                    `
-                },
-                {
-                    title: "ЕГЭ: Геометрия",
-                    content: String.raw`
-                        S = \sqrt{p(p-a)(p-b)(p-c)} \quad \text{(Герон)} \\
-                        V_{\text{призмы}} = S_{осн} \cdot h; \quad V_{\text{пирамиды}} = \frac{1}{3} S_{осн} \cdot h \\
-                        \text{Векторы: } \vec{a} \cdot \vec{b} = |\vec{a}| \cdot |\vec{b}| \cos \alpha = x_1x_2 + y_1y_2 + z_1z_2
-                    `
-                },
-                {
-                    title: "ЕГЭ: Мат. Анализ",
-                    content: String.raw`
-                        (x^n)' = n x^{n-1}; \quad (\ln x)' = \frac{1}{x}; \quad (e^x)' = e^x \\
-                        f(x) \approx f(x_0) + f'(x_0)(x - x_0) \quad \text{(Касательная)} \\
-                        k = \text{tg } \alpha = f'(x_0)
-                    `
-                },
-                {
-                    title: "ЕГЭ: Экономика (№16)",
-                    content: String.raw`
-                        \text{Аннуитет: } X = S \cdot \frac{k^n(k-1)}{k^n-1}, \text{ где } k = 1 + \frac{r}{100}
-                    `
-                }
-            ]
-        };
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand(); 
 
-        // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
-        let state = {
-            name: "",
-            class: 0,
-            lives: 5,
-            coins: 0,
-            coinsToday: 0,
-            lastCoinDate: null,
-            currentQuestions: [],
-            currentQIndex: 0
-        };
+    let currentClass = null;
+    let coins = parseInt(localStorage.getItem('mathCoins')) || 0;
+    let lives = 5;
 
-        // --- ФУНКЦИИ ---
+    // Стилистика
+    const classThemes = {
+        5: { bg: '#E0F7FA', text: '#000', font: 'Nunito, sans-serif', accent: '#FF9800', chars: 'Кот-космонавт 🐱🚀' },
+        6: { bg: '#E0F2F1', text: '#333', font: 'Montserrat, sans-serif', accent: '#009688', chars: 'Робот-помощник 🤖' },
+        7: { bg: '#0D1117', text: '#39FF14', font: 'Orbitron, sans-serif', accent: '#8A2BE2', chars: 'Кибер-аватар 👤' },
+        8: { bg: '#FFFFFF', text: '#000000', font: 'Oswald, sans-serif', accent: '#FF00FF', chars: 'Саркастичный гений 🕶️' },
+        9: { bg: '#F5F5F5', text: '#333333', font: 'Roboto, sans-serif', accent: '#2196F3', chars: 'Тренер 📋' },
+        10: { bg: '#F4F1EA', text: '#5C5C5C', font: 'Open Sans, sans-serif', accent: '#8F9779', chars: 'СуперТьютор 🎓' },
+        11: { bg: '#121212', text: '#E0E0E0', font: 'system-ui', accent: '#424242', chars: 'График 📈' }
+    };
 
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            window.scrollTo(0,0);
-        }
+    // Навигация
+    const classContainer = document.getElementById('classButtons');
+    for(let i = 5; i <= 11; i++) {
+        let btn = document.createElement('button');
+        btn.className = 'btn'; btn.innerText = i + ' класс'; btn.onclick = () => selectClass(i);
+        classContainer.appendChild(btn);
+    }
 
-        function selectClass(cls) {
-            const inputName = document.getElementById('username-input').value;
-            if(!inputName) {
-                alert("Пожалуйста, введи свое имя!");
+    function selectClass(grade) {
+        currentClass = grade;
+        const theme = classThemes[grade];
+        document.documentElement.style.setProperty('--bg-color', theme.bg);
+        document.documentElement.style.setProperty('--text-color', theme.text);
+        document.documentElement.style.setProperty('--font-family', theme.font);
+        document.documentElement.style.setProperty('--accent-color', theme.accent);
+        document.getElementById('classTitle').innerText = `${grade} класс | ${theme.chars}`;
+        document.getElementById('coinsCount').innerText = coins;
+        showScreen('mainMenu');
+    }
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function openTheory() {
+        document.getElementById('theoryClassLabel').innerText = currentClass;
+        document.querySelectorAll('.theory-class-container').forEach(el => el.style.display = 'none');
+        const activeTheory = document.getElementById(`theory-data-${currentClass}`);
+        if (activeTheory) activeTheory.style.display = 'block';
+        showScreen('theoryScreen');
+    }
+
+    function reportError(context) {
+        tg.sendData(JSON.stringify({ action: 'report_error', context: context, class: currentClass }));
+        tg.showAlert('Спасибо! Сообщение отправлено администратору.');
+    }
+
+    function openSupport() {
+        tg.sendData(JSON.stringify({ action: 'support_request' }));
+        tg.close();
+    }
+
+    // ЛОГИКА ТЕСТИРОВАНИЯ И ЭКОНОМИКИ
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv';
+    let allQuestionsBase = [];
+    let currentQuizQuestions = [];
+    let currentQuestionIndex = 0;
+    let quizMistakes = [];
+    let isWorkOnErrors = false;
+    let sessionCoinsEarned = 0;
+    let currentQuestionData = null;
+
+    function startPractice() { showScreen('consentScreen'); }
+
+    async function acceptConsent() {
+        lives = 5; 
+        sessionCoinsEarned = 0;
+        quizMistakes = [];
+        isWorkOnErrors = false;
+        tg.MainButton.show();
+        tg.MainButton.showProgress();
+        
+        try {
+            const response = await fetch(CSV_URL);
+            const text = await response.text();
+            allQuestionsBase = parseCSV(text);
+            
+            let classQuestions = allQuestionsBase.filter(row => row[0] == currentClass);
+            if (classQuestions.length === 0) {
+                alert('Для этого класса пока нет заданий в базе!');
+                tg.MainButton.hide();
+                showScreen('mainMenu');
                 return;
             }
-            state.name = inputName;
-            state.class = cls;
-            
-            // Применяем тему (CSS класс на body)
-            document.body.className = `class-${cls}`;
-            
-            loadState();
-            updateStats();
-            
-            document.getElementById('welcome-text').innerText = `Привет, ${state.name}! Ты в ${cls} классе.`;
-            showScreen('screen-menu');
+
+            let questionsNeeded = (currentClass >= 5 && currentClass <= 8) ? 5 : 10;
+            currentQuizQuestions = classQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
+            currentQuestionIndex = 0;
+            tg.MainButton.hide();
+            showScreen('quizScreen');
+            renderCurrentQuestion();
+        } catch (error) {
+            alert('Ошибка загрузки заданий. Проверьте подключение.');
+            tg.MainButton.hide();
+            showScreen('mainMenu');
         }
+    }
 
-        // Рендер списка тем
-        function showTheorySelection() {
-            const list = document.getElementById('topics-list');
-            list.innerHTML = "";
-            const topics = theoryData[state.class] || [];
-            
-            if (topics.length === 0) {
-                list.innerHTML = "<p>Для этого класса теория еще загружается...</p>";
-            }
-
-            topics.forEach((topic, idx) => {
-                const btn = document.createElement('button');
-                btn.className = 'btn';
-                btn.innerText = topic.title;
-                btn.onclick = () => openTopic(idx);
-                list.appendChild(btn);
-            });
-            showScreen('screen-theory-select');
-        }
-
-        // Открытие конкретной темы и рендер LaTeX
-        function openTopic(index) {
-            const topic = theoryData[state.class][index];
-            const container = document.getElementById('theory-content');
-            
-            // Генерируем HTML для карточки
-            container.innerHTML = `
-                <div class="theory-card">
-                    <h3>${topic.title}</h3>
-                    <div class="latex-render-area">${topic.content}</div>
-                </div>
-            `;
-            
-            // Рендерим формулы через KaTeX
-            const area = container.querySelector('.latex-render-area');
-            try {
-                katex.render(topic.content, area, {
-                    throwOnError: false,
-                    displayMode: true,
-                    fleqn: false // центрирование
-                });
-            } catch(e) {
-                area.innerText = "Ошибка отображения формул";
-            }
-            
-            showScreen('screen-theory-read');
-        }
-
-        // --- ПРАКТИКА (Загрузка из Google Sheets CSV) ---
-        async function startPractice() {
-            state.lives = 5;
-            state.currentQIndex = 0;
-            updateStats();
-            
-            showScreen('screen-practice');
-            document.getElementById('question-text').innerText = "Загружаем вопросы...";
-            document.getElementById('answers-block').innerHTML = "";
-            document.getElementById('feedback-block').style.display = 'none';
-            
-            try {
-                // ССЫЛКА НА ТВОЙ CSV
-                const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
-                const response = await fetch(url);
-                const csvText = await response.text();
-                
-                parseQuestions(csvText);
-                
-                if (state.currentQuestions.length > 0) {
-                    renderQuestion();
-                } else {
-                    alert("Вопросов для твоего класса пока нет в базе.");
-                    showScreen('screen-menu');
-                }
-            } catch (e) {
-                alert("Ошибка интернета или доступа к таблице.");
-                showScreen('screen-menu');
-            }
-        }
-
-        function parseQuestions(csv) {
-            // Очень простой парсер CSV
-            const rows = csv.split('\n').map(row => {
-                // Учитываем, что в ячейках могут быть запятые, но пока делим просто
-                return row.split(','); 
-            });
-            
-            // Ожидаем столбцы: [0]Timestamp, [1]Class, [2]Block/Theme, [3]Question, [4]Ans1, [5]Ans2, [6]Ans3, [7]Ans4, [8]CorrectNum, [9]Comment
-            
-            state.currentQuestions = rows.filter(r => r[1] && r[1].trim() == state.class)
-                .sort(() => 0.5 - Math.random()) // Перемешиваем
-                .slice(0, state.class >= 9 ? 10 : 5); // Кол-во вопросов
-        }
-
-        function renderQuestion() {
-            document.getElementById('feedback-block').style.display = 'none';
-            document.getElementById('answers-block').style.display = 'block';
-            document.getElementById('next-q-btn').style.display = 'none'; // Прячем кнопку "Далее" пока нет ответа
-            
-            const q = state.currentQuestions[state.currentQIndex];
-            
-            // Вставляем текст вопроса
-            document.getElementById('question-text').innerText = `Вопрос ${state.currentQIndex + 1}: ${q[3]}`; 
-            
-            const answersDiv = document.getElementById('answers-block');
-            answersDiv.innerHTML = "";
-            
-            // Варианты ответов (индексы 4,5,6,7)
-            const opts = [q[4], q[5], q[6], q[7]];
-            
-            opts.forEach((optText, i) => {
-                if(optText && optText.trim() !== "") {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn';
-                    btn.style.background = "#fff"; // Белые кнопки для ответов
-                    btn.style.color = "#000";
-                    btn.style.border = "1px solid #ccc";
-                    btn.innerText = optText;
-                    btn.onclick = () => checkAnswer(i + 1, btn);
-                    answersDiv.appendChild(btn);
-                }
-            });
-        }
-
-        function checkAnswer(selectedIdx, btnElement) {
-            const q = state.currentQuestions[state.currentQIndex];
-            const correctIdx = parseInt(q[8]); // Индекс верного ответа (цифра 1-4)
-            
-            const feedbackDiv = document.getElementById('feedback-block');
-            const title = document.getElementById('feedback-title');
-            const expl = document.getElementById('feedback-solution');
-            
-            // Блокируем все кнопки
-            const allBtns = document.getElementById('answers-block').querySelectorAll('.btn');
-            allBtns.forEach(b => b.disabled = true);
-
-            if (selectedIdx === correctIdx) {
-                btnElement.style.background = "#2ecc71"; // Зеленый
-                btnElement.style.color = "#fff";
-                title.innerText = "✅ Верно!";
-                title.style.color = "green";
-                addCoins(10);
-            } else {
-                btnElement.style.background = "#e74c3c"; // Красный
-                btnElement.style.color = "#fff";
-                title.innerText = "❌ Ошибка!";
-                title.style.color = "red";
-                state.lives--;
-            }
-            
-            expl.innerText = q[9] || "Решение загружается..."; 
-            updateStats();
-
-            feedbackDiv.style.display = 'block';
-            
-            // Показываем кнопку "Далее" только после ответа
-            const nextBtn = document.getElementById('next-q-btn');
-            nextBtn.style.display = 'block';
-            nextBtn.onclick = nextQuestion;
-
-            if (state.lives <= 0) {
-                setTimeout(() => finishQuiz(false), 1500);
-            }
-        }
-
-        function nextQuestion() {
-            state.currentQIndex++;
-            if (state.currentQIndex >= state.currentQuestions.length) {
-                finishQuiz(true);
-            } else {
-                renderQuestion();
-            }
-        }
-
-        function finishQuiz(success) {
-            showScreen('screen-results');
-            const msg = document.getElementById('result-message');
-            const finalLives = document.getElementById('final-lives');
-            
-            finalLives.innerText = state.lives;
-            
-            if (success) {
-                msg.innerText = "🎉 Тест пройден!";
-                msg.style.color = "#2ecc71";
-            } else {
-                msg.innerText = "💀 Потрачено";
-                msg.style.color = "#e74c3c";
-            }
-            
-            // Сохраняем монеты в память
-            localStorage.setItem('schoolAppState', JSON.stringify(state));
-        }
-
-        // --- СИСТЕМА МОНЕТ ---
-        function addCoins(amount) {
-            const now = new Date().getTime();
-            const twelveHours = 12 * 60 * 60 * 1000;
-            
-            // Если прошло 12 часов, сбрасываем счетчик монет за день
-            if (state.lastCoinDate && (now - state.lastCoinDate > twelveHours)) {
-                state.coinsToday = 0; 
-            }
-
-            if (state.coinsToday < 100) {
-                state.coins += amount;
-                state.coinsToday += amount;
-                state.lastCoinDate = now;
-                
-                // Анимация получения (просто лог в консоль пока)
-                console.log(`Получено ${amount} монет`);
-            }
-            updateStats();
-        }
-
-        function buyItem(price) {
-            if (state.coins >= price) {
-                // Пока просто визуально
-                alert("Функция скачивания PDF будет доступна скоро! (Списывание не произошло)");
-            } else {
-                alert("Недостаточно монет! Проходи тесты.");
-            }
-        }
-
-        function loadState() {
-            const saved = localStorage.getItem('schoolAppState');
-            if (saved) {
-                const p = JSON.parse(saved);
-                state.coins = p.coins || 0;
-                state.coinsToday = p.coinsToday || 0;
-                state.lastCoinDate = p.lastCoinDate;
-            }
-        }
-
-        function updateStats() {
-            const els = ['lives-display', 'coins-display', 'quiz-lives', 'quiz-coins', 'shop-balance', 'earned-coins'];
-            els.forEach(id => {
-                const el = document.getElementById(id);
-                if(el) {
-                    if (id.includes('lives')) el.innerText = state.lives;
-                    else el.innerText = state.coins;
-                }
-            });
-        }
-
-        // --- ВЗАИМОДЕЙСТВИЕ С СЕРВЕРОМ ---
+    function renderCurrentQuestion() {
+        document.getElementById('quizLives').innerText = lives;
+        document.getElementById('quizCoins').innerText = coins;
+        document.getElementById('quizFeedback').style.display = 'none';
+        document.getElementById('quizOptions').style.display = 'block';
         
-        async function saveAndFinish() {
-            if (document.getElementById('consent-checkbox').checked) {
-                // Формируем данные
-                const data = {
-                    action: "save_result",
-                    username: state.name + " (@" + (tg.initDataUnsafe?.user?.username || "no_tg") + ")",
-                    class: state.class,
-                    correct: state.currentQuestions.length - (5 - state.lives),
-                    errors: (5 - state.lives)
-                };
-                
-                // Отправляем на Python сервер (если запущен локально или через ngrok)
-                // Если запущено просто как файл или на github pages без бэкенда, это не сработает, но ошибок не выдаст
-                try {
-                    await fetch('/api/save_stats', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(data)
-                    });
-                } catch(e) { console.log("Бэкенд недоступен"); }
-            }
-            showScreen('screen-menu');
-        }
-
-        function reportError(type) {
-            showScreen('screen-feedback');
-            document.getElementById('feedback-text').value = `[Ошибка ${type}] Класс: ${state.class}, Вопрос/Тема индекс: ${state.currentQIndex}`;
-        }
-
-        async function sendFeedback() {
-            const text = document.getElementById('feedback-text').value;
-            const fileInput = document.getElementById('feedback-file');
-            
-            const formData = new FormData();
-            formData.append('username', tg.initDataUnsafe?.user?.username || state.name);
-            formData.append('text', text);
-            if (fileInput.files[0]) {
-                formData.append('screenshot', fileInput.files[0]);
-            }
-
-            try {
-                await fetch('/api/feedback', {
-                    method: 'POST',
-                    body: formData
-                });
-                alert("Отправлено!");
-            } catch(e) {
-                alert("Ошибка отправки. (Нужен запущенный Python бот)");
-            }
-            showScreen('screen-menu');
-        }
-
-    </script>
-</body>
-</html>  2 вариант  <!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>School App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700&family=Quicksand:wght@400;700&family=Montserrat:wght@400;700&family=Gotham+Pro&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-
-    <style>
-        /* --- БАЗОВЫЕ СТИЛИ --- */
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --accent-color: #3390ec;
-            --font-main: 'Roboto', sans-serif;
-            --btn-radius: 12px;
-            --btn-text: #ffffff;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--font-main);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: all 0.3s ease;
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-        }
-
-        .screen {
-            display: none;
-            padding: 20px;
-            min-height: 100vh;
-            box-sizing: border-box;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .active { display: flex; }
-
-        h1, h2, h3 { margin: 0 0 15px 0; text-align: center; width: 100%; }
+        let row = currentQuizQuestions[currentQuestionIndex];
+        currentQuestionData = { topic: row[1], question: row[2], options: [row[3], row[4], row[5], row[6]], correctIndex: parseInt(row[7]) - 1, solution: row[8] };
         
-        .btn {
-            background-color: var(--accent-color);
-            color: var(--btn-text);
-            border: none;
-            padding: 15px;
-            border-radius: var(--btn-radius);
-            font-size: 16px;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.1s;
-        }
-
-        .btn:active { transform: scale(0.98); }
-
-        input, select, textarea {
-            width: 100%;
-            max-width: 400px;
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: var(--btn-radius);
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-
-        /* --- ВЕРХНЯЯ ПАНЕЛЬ --- */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 400px;
-            background: rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .stat-item { font-weight: bold; display: flex; align-items: center; gap: 5px; }
-
-        /* --- СТИЛИЗАЦИЯ КЛАССОВ --- */
+        document.getElementById('quizTopic').innerText = `Тема: ${currentQuestionData.topic}`;
+        document.getElementById('quizQuestionText').innerHTML = currentQuestionData.question;
         
-        /* 5 Класс: Яркие, Nunito */
-        body.class-5 {
-            --bg-color: #E0F7FA; 
-            --text-color: #01579B; 
-            --accent-color: #FF6F00; /* Оранжевый */
-            --font-main: 'Nunito', sans-serif;
-            background-image: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%); /* Лайм-Голубой */
-        }
+        let optionsHtml = '';
+        currentQuestionData.options.forEach((opt, idx) => {
+            optionsHtml += `<button class="btn" style="background-color: #f0f0f0; color: #000;" onclick="checkAnswer(${idx})">${opt}</button>`;
+        });
+        document.getElementById('quizOptions').innerHTML = optionsHtml;
 
-        /* 6 Класс: Sci-Fi, Геометрия */
-        body.class-6 {
-            --bg-color: #2c3e50; 
-            --text-color: #00E5FF; 
-            --accent-color: #651FFF; /* Фиолетовый */
-            --font-main: 'Montserrat', sans-serif;
-            background: linear-gradient(to bottom, #20002c, #cbb4d4);
-        }
+        renderMathInElement(document.getElementById('quizScreen'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
+    }
 
-        /* 7 Класс: Киберпанк */
-        body.class-7 {
-            --bg-color: #050511; 
-            --text-color: #00ff41; 
-            --accent-color: #d60270; /* Неон маджента */
-            --font-main: 'Orbitron', sans-serif;
-            background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
-        }
-
-        /* 8 Класс: Брутализм */
-        body.class-8 {
-            --bg-color: #ffffff; 
-            --text-color: #000000; 
-            --accent-color: #FFD600; /* Желтый */
-            --font-main: 'Oswald', sans-serif;
-            --btn-text: #000;
-        }
-        body.class-8 .btn { border: 3px solid black; border-radius: 0; box-shadow: 5px 5px 0px #000; }
-        body.class-8 .top-bar { border: 2px solid black; background: #fff; color: black; border-radius: 0;}
-
-        /* 9 Класс: Функциональность */
-        body.class-9 {
-            --bg-color: #f0f2f5; 
-            --text-color: #1c1e21; 
-            --accent-color: #1877f2; /* Синий */
-            --font-main: 'Roboto', sans-serif;
-        }
-
-        /* 10 Класс: StudyCafe (Korea) */
-        body.class-10 {
-            --bg-color: #E3E1D9; 
-            --text-color: #4A4A4A; 
-            --accent-color: #7B8D76; /* Sage Green */
-            --font-main: 'Open Sans', sans-serif;
-        }
-
-        /* 11 Класс: Night Mode (Deep Focus) */
-        body.class-11 {
-            --bg-color: #0f172a; 
-            --text-color: #cbd5e1; 
-            --accent-color: #3b82f6; 
-            --font-main: system-ui, -apple-system, sans-serif;
-        }
-
-        /* --- БЛОКИ ТЕОРИИ --- */
-        .theory-container {
-            width: 100%;
-            max-width: 600px;
-        }
-        .theory-card {
-            background: rgba(255,255,255,0.95);
-            color: #000;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        /* Спец. стиль карточки для темных тем */
-        body.class-6 .theory-card, body.class-7 .theory-card, body.class-11 .theory-card {
-            background: rgba(30,30,40, 0.9);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        body.class-8 .theory-card {
-            border: 3px solid black;
-            border-radius: 0;
-            background: white;
-            color: black;
-            box-shadow: 5px 5px 0 black;
-        }
-
-        /* Контейнер для формул */
-        .katex-display {
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 10px 0;
-            margin: 0.5em 0;
-            text-align: left !important; /* Выравнивание формул */
+    function checkAnswer(selectedIndex) {
+        document.getElementById('quizOptions').style.display = 'none';
+        let feedbackDiv = document.getElementById('quizFeedback');
+        feedbackDiv.style.display = 'block';
+        
+        let isCorrect = (selectedIndex === currentQuestionData.correctIndex);
+        
+        if (isCorrect) {
+            document.getElementById('feedbackTitle').innerText = "✅ Верно!";
+            document.getElementById('feedbackTitle').style.color = "green";
+            processCoins(10);
+            sessionCoinsEarned += 10;
+        } else {
+            document.getElementById('feedbackTitle').innerText = "❌ Ошибка!";
+            document.getElementById('feedbackTitle').style.color = "red";
+            lives--;
+            document.getElementById('quizLives').innerText = lives;
+            if (!quizMistakes.includes(currentQuestionData.topic)) quizMistakes.push(currentQuestionData.topic);
         }
         
-        .katex { font-size: 1.1em; }
-
-        /* Персонаж (Placeholder) */
-        .character-box {
-            width: 100px;
-            height: 100px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            margin: 0 auto 10px;
-            display: none; /* Включится JS-ом */
-        }
-
-    </style>
-</head>
-<body>
-
-    <div id="screen-welcome" class="screen active">
-        <h1 style="font-size: 32px;">🎓 School App</h1>
-        <p>Твой личный помощник в учебе.</p>
+        document.getElementById('feedbackText').innerHTML = `<b>Решение:</b><br>${currentQuestionData.solution}`;
+        renderMathInElement(document.getElementById('quizFeedback'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
         
-        <input type="text" id="username-input" placeholder="Как тебя зовут?">
+        tg.sendData(JSON.stringify({ action: 'save_result', class: currentClass, topic: currentQuestionData.topic, isCorrect: isCorrect }));
+    }
+
+    function nextQuestion() {
+        if (lives <= 0) { finishQuiz(false); return; }
+        currentQuestionIndex++;
+        if (currentQuestionIndex >= currentQuizQuestions.length) finishQuiz(true);
+        else renderCurrentQuestion();
+    }
+
+    function finishQuiz(isWin) {
+        document.getElementById('resultLives').innerText = lives;
+        document.getElementById('resultCoins').innerText = sessionCoinsEarned;
+        let actionsHtml = '';
+        if (quizMistakes.length > 0) actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="startWorkOnErrors()">Пройти тест повторно (Работа над ошибками)</button>`;
+        else actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="acceptConsent()">Пройти еще один тест</button>`;
+        document.getElementById('resultActions').innerHTML = actionsHtml;
+        showScreen('resultScreen');
+    }
+
+    function processCoins(amountToAdd) {
+        let now = Date.now();
+        let limitReset = parseInt(localStorage.getItem('mathCoinResetTime')) || 0;
+        let dailyCoins = parseInt(localStorage.getItem('mathDailyCoins')) || 0;
+
+        if (now > limitReset) { dailyCoins = 0; localStorage.setItem('mathCoinResetTime', now + (12 * 60 * 60 * 1000)); }
+
+        if (dailyCoins < 100) {
+            let availableToAdd = Math.min(amountToAdd, 100 - dailyCoins);
+            coins += availableToAdd; dailyCoins += availableToAdd;
+            localStorage.setItem('mathCoins', coins); localStorage.setItem('mathDailyCoins', dailyCoins);
+            document.getElementById('quizCoins').innerText = coins;
+        } else {
+            document.getElementById('limitWarning').style.display = 'block';
+            let timeLeft = Math.ceil((limitReset - now) / (1000 * 60 * 60));
+            document.getElementById('timeToReset').innerText = `${timeLeft} ч.`;
+        }
+    }
+
+    function startWorkOnErrors() {
+        lives = 5; sessionCoinsEarned = 0; isWorkOnErrors = true;
+        let errorQuestions = allQuestionsBase.filter(row => row[0] == currentClass && quizMistakes.includes(row[1]));
+        let questionsNeeded = quizMistakes.length * 3;
+        currentQuizQuestions = errorQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
         
-        <h3>Выбери свой класс:</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width:100%; max-width:400px;">
-            <button class="btn" style="background: #FF6F00" onclick="selectClass(5)">5 класс</button>
-            <button class="btn" style="background: #651FFF" onclick="selectClass(6)">6 класс</button>
-            <button class="btn" style="background: #d60270" onclick="selectClass(7)">7 класс</button>
-            <button class="btn" style="background: #000000; color: #FFD600; border:1px solid #FFD600" onclick="selectClass(8)">8 класс</button>
-            <button class="btn" style="background: #007AFF" onclick="selectClass(9)">9 класс</button>
-            <button class="btn" style="background: #7B8D76" onclick="selectClass(10)">10 класс</button>
-            <button class="btn" style="background: #1e293b" onclick="selectClass(11)">11 класс</button>
-        </div>
-        
-        <button class="btn" style="margin-top:30px; background:#555;" onclick="openExternalFeedback()">💬 Служба поддержки</button>
-    </div>
+        if(currentQuizQuestions.length === 0) { alert('К сожалению, в базе больше нет заданий по этим темам.'); showScreen('mainMenu'); return; }
 
-    <div id="screen-menu" class="screen">
-        <div class="top-bar">
-            <div class="stat-item">❤️ <span id="lives-display">5</span></div>
-            <div class="stat-item">🪙 <span id="coins-display">0</span></div>
-        </div>
-        
-        <div id="char-display" class="character-box"></div>
-        <h1 id="menu-title">Меню</h1>
-        <p id="welcome-text"></p>
+        quizMistakes = []; currentQuestionIndex = 0;
+        showScreen('quizScreen'); renderCurrentQuestion();
+    }
 
-        <div style="width:100%; max-width:400px;">
-            <button class="btn" onclick="showTheorySelection()">📚 Теория</button>
-            <button class="btn" onclick="startPractice()">✏️ Практика</button>
-            <button class="btn" onclick="showScreen('screen-shop')">🛒 Магазин</button>
-            <button class="btn" style="background: transparent; border: 1px solid currentColor; color: inherit;" onclick="location.reload()">↩ Сменить класс</button>
-        </div>
-    </div>
-
-    <div id="screen-theory-select" class="screen">
-        <div class="top-bar">
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showScreen('screen-menu')">⬅ Назад</button>
-        </div>
-        <h2>Темы обучения</h2>
-        <div id="topics-list" style="width: 100%; max-width: 400px;"></div>
-    </div>
-
-    <div id="screen-theory-read" class="screen">
-        <div class="top-bar">
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0;" onclick="showTheorySelection()">⬅ К темам</button>
-            <button class="btn" style="width: auto; padding: 5px 15px; margin:0; background: #c0392b;" onclick="openExternalFeedback()">⚠️ Ошибка</button>
-        </div>
-        
-        <div id="theory-content" class="theory-container">
-            </div>
-
-        <button class="btn" onclick="startPractice()">Пройти тест по этой теме</button>
-    </div>
-
-    <div id="screen-practice" class="screen">
-        <div class="top-bar">
-            <div class="stat-item">❤️ <span id="quiz-lives">5</span></div>
-            <div class="stat-item">🪙 <span id="quiz-coins">0</span></div>
-        </div>
-        
-        <div style="width: 100%; max-width: 500px; flex-grow: 1; display: flex; flex-direction: column;">
-            <div class="theory-card" style="margin-top: 20px;">
-                <h3 id="question-text">Загрузка...</h3>
-            </div>
-
-            <div id="answers-block"></div>
-
-            <div id="feedback-block" style="display:none; margin-top:20px; padding:15px; background:rgba(255,255,255,0.95); border-radius:10px; color:#000; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                <strong id="feedback-title" style="font-size: 18px; display:block; margin-bottom:10px;"></strong>
-                <p id="feedback-solution" style="font-size: 14px; line-height: 1.5;"></p>
-                <button class="btn" id="next-q-btn" onclick="nextQuestion()">Далее ➡</button>
-            </div>
-        </div>
-
-        <button class="btn" style="margin-top:20px; background: transparent; color: #888; font-size:12px; width: auto;" onclick="openExternalFeedback()">Сообщить об ошибке в задании</button>
-    </div>
-
-    <div id="screen-results" class="screen">
-        <h1>Результат</h1>
-        <h2 id="result-message" style="font-size: 40px; margin: 20px 0;"></h2>
-        
-        <div class="theory-card">
-            <p>Заработано монет: <span id="earned-coins" style="font-weight:bold; color: #f1c40f;">0</span></p>
-            <p>Осталось жизней: <span id="final-lives">0</span></p>
-        </div>
-        
-        <div id="consent-block" style="margin: 20px 0; font-size: 12px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: left;">
-            <label style="display: flex; gap: 10px; align-items: flex-start;">
-                <input type="checkbox" id="consent-checkbox" style="width: 20px; height: 20px; margin:0;"> 
-                <span>Даю согласие на обработку и хранение результатов прохождения тестирования.</span>
-            </label>
-            <p style="margin-top:5px; font-style: italic; opacity: 0.7;">p.s. это для того, чтобы можно было проанализировать свои результаты за большой период</p>
-        </div>
-
-        <div style="width: 100%; max-width: 400px;">
-            <button class="btn" onclick="startPractice()">🔄 Пройти тест снова</button>
-            <button class="btn" onclick="showScreen('screen-shop')">🛒 В магазин</button>
-            <button class="btn" style="background:#7f8c8d;" onclick="saveAndFinish()">🏠 В меню</button>
-        </div>
-    </div>
-
-    <div id="screen-shop" class="screen">
-        <h1>Магазин</h1>
-        <p>Баланс: <span id="shop-balance" style="font-weight:bold; color:gold;">0</span> 🪙</p>
-        
-        <div class="theory-container">
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Новичок"</h3>
-                    <small>Набор стикеров</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(30)">30 🪙</button>
-            </div>
-
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Профи"</h3>
-                    <small>Новые фоны</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(50)">50 🪙</button>
-            </div>
-
-            <div class="theory-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="text-align: left; margin:0;">Стиль "Легенда"</h3>
-                    <small>Секретный персонаж</small>
-                </div>
-                <button class="btn" style="width: auto; padding: 10px 20px; margin:0;" onclick="buyItem(100)">100 🪙</button>
-            </div>
-        </div>
-
-        <button class="btn" onclick="openExternalFeedback()">💬 Обратная связь</button>
-        <button class="btn" style="margin-top:20px;" onclick="showScreen('screen-menu')">🏠 Главное меню</button>
-    </div>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Раскрыть на весь экран
-
-        const theoryData = {
-            5: [
-                {
-                    title: "Блок 1: Натуральные числа",
-                    content: String.raw`
-                        \textbf{1. Свойства действий:} \\
-                        a + b = b + a \quad \text{(Переместительное)} \\
-                        (a + b) + c = a + (b + c) \quad \text{(Сочетательное)} \\
-                        a \cdot (b + c) = ab + ac \quad \text{(Распределительное)} \\
-                        a : b = q \text{ (ост. } r), \quad a = bq + r, \text{ где } r < b \quad \text{(Деление с остатком)}
-                    `
-                },
-                {
-                    title: "Блок 2: Геометрия",
-                    content: String.raw`
-                        \textbf{2. Фигуры на плоскости и в пространстве:} \\
-                        P = 2(a + b) \quad \text{(Периметр прямоугольника)} \\
-                        S = a \cdot b \quad \text{(Площадь прямоугольника)} \\
-                        S = a^2 \quad \text{(Площадь квадрата)} \\
-                        V = a \cdot b \cdot c \quad \text{(Объем параллелепипеда)} \\
-                        V = a^3 \quad \text{(Объем куба)}
-                    `
-                },
-                {
-                    title: "Блок 3: Задачи на движение",
-                    content: String.raw`
-                        \textbf{3. Движение и стоимость:} \\
-                        s = v \cdot t \quad \text{(Расстояние)} \\
-                        v_{по \ теч.} = v_{собств.} + v_{теч.} \\
-                        v_{пр. \ теч.} = v_{собств.} - v_{теч.} \\
-                        C = n \cdot p \quad \text{(Стоимость = кол-во } \cdot \text{ цена)}
-                    `
-                },
-                {
-                    title: "Блок 4: Обыкновенные дроби",
-                    content: String.raw`
-                        \textbf{4. Дроби (одинаковые знаменатели):} \\
-                        \frac{a}{c} + \frac{b}{c} = \frac{a+b}{c} \\
-                        \frac{a}{c} - \frac{b}{c} = \frac{a-b}{c}
-                    `
-                },
-                {
-                    title: "Блок 5: Десятичные дроби и статистика",
-                    content: String.raw`
-                        \textbf{5. Среднее и проценты:} \\
-                        \text{Среднее арифметическое} = \frac{x_1 + x_2 + \dots + x_n}{n} \\
-                        1\% = \frac{1}{100} = 0,01
-                    `
-                }
-            ],
-            6: [
-                {
-                    title: "Блок 1: Делимость чисел",
-                    content: String.raw`
-                        \textbf{1. Делимость:} \\
-                        \text{НОД}(a; b) \cdot \text{НОК}(a; b) = a \cdot b
-                    `
-                },
-                {
-                    title: "Блок 2: Обыкновенные дроби",
-                    content: String.raw`
-                        \textbf{2. Основное свойство и операции:} \\
-                        \frac{a}{b} = \frac{a \cdot c}{b \cdot c} \quad \text{(Основное свойство)} \\
-                        \frac{a}{b} \cdot \frac{c}{d} = \frac{ac}{bd} \\
-                        \frac{a}{b} : \frac{c}{d} = \frac{a \cdot d}{b \cdot c}
-                    `
-                },
-                {
-                    title: "Блок 3: Пропорции и окружность",
-                    content: String.raw`
-                        \textbf{3. Пропорции и геометрия:} \\
-                        \frac{a}{b} = \frac{c}{d} \Rightarrow a \cdot d = b \cdot c \quad \text{(Основное свойство пропорции)} \\
-                        C = 2\pi r = \pi d \quad \text{(Длина окружности)} \\
-                        S = \pi r^2 \quad \text{(Площадь круга)} \\
-                        M = \frac{L_{\text{плана}}}{L_{\text{реальности}}} \quad \text{(Масштаб)}
-                    `
-                },
-                {
-                    title: "Блок 4: Рациональные числа",
-                    content: String.raw`
-                        \textbf{4. Модуль и знаки:} \\
-                        |a| = \begin{cases} a, & \text{если } a \ge 0 \\ -a, & \text{если } a < 0 \end{cases} \\
-                        -a \cdot (-b) = ab \\
-                        -a \cdot b = -ab
-                    `
-                },
-                {
-                    title: "Блок 5: Уравнения",
-                    content: String.raw`
-                        \textbf{5. Раскрытие скобок:} \\
-                        a + (b - c) = a + b - c \\
-                        a - (b - c) = a - b + c \\
-                        a(b + c) = ab + ac \quad \text{(Коэффициент)}
-                    `
-                }
-            ],
-            7: [
-                {
-                    title: "Блок 1: Линейные уравнения",
-                    content: String.raw`
-                        \textbf{1. Линейное уравнение:} \\
-                        ax = b \Rightarrow x = \frac{b}{a} \quad (a \neq 0)
-                    `
-                },
-                {
-                    title: "Блок 2: Степень",
-                    content: String.raw`
-                        \textbf{2. Свойства степеней:} \\
-                        a^n \cdot a^m = a^{n+m} \\
-                        a^n : a^m = a^{n-m} \quad (a \neq 0, n > m) \\
-                        (a^n)^m = a^{nm} \\
-                        (ab)^n = a^n b^n \\
-                        \left(\frac{a}{b}\right)^n = \frac{a^n}{b^n}
-                    `
-                },
-                {
-                    title: "Блок 3: ФСУ",
-                    content: String.raw`
-                        \textbf{3. Сокращенное умножение:} \\
-                        (a + b)^2 = a^2 + 2ab + b^2 \quad \text{(Квадрат суммы)} \\
-                        (a - b)^2 = a^2 - 2ab + b^2 \quad \text{(Квадрат разности)} \\
-                        a^2 - b^2 = (a - b)(a + b) \quad \text{(Разность квадратов)} \\
-                        (a + b)^3 = a^3 + 3a^2b + 3ab^2 + b^3 \quad \text{(Куб суммы)} \\
-                        a^3 \pm b^3 = (a \pm b)(a^2 \mp ab + b^2)
-                    `
-                },
-                {
-                    title: "Блок 4: Функции",
-                    content: String.raw`
-                        \textbf{4. Линейная функция:} \\
-                        y = kx + b \\
-                        k = \text{угловой коэффициент} \\
-                        b = \text{точка пересечения с осью Y}
-                    `
-                },
-                {
-                    title: "Блок 5: Геометрия",
-                    content: String.raw`
-                        \textbf{5. Треугольники и углы:} \\
-                        \angle A + \angle B + \angle C = 180^\circ \quad \text{(Сумма углов)} \\
-                        \alpha + \beta = 180^\circ \quad \text{(Смежные углы)} \\
-                        \angle 1 = \angle 2 \quad \text{(Вертикальные углы)}
-                    `
-                }
-            ],
-            8: [
-                {
-                    title: "Алгебра: Рациональные и Корни",
-                    content: String.raw`
-                        \textbf{1. Рациональные выражения и степени} \\
-                        a^{-n} = \frac{1}{a^n} \quad (a \neq 0) \\
-                        (ab)^n = a^n b^n, \quad \left(\frac{a}{b}\right)^n = \frac{a^n}{b^n}, \quad (a^n)^m = a^{nm} \\
-                        \textbf{2. Квадратные корни} \\
-                        \sqrt{a} \ge 0, \quad (\sqrt{a})^2 = a \quad (a \ge 0) \\
-                        \sqrt{a^2} = |a| \\
-                        \sqrt{ab} = \sqrt{a} \cdot \sqrt{b} \quad (a, b \ge 0) \\
-                        \sqrt{\frac{a}{b}} = \frac{\sqrt{a}}{\sqrt{b}} \quad (a \ge 0, b > 0)
-                    `
-                },
-                {
-                    title: "Алгебра: Квадратные уравнения",
-                    content: String.raw`
-                        \textbf{3. Квадратные уравнения} \\
-                        ax^2 + bx + c = 0 \quad (a \neq 0) \\
-                        D = b^2 - 4ac \\
-                        x_{1,2} = \frac{-b \pm \sqrt{D}}{2a} \\
-                        \text{Теорема Виета: } 
-                        \begin{cases} x_1 + x_2 = -\frac{b}{a} \\ x_1 x_2 = \frac{c}{a} \end{cases} \\
-                        ax^2 + bx + c = a(x - x_1)(x - x_2)
-                    `
-                },
-                {
-                    title: "Алгебра: Неравенства",
-                    content: String.raw`
-                        \textbf{4. Неравенства} \\
-                        \text{Если } a > b \text{ и } c > 0 \Rightarrow ac > bc \\
-                        \text{Если } a > b \text{ и } c < 0 \Rightarrow ac < bc \\
-                        |x| < a \Rightarrow -a < x < a \\
-                        |x| > a \Rightarrow x < -a \text{ или } x > a
-                    `
-                },
-                {
-                    title: "Геометрия: Четырехугольники",
-                    content: String.raw`
-                        S_{\text{прямоуг}} = ab \\
-                        S_{\text{парал}} = a \cdot h_a = ab \sin \alpha \\
-                        S_{\text{треуг}} = \frac{1}{2} a \cdot h_a = \frac{1}{2} ab \sin \alpha \\
-                        S_{\text{трапеции}} = \frac{a+b}{2} \cdot h \\
-                        S_{\text{ромба}} = \frac{1}{2} d_1 d_2
-                    `
-                },
-                {
-                    title: "Геометрия: Треугольники",
-                    content: String.raw`
-                        \textbf{Подобие:} \frac{P_1}{P_2} = k, \quad \frac{S_1}{S_2} = k^2 \\
-                        \textbf{Пифагор:} c^2 = a^2 + b^2 \\
-                        \sin \alpha = \frac{a}{c}, \quad \cos \alpha = \frac{b}{c}, \quad \text{tg } \alpha = \frac{a}{b} \\
-                        \sin^2 \alpha + \cos^2 \alpha = 1
-                    `
-                }
-            ],
-            9: [
-                {
-                    title: "Алгебра: Функции и Прогрессии",
-                    content: String.raw`
-                        \textbf{1. Квадратичная функция} \\
-                        x_0 = -\frac{b}{2a}, \quad y_0 = f(x_0) \\
-                        \textbf{2. Прогрессии} \\
-                        \text{Арифм: } a_n = a_1 + d(n-1); \quad S_n = \frac{a_1 + a_n}{2} \cdot n \\
-                        \text{Геом: } b_n = b_1 \cdot q^{n-1}; \quad S_n = \frac{b_1(q^n - 1)}{q - 1}
-                    `
-                },
-                {
-                    title: "Алгебра: Вероятность",
-                    content: String.raw`
-                        \textbf{3. Вероятность} \\
-                        P(A) = \frac{m}{n} \quad \text{(благоприятные / все исходы)}
-                    `
-                },
-                {
-                    title: "Геометрия: Векторы",
-                    content: String.raw`
-                        |\vec{a}| = \sqrt{x^2 + y^2} \\
-                        \vec{a} \cdot \vec{b} = x_1 x_2 + y_1 y_2 \\
-                        (x - x_0)^2 + (y - y_0)^2 = R^2 \quad \text{(Окружность)}
-                    `
-                },
-                {
-                    title: "Геометрия: Треугольники",
-                    content: String.raw`
-                        \frac{a}{\sin A} = \frac{b}{\sin B} = \frac{c}{\sin C} = 2R \quad \text{(Т. Синусов)} \\
-                        a^2 = b^2 + c^2 - 2bc \cos A \quad \text{(Т. Косинусов)} \\
-                        S = \frac{1}{2} ab \sin C
-                    `
-                }
-            ],
-            10: [
-                {
-                    title: "Тригонометрия: Тождества",
-                    content: String.raw`
-                        \sin^2 \alpha + \cos^2 \alpha = 1 \\
-                        \text{tg } \alpha = \frac{\sin \alpha}{\cos \alpha}, \quad \text{ctg } \alpha = \frac{\cos \alpha}{\sin \alpha} \\
-                        \text{tg } \alpha \cdot \text{ctg } \alpha = 1 \\
-                        \sin(\frac{\pi}{2} \pm \alpha) = \cos \alpha; \quad \cos(\pi \pm \alpha) = -\cos \alpha
-                    `
-                },
-                {
-                    title: "Тригонометрия: Формулы",
-                    content: String.raw`
-                        \sin 2\alpha = 2 \sin \alpha \cos \alpha \\
-                        \cos 2\alpha = \cos^2 \alpha - \sin^2 \alpha = 1 - 2\sin^2 \alpha \\
-                        \sin(\alpha \pm \beta) = \sin \alpha \cos \beta \pm \cos \alpha \sin \beta \\
-                        \cos(\alpha \pm \beta) = \cos \alpha \cos \beta \mp \sin \alpha \sin \beta
-                    `
-                },
-                {
-                    title: "Тригонометрия: Уравнения",
-                    content: String.raw`
-                        \sin x = a \Rightarrow x = (-1)^k \arcsin a + \pi k \\
-                        \cos x = a \Rightarrow x = \pm \arccos a + 2\pi k
-                    `
-                },
-                {
-                    title: "Степени и Производная",
-                    content: String.raw`
-                        \sqrt[n]{ab} = \sqrt[n]{a} \cdot \sqrt[n]{b}, \quad a^{\frac{m}{n}} = \sqrt[n]{a^m} \\
-                        (x^n)' = n x^{n-1} \\
-                        (\sin x)' = \cos x; \quad (\cos x)' = -\sin x \\
-                        (uv)' = u'v + uv' \\
-                        \left(\frac{u}{v}\right)' = \frac{u'v - uv'}{v^2}
-                    `
-                },
-                {
-                    title: "Стереометрия",
-                    content: String.raw`
-                        \text{ТТП: } a \perp b \iff a \perp pr_{\alpha} b \\
-                        \cos \varphi = \frac{|\vec{n_1} \cdot \vec{n_2}|}{|\vec{n_1}| \cdot |\vec{n_2}|}
-                    `
-                }
-            ],
-            11: [
-                {
-                    title: "ЕГЭ: Логарифмы",
-                    content: String.raw`
-                        \log_a b^n = n \log_a b; \quad \log_{a^k} b = \frac{1}{k} \log_a b \\
-                        \log_a b = \frac{\log_c b}{\log_c a} \\
-                        a^{\log_a b} = b
-                    `
-                },
-                {
-                    title: "ЕГЭ: Рационализация (№15)",
-                    content: String.raw`
-                        \log_{h(x)} f(x) \gtrless 0 \iff (h(x)-1)(f(x)-1) \gtrless 0 \\
-                        \text{ОДЗ: } f(x)>0, h(x)>0, h(x) \neq 1
-                    `
-                },
-                {
-                    title: "ЕГЭ: Геометрия",
-                    content: String.raw`
-                        S = \sqrt{p(p-a)(p-b)(p-c)} \quad \text{(Герон)} \\
-                        V_{\text{призмы}} = S_{осн} \cdot h; \quad V_{\text{пирамиды}} = \frac{1}{3} S_{осн} \cdot h \\
-                        \text{Векторы: } \vec{a} \cdot \vec{b} = |\vec{a}| \cdot |\vec{b}| \cos \alpha = x_1x_2 + y_1y_2 + z_1z_2
-                    `
-                },
-                {
-                    title: "ЕГЭ: Мат. Анализ",
-                    content: String.raw`
-                        (x^n)' = n x^{n-1}; \quad (\ln x)' = \frac{1}{x}; \quad (e^x)' = e^x \\
-                        f(x) \approx f(x_0) + f'(x_0)(x - x_0) \quad \text{(Касательная)} \\
-                        k = \text{tg } \alpha = f'(x_0)
-                    `
-                },
-                {
-                    title: "ЕГЭ: Экономика (№16)",
-                    content: String.raw`
-                        \text{Аннуитет: } X = S \cdot \frac{k^n(k-1)}{k^n-1}, \text{ где } k = 1 + \frac{r}{100}
-                    `
-                }
-            ]
-        };
-
-        let state = {
-            name: "",
-            class: 0,
-            lives: 5,
-            coins: 0,
-            coinsToday: 0,
-            lastCoinDate: null,
-            currentQuestions: [],
-            currentQIndex: 0
-        };
-
-        // --- ФУНКЦИИ ПЕРЕХОДА ---
-
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            window.scrollTo(0,0);
+    function parseCSV(str) {
+        let arr = []; let quote = false; let row = [], col = '';
+        for (let c = 0; c < str.length; c++) {
+            let cc = str[c], nc = str[c+1];
+            if (cc == '"' && quote && nc == '"') { col += cc; ++c; continue; }
+            if (cc == '"') { quote = !quote; continue; }
+            if (cc == ',' && !quote) { row.push(col); col = ''; continue; }
+            if (cc == '\r' && nc == '\n' && !quote) { row.push(col); arr.push(row); col = ''; row = []; ++c; continue; }
+            if (cc == '\n' && !quote) { row.push(col); arr.push(row); col = ''; row = []; continue; }
+            col += cc;
         }
+        if (col || row.length) { row.push(col); arr.push(row); }
+        return arr.slice(1);
+    }
 
-        // НОВАЯ ФУНКЦИЯ ОБРАТНОЙ СВЯЗИ
-        function openExternalFeedback() {
-            tg.openTelegramLink('https://t.me/supertutor15');
-        }
-
-        function selectClass(cls) {
-            const inputName = document.getElementById('username-input').value;
-            if(!inputName) {
-                alert("Пожалуйста, введи свое имя!");
-                return;
-            }
-            state.name = inputName;
-            state.class = cls;
-            
-            document.body.className = `class-${cls}`;
-            
-            loadState();
-            updateStats();
-            
-            document.getElementById('welcome-text').innerText = `Привет, ${state.name}! Ты в ${cls} классе.`;
-            showScreen('screen-menu');
-        }
-
-        function showTheorySelection() {
-            const list = document.getElementById('topics-list');
-            list.innerHTML = "";
-            const topics = theoryData[state.class] || [];
-            
-            if (topics.length === 0) {
-                list.innerHTML = "<p>Для этого класса теория еще загружается...</p>";
-            }
-
-            topics.forEach((topic, idx) => {
-                const btn = document.createElement('button');
-                btn.className = 'btn';
-                btn.innerText = topic.title;
-                btn.onclick = () => openTopic(idx);
-                list.appendChild(btn);
-            });
-            showScreen('screen-theory-select');
-        }
-
-        function openTopic(index) {
-            const topic = theoryData[state.class][index];
-            const container = document.getElementById('theory-content');
-            
-            container.innerHTML = `
-                <div class="theory-card">
-                    <h3>${topic.title}</h3>
-                    <div class="latex-render-area">${topic.content}</div>
-                </div>
-            `;
-            
-            const area = container.querySelector('.latex-render-area');
-            try {
-                katex.render(topic.content, area, {
-                    throwOnError: false,
-                    displayMode: true,
-                    fleqn: false
-                });
-            } catch(e) {
-                area.innerText = "Ошибка отображения формул";
-            }
-            
-            showScreen('screen-theory-read');
-        }
-
-        async function startPractice() {
-            state.lives = 5;
-            state.currentQIndex = 0;
-            updateStats();
-            
-            showScreen('screen-practice');
-            document.getElementById('question-text').innerText = "Загружаем вопросы...";
-            document.getElementById('answers-block').innerHTML = "";
-            document.getElementById('feedback-block').style.display = 'none';
-            
-            try {
-                const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv";
-                const response = await fetch(url);
-                const csvText = await response.text();
-                
-                parseQuestions(csvText);
-                
-                if (state.currentQuestions.length > 0) {
-                    renderQuestion();
-                } else {
-                    alert("Вопросов для твоего класса пока нет в базе.");
-                    showScreen('screen-menu');
-                }
-            } catch (e) {
-                alert("Ошибка интернета или доступа к таблице.");
-                showScreen('screen-menu');
-            }
-        }
-
-        function parseQuestions(csv) {
-            const rows = csv.split('\n').map(row => row.split(','));
-            state.currentQuestions = rows.filter(r => r[1] && r[1].trim() == state.class)
-                .sort(() => 0.5 - Math.random())
-                .slice(0, state.class >= 9 ? 10 : 5);
-        }
-
-        function renderQuestion() {
-            document.getElementById('feedback-block').style.display = 'none';
-            document.getElementById('answers-block').style.display = 'block';
-            document.getElementById('next-q-btn').style.display = 'none';
-            
-            const q = state.currentQuestions[state.currentQIndex];
-            document.getElementById('question-text').innerText = `Вопрос ${state.currentQIndex + 1}: ${q[3]}`; 
-            
-            const answersDiv = document.getElementById('answers-block');
-            answersDiv.innerHTML = "";
-            
-            const opts = [q[4], q[5], q[6], q[7]];
-            
-            opts.forEach((optText, i) => {
-                if(optText && optText.trim() !== "") {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn';
-                    btn.style.background = "#fff";
-                    btn.style.color = "#000";
-                    btn.style.border = "1px solid #ccc";
-                    btn.innerText = optText;
-                    btn.onclick = () => checkAnswer(i + 1, btn);
-                    answersDiv.appendChild(btn);
-                }
-            });
-        }
-
-        function checkAnswer(selectedIdx, btnElement) {
-            const q = state.currentQuestions[state.currentQIndex];
-            const correctIdx = parseInt(q[8]);
-            
-            const feedbackDiv = document.getElementById('feedback-block');
-            const title = document.getElementById('feedback-title');
-            const expl = document.getElementById('feedback-solution');
-            
-            const allBtns = document.getElementById('answers-block').querySelectorAll('.btn');
-            allBtns.forEach(b => b.disabled = true);
-
-            if (selectedIdx === correctIdx) {
-                btnElement.style.background = "#2ecc71";
-                btnElement.style.color = "#fff";
-                title.innerText = "✅ Верно!";
-                title.style.color = "green";
-                addCoins(10);
-            } else {
-                btnElement.style.background = "#e74c3c";
-                btnElement.style.color = "#fff";
-                title.innerText = "❌ Ошибка!";
-                title.style.color = "red";
-                state.lives--;
-            }
-            
-            expl.innerText = q[9] || "Решение загружается..."; 
-            updateStats();
-
-            feedbackDiv.style.display = 'block';
-            const nextBtn = document.getElementById('next-q-btn');
-            nextBtn.style.display = 'block';
-            nextBtn.onclick = nextQuestion;
-
-            if (state.lives <= 0) {
-                setTimeout(() => finishQuiz(false), 1500);
-            }
-        }
-
-        function nextQuestion() {
-            state.currentQIndex++;
-            if (state.currentQIndex >= state.currentQuestions.length) {
-                finishQuiz(true);
-            } else {
-                renderQuestion();
-            }
-        }
-
-        function finishQuiz(success) {
-            showScreen('screen-results');
-            const msg = document.getElementById('result-message');
-            const finalLives = document.getElementById('final-lives');
-            finalLives.innerText = state.lives;
-            
-            if (success) {
-                msg.innerText = "🎉 Тест пройден!";
-                msg.style.color = "#2ecc71";
-            } else {
-                msg.innerText = "💀 Потрачено";
-                msg.style.color = "#e74c3c";
-            }
-            localStorage.setItem('schoolAppState', JSON.stringify(state));
-        }
-
-        function addCoins(amount) {
-            const now = new Date().getTime();
-            const twelveHours = 12 * 60 * 60 * 1000;
-            if (state.lastCoinDate && (now - state.lastCoinDate > twelveHours)) {
-                state.coinsToday = 0; 
-            }
-            if (state.coinsToday < 100) {
-                state.coins += amount;
-                state.coinsToday += amount;
-                state.lastCoinDate = now;
-            }
-            updateStats();
-        }
-
-        function buyItem(price) {
-            if (state.coins >= price) {
-                alert("Функция скачивания PDF будет доступна скоро! (Списывание не произошло)");
-            } else {
-                alert("Недостаточно монет! Проходи тесты.");
-            }
-        }
-
-        function loadState() {
-            const saved = localStorage.getItem('schoolAppState');
-            if (saved) {
-                const p = JSON.parse(saved);
-                state.coins = p.coins || 0;
-                state.coinsToday = p.coinsToday || 0;
-                state.lastCoinDate = p.lastCoinDate;
-            }
-        }
-
-        function updateStats() {
-            const els = ['lives-display', 'coins-display', 'quiz-lives', 'quiz-coins', 'shop-balance', 'earned-coins'];
-            els.forEach(id => {
-                const el = document.getElementById(id);
-                if(el) {
-                    if (id.includes('lives')) el.innerText = state.lives;
-                    else el.innerText = state.coins;
-                }
-            });
-        }
-
-        async function saveAndFinish() {
-            if (document.getElementById('consent-checkbox').checked) {
-                const data = {
-                    action: "save_result",
-                    username: state.name + " (@" + (tg.initDataUnsafe?.user?.username || "no_tg") + ")",
-                    class: state.class,
-                    correct: state.currentQuestions.length - (5 - state.lives),
-                    errors: (5 - state.lives)
-                };
-                try {
-                    await fetch('/api/save_stats', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(data)
-                    });
-                } catch(e) { console.log("Бэкенд недоступен"); }
-            }
-            showScreen('screen-menu');
-        }
-
-    </script>
+    // Рендер при первой загрузке
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement(document.body, { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
+    });
+</script>
 </body>
 </html>
