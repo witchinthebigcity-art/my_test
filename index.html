@@ -22,6 +22,17 @@
         .theory-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .math-block { overflow-x: auto; display: flex; justify-content: center; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; }
         .theory-class-container { display: none; }
+        /* Новые стили для магазина */
+.shop-item { 
+    background: rgba(128, 128, 128, 0.1); 
+    border: 1px solid var(--accent-color); 
+    padding: 15px; 
+    border-radius: 15px; 
+    margin-bottom: 15px; 
+    text-align: center; 
+}
+.shop-item h3 { margin: 0 0 5px 0; font-size: 18px; }
+.shop-item p { margin: 0 0 10px 0; font-weight: bold; color: var(--accent-color); }
     </style>
 </head>
 <body>
@@ -200,13 +211,30 @@
     </div>
 
     <div id="shopScreen" class="screen">
-        <h2>Магазин</h2>
-        <button class="btn" disabled>Предмет 1 (30 🪙)</button>
-        <button class="btn" disabled>Предмет 2 (50 🪙)</button>
-        <button class="btn" disabled>Предмет 3 (100 🪙)</button>
-        <button class="btn" onclick="showScreen('mainMenu')">Главное меню</button>
-        <button class="btn" onclick="openSupport()" style="background-color: #ff4444;">Обратная связь</button>
+    <div class="stats"><span>🪙 Баланс: <span id="shopCoins">0</span></span></div>
+    <h2 style="text-align: center;">Математический Магазин</h2>
+    
+    <div class="shop-item">
+        <h3>🎁 Мини-гайд по темам</h3>
+        <p>30 🪙</p>
+        <button class="btn" onclick="buyItem(30)">Приобрести</button>
     </div>
+
+    <div class="shop-item">
+        <h3>📜 Шпаргалка (PDF)</h3>
+        <p>50 🪙</p>
+        <button class="btn" onclick="buyItem(50)">Приобрести</button>
+    </div>
+
+    <div class="shop-item">
+        <h3>💎 Секретный файл 80+</h3>
+        <p>100 🪙</p>
+        <button class="btn" onclick="buyItem(100)">Приобрести</button>
+    </div>
+
+    <button class="btn" onclick="showScreen('mainMenu')">Главное меню</button>
+    <button class="btn" onclick="goToChat()" style="background-color: #ff4444;">Обратная связь / Чат</button>
+</div>
 
 <script>
     const tg = window.Telegram.WebApp;
@@ -260,15 +288,59 @@
         showScreen('theoryScreen');
     }
 
-    function reportError(context) {
-        tg.sendData(JSON.stringify({ action: 'report_error', context: context, class: currentClass }));
-        tg.showAlert('Спасибо! Сообщение отправлено администратору.');
-    }
+    // --- КОНСТАНТЫ ССЫЛОК ---
+const CHAT_SUPPORT = "https://t.me/+cR1lvAy5gNIxNDVi";
+const ADMIN_LS = "https://t.me/supertutor15";
 
-    function openSupport() {
-        tg.sendData(JSON.stringify({ action: 'support_request' }));
-        tg.close();
+// --- ФУНКЦИИ ПЕРЕХОДОВ ---
+
+// Функция покупки в магазине
+function buyItem(price) {
+    if (coins >= price) {
+        tg.showConfirm(`Списать ${price} 🪙 за этот предмет?`, (ok) => {
+            if (ok) {
+                coins -= price;
+                localStorage.setItem('mathCoins', coins);
+                updateUI();
+                tg.showAlert("Оплата принята! Напиши мне в ЛС 'ХОЧУ ПОДАРОК' и я скину файл.");
+                // Открываем ЛС через небольшую паузу
+                setTimeout(() => { tg.openTelegramLink(ADMIN_LS); }, 1500);
+            }
+        });
+    } else {
+        tg.showPopup({
+            title: "Недостаточно монет",
+            message: `Тебе нужно еще ${price - coins} 🪙. Давай еще один тест?`,
+            buttons: [{id: 'yes', type: 'default', text: 'Погнали!'}, {type: 'cancel', text: 'Позже'}]
+        }, (btn) => {
+            if (btn === 'yes') showScreen('mainMenu');
+        });
     }
+}
+
+// Замена старого reportError (для кнопки в теории и тестах)
+function handleErrorReport() {
+    tg.showPopup({
+        title: 'Заметили ошибку?',
+        message: 'Перейдите в наш чат и напишите об этом (можно прикрепить скриншот).',
+        buttons: [{id: 'go', type: 'default', text: 'В чат'}, {type: 'cancel', text: 'Отмена'}]
+    }, (btn) => {
+        if (btn === 'go') tg.openTelegramLink(CHAT_SUPPORT);
+    });
+}
+
+// Функция для кнопки "Служба поддержки"
+function goToChat() {
+    tg.openTelegramLink(CHAT_SUPPORT);
+}
+
+// Обновление всех счетчиков монет на всех экранах
+function updateUI() {
+    document.getElementById('coinsCount').innerText = coins;
+    document.getElementById('shopCoins').innerText = coins;
+    // Также обновляем жизни, если нужно
+    document.getElementById('livesCount').innerText = lives;
+}
 
     // ЛОГИКА ТЕСТИРОВАНИЯ И ЭКОНОМИКИ
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv';
