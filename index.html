@@ -396,8 +396,13 @@ function sendToForm(grade, topic, status) {
         alert("Загружено: " + allQuestionsBase.length + " строк. Первая строка: " + JSON.stringify(allQuestionsBase[0]));
         // Фильтр: убираем пробелы и сравниваем как текст
 let classQuestions = allQuestionsBase.filter(row => {
-    if (!row || !row[0]) return false;
-    return row[0].toString().trim() === currentClass.toString().trim();
+    if (!row || row.length < 1 || !row[0]) return false;
+    
+    // Оставляем только цифры: если в таблице написано "5 класс", останется "5"
+    let rowGrade = row[0].toString().replace(/\D/g, ""); 
+    let selectedGrade = currentClass.toString();
+
+    return rowGrade === selectedGrade;
 });
         if (classQuestions.length === 0) {
             alert('Заданий пока нет!');
@@ -522,19 +527,46 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
     }
 
     function parseCSV(str) {
-        let arr = []; let quote = false; let row = [], col = '';
-        for (let c = 0; c < str.length; c++) {
-            let cc = str[c], nc = str[c+1];
-            if (cc == '"' && quote && nc == '"') { col += cc; ++c; continue; }
-            if (cc == '"') { quote = !quote; continue; }
-            if ((cc == ',' || cc == ';') && !quote) { row.push(col); col = ''; continue; }
-            if (cc == '\r' && nc == '\n' && !quote) { row.push(col); arr.push(row); col = ''; row = []; ++c; continue; }
-            if (cc == '\n' && !quote) { row.push(col); arr.push(row); col = ''; row = []; continue; }
-            col += cc;
+    const arr = [];
+    let row = [];
+    let col = '';
+    let insideQuotes = false;
+
+    // Авто-определение разделителя (запятая или точка с запятой)
+    const delimiter = str.includes(';') ? ';' : ',';
+
+    for (let i = 0; i < str.length; i++) {
+        let char = str[i];
+        let nextChar = str[i + 1];
+
+        if (char === '"') {
+            if (insideQuotes && nextChar === '"') {
+                col += '"'; i++;
+            } else {
+                insideQuotes = !insideQuotes;
+            }
+        } else if (char === delimiter && !insideQuotes) {
+            row.push(col.trim());
+            col = '';
+        } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+            if (col !== '' || row.length > 0) {
+                row.push(col.trim());
+                arr.push(row);
+            }
+            col = '';
+            row = [];
+            if (char === '\r' && nextChar === '\n') i++;
+        } else {
+            col += char;
         }
-        if (col || row.length) { row.push(col); arr.push(row); }
-        return arr.slice(1);
     }
+    if (col !== '' || row.length > 0) {
+        row.push(col.trim());
+        arr.push(row);
+    }
+    // Отрезаем заголовок (Класс, Тема...)
+    return arr.slice(1);
+}
 
     // Рендер при первой загрузке
     document.addEventListener("DOMContentLoaded", function() {
