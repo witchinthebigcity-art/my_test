@@ -1,88 +1,79 @@
+import os
 import asyncio
 import json
-import os
-from datetime import datetime
-from aiohttp import web
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
-from aiogram.filters import CommandStart
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
-# Получаем переменные окружения (Railway задаст их автоматически)
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBAPP_URL = os.getenv("WEBAPP_URL") # Сюда впишем домен, который даст Railway
-ADMIN_GROUP_ID = os.getenv("ADMIN_GROUP_ID", "-1003677230845")
-PORT = int(os.getenv("PORT", 8080)) # Railway сам назначает порт
+# Берем настройки из переменных Railway
+TOKEN = os.getenv("TOKEN")
+WEBAPP_URL = os.getenv("WEBAPP_URL")
+ADMIN_ID = os.getenv("ADMIN_ID")
 
-bot = Bot(token=BOT_TOKEN)
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Временная память для имен (при перезагрузке сервера будет сбрасываться, 
-# в идеале потом подключим SQLite)
-user_data_db = {}
+# Файл для хранения ID пользователей (чтобы знать, кому слать рекламу)
+USERS_FILE = "users.json"
 
-# --- ЛОГИКА БОТА ---
-@dp.message(CommandStart())
-async def cmd_start(message: Message):
-    # Кнопка для запуска Web App
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="Прокачать матан 🚀", web_app=WebAppInfo(url=WEBAPP_URL))]],
-        resize_keyboard=True
-    )
-    # Если имя не знаем, можно спросить, но для простоты сразу даем кнопку
+def save_user(user_id):
+    users = set()
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, "r") as f:
+            users = set(json.load(f))
+    users.add(user_id)
+    with open(USERS_FILE, "w") as f:
+        json.dump(list(users), f)
+
+@dp.message(Command("start"))
+async def start(message: types.Message):
+    save_user(message.from_user.id)
+    
+    # Кнопка для открытия твоего приложения
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚀 Прокачать матан", web_app=WebAppInfo(url=WEBAPP_URL))]
+    ])
+    
     await message.answer(
-        "Привет! Готов прокачать свои знания? Нажимай на кнопку ниже и выбирай свой класс!", 
-        reply_markup=kb
+        f"Привет, {message.from_user.first_name}! 👋\n\n"
+        "Я твой личный тренажер по математике. Нажимай кнопку ниже, чтобы начать прокачку!",
+        reply_markup=markup
     )
 
-@dp.message(F.web_app_data)
-async def web_app_data_handler(message: Message):
-    data = json.loads(message.web_app_data.data)
-    action = data.get('action')
-    username = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
+# Команда для админа, чтобы запустить рассылку
+@dp.message(Command("admin"))
+async def admin_panel(message: types.Message):
+    if str(message.from_user.id) == str(ADMIN_ID):
+        await message.answer("Отправь сообщение (текст или фото с текстом), и я разошлю его всем ученикам!")
+    else:
+        await message.answer("У тебя нет прав доступа к этой команде. 😉")
 
-    if action == 'report_error':
-        error_context = data.get('context')
-        grade = data.get('class')
-        text = f"⚠️ Ошибка от {username}\nКласс: {grade}\nКонтекст: {error_context}"
-        await bot.send_message(chat_id=ADMIN_GROUP_ID, message_thread_id=1, text=text)
+# Логика самой рассылки
+@dp.message()
+async def broadcast(message: types.Message):
+    # Проверяем, что пишет именно админ
+    if str(message.from_user.id) != str(ADMIN_ID):
+        return
 
-    elif action == 'support_request':
-        text = f"✉️ {username} запрашивает поддержку. Напишите ему в личные сообщения!"
-        await bot.send_message(chat_id=ADMIN_GROUP_ID, message_thread_id=1, text=text)
+    if not os.path.exists(USERS_FILE):
+        await message.answer("Пользователей пока нет.")
+        return
 
-    elif action == 'save_result':
-        grade = data.get('class')
-        topic = data.get('topic')
-        is_correct = data.get('isCorrect')
-        result_text = "Верно" if is_correct else "Ошибка"
-        date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Здесь будет логика записи в Google Таблицу через gspread
-        # gc = gspread.service_account(filename='credentials.json')
-        # sh = gc.open_by_url("ТВОЯ_ССЫЛКА_НА_ПРИВАТНУЮ_ТАБЛИЦУ")
-        # worksheet = sh.sheet1
-        # worksheet.append_row([date_str, username, grade, topic, result_text])
-        
-        print(f"Результат сохранен: {username}, Класс: {grade}, Тема: {topic}, Итог: {result_text}")
+    with open(USERS_FILE, "r") as f:
+        users = json.load(f)
 
-# --- ЛОГИКА ВЕБ-СЕРВЕРА ---
-async def handle_index(request):
-    # Отдаем наш HTML файл, когда Telegram запрашивает WEBAPP_URL
-    return web.FileResponse('index.html')
+    count = 0
+    for user_id in users:
+        try:
+            await bot.copy_message(chat_id=user_id, from_chat_id=message.chat.id, message_id=message.message_id)
+            count += 1
+            await asyncio.sleep(0.05) # Защита от спам-фильтра Телеграма
+        except Exception:
+            pass
+
+    await message.answer(f"✅ Рассылка завершена!\nПолучили: {count} чел.")
 
 async def main():
-    # Настраиваем aiohttp сервер
-    app = web.Application()
-    app.router.add_get('/', handle_index)
-    
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', PORT)
-    await site.start()
-    
-    print(f"Сервер запущен на порту {PORT}")
-    
-    # Запускаем бота параллельно с сервером
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
