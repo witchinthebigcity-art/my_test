@@ -378,8 +378,8 @@ function sendToForm(grade, topic, status) {
 
     function startPractice() { showScreen('consentScreen'); }
 
-    async function startQuizWithConsent(consent) {
-    userConsent = consent;
+   async function startQuizWithConsent(consent) {
+    userConsent = consent; 
     lives = 5; 
     sessionCoinsEarned = 0;
     quizMistakes = [];
@@ -389,38 +389,29 @@ function sendToForm(grade, topic, status) {
     tg.MainButton.showProgress();
     
     try {
-        const response = await fetch(CSV_URL);
-        if (!response.ok) throw new Error("Код ошибки: " + response.status);
-        
+        // Добавляем '&t=...' чтобы убить кэш на стороне серверов Google
+        const response = await fetch(CSV_URL + '&t=' + Date.now(), { cache: "no-store" });
         const text = await response.text();
         
-        // Диагностика 1: Проверяем, что вообще скачалось
-        if (text.includes("<!DOCTYPE")) {
-            alert("Ошибка: Вместо данных пришел HTML. Проверь публикацию таблицы!");
+        // ЛОВУШКА ДЛЯ HTML: если Гугл отдал страницу вместо данных
+        if (text.trim().startsWith('<')) {
+            alert('🚨 СТОП! Google отдает веб-страницу вместо CSV-данных. Зайди в Таблицу -> Файл -> Поделиться -> Опубликовать в интернете -> Проверь, что выбран формат CSV!');
+            tg.MainButton.hide();
+            showScreen('mainMenu');
             return;
         }
 
         allQuestionsBase = parseCSV(text);
         
-        // Диагностика 2: Смотрим, что получилось после парсинга
-        alert("Всего строк в базе: " + allQuestionsBase.length + "\nПервая строка: " + JSON.stringify(allQuestionsBase[0]));
-
-        // ФИЛЬТР (самое важное место)
         let classQuestions = allQuestionsBase.filter(row => {
             if (!row || row.length < 1 || !row[0]) return false;
-            
-            // Чистим данные от пробелов и мусора
-            let rowGrade = row[0].toString().trim().replace(/\D/g, ""); 
-            let selectedGrade = currentClass.toString().trim();
-
-            return rowGrade === selectedGrade;
+            let rowGrade = row[0].toString().replace(/\D/g, ""); 
+            return rowGrade === currentClass.toString();
         });
 
         if (classQuestions.length === 0) {
-            // Диагностика 3: Если пусто, узнаем что мы искали
-            alert("Заданий не найдено!\nИскали класс: " + currentClass + "\nПервые 3 значения в колонке 'Класс' из таблицы: " + 
-                  allQuestionsBase.slice(0,3).map(r => "["+r[0]+"]").join(", "));
-            
+            // Если заданий правда нет, давай посмотрим, что вообще есть в базе
+            alert(`Заданий не найдено!\nВ базе ${allQuestionsBase.length} строк.\nПервый класс в базе: [${allQuestionsBase[0] ? allQuestionsBase[0][0] : 'пусто'}]`);
             tg.MainButton.hide();
             showScreen('mainMenu');
             return;
