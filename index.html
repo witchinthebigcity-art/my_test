@@ -540,7 +540,7 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
     let insideQuotes = false;
 
     // Авто-определение разделителя (запятая или точка с запятой)
-    const delimiter = str.includes(';') ? ';' : ',';
+    const delimiter = ','; // Жестко задаем запятую!
 
     for (let i = 0; i < str.length; i++) {
         let char = str[i];
