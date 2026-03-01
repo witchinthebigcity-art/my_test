@@ -393,8 +393,12 @@ function sendToForm(grade, topic, status) {
         const response = await fetch(CSV_URL);
         const text = await response.text();
         allQuestionsBase = parseCSV(text);
-        
-        let classQuestions = allQuestionsBase.filter(row => row[0] && row[0].toString().trim() == currentClass.toString());
+        alert("Всего строк загружено из таблицы: " + allQuestionsBase.length);
+        // Фильтр: убираем пробелы и сравниваем как текст
+let classQuestions = allQuestionsBase.filter(row => {
+    if (!row || !row[0]) return false;
+    return row[0].toString().trim() === currentClass.toString().trim();
+});
         if (classQuestions.length === 0) {
             alert('Заданий пока нет!');
             tg.MainButton.hide();
@@ -504,7 +508,10 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
 
     function startWorkOnErrors() {
         lives = 5; sessionCoinsEarned = 0; isWorkOnErrors = true;
-        let errorQuestions = allQuestionsBase.filter(row => row[0] == currentClass && quizMistakes.includes(row[1]));
+        let errorQuestions = allQuestionsBase.filter(row => {
+    if (!row || !row[0]) return false;
+    return row[0].toString().trim() === currentClass.toString().trim() && quizMistakes.includes(row[1]);
+});
         let questionsNeeded = quizMistakes.length * 3;
         currentQuizQuestions = errorQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
         
