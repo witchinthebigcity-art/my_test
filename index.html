@@ -53,12 +53,16 @@
     </div>
 
     <div id="consentScreen" class="screen">
-        <h2>Согласие</h2>
-        <p>Даете ли вы согласие на обработку и хранение информации с результатами прохождения тестирования?</p>
-        <p style="font-size: 12px; color: #555;"><i>p.s. это для того, чтобы можно было проанализировать свои результаты за большой период</i></p>
-        <button class="btn" onclick="acceptConsent()">Да, даю согласие</button>
-        <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #888;">Нет, назад в меню</button>
-    </div>
+    <h2>Согласие</h2>
+    <p>Хочешь, чтобы мы сохраняли твои результаты для анализа прогресса?</p>
+    <p style="font-size: 12px; color: #555;"><i>Это поможет тебе видеть ошибки за всё время.</i></p>
+    
+    <button class="btn" onclick="startQuizWithConsent(true)">Да, сохранять прогресс</button>
+    
+    <button class="btn" onclick="startQuizWithConsent(false)" style="background-color: #888;">Нет, просто тренировка</button>
+    
+    <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555;">Назад в меню</button>
+</div>
 
     <div id="quizScreen" class="screen">
         <div class="stats"><span>❤️ Жизни: <span id="quizLives">5</span></span><span>🪙 Монеты: <span id="quizCoins">0</span></span></div>
@@ -69,7 +73,7 @@
             <h4 id="feedbackTitle" style="margin-top: 0;"></h4>
             <p id="feedbackText"></p>
             <button class="btn" onclick="nextQuestion()">Далее</button>
-            <button class="btn" style="background-color: #ff4444; margin-top: 10px;" onclick="reportError('Ошибка в задании: ' + currentQuestionData.question)">Сообщить об ошибке</button>
+            <button class="btn" style="background-color: #ff4444; margin-top: 10px;" onclick="handleErrorReport()">Сообщить об ошибке</button>
         </div>
     </div>
 
@@ -243,6 +247,7 @@
     let currentClass = null;
     let coins = parseInt(localStorage.getItem('mathCoins')) || 0;
     let lives = 5;
+    let userConsent = false; // Согласие по умолчанию
 
     // Стилистика
     const classThemes = {
@@ -343,7 +348,26 @@ function updateUI() {
 }
 
     // ЛОГИКА ТЕСТИРОВАНИЯ И ЭКОНОМИКИ
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv';
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQFC9ljrt11iEETJQKf1Xo87hzJIkxbt78Tzqsgh32omTQZxxwn2uoor_6AZBbUPZmOhARKIAT3pop_/pub?output=csv';
+    // Настройки твоей Google Формы
+const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdSQdG5gJNtVtKgEDDkEmkio9y9HlowaswAhQhY2tmryOSQzg/formResponse";
+const FIELD_NAME = "entry.1090136716";   // Поле: имя
+const FIELD_GRADE = "entry.108687451";   // Поле: класс
+const FIELD_TOPIC = "entry.787109460";   // Поле: тема
+const FIELD_STATUS = "entry.1599143000"; // Поле: результат
+    // --- ФУНКЦИЯ ОТПРАВКИ ---
+function sendToForm(grade, topic, status) {
+    if (!userConsent) return; // Если ученик нажал "Нет", ничего не шлем
+    
+    const username = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : "anonymous";
+    const formData = new FormData();
+    formData.append(FIELD_NAME, "@" + username);
+    formData.append(FIELD_GRADE, grade);
+    formData.append(FIELD_TOPIC, topic);
+    formData.append(FIELD_STATUS, status);
+
+    fetch(FORM_URL, { method: "POST", mode: "no-cors", body: formData });
+}
     let allQuestionsBase = [];
     let currentQuizQuestions = [];
     let currentQuestionIndex = 0;
@@ -354,39 +378,44 @@ function updateUI() {
 
     function startPractice() { showScreen('consentScreen'); }
 
-    async function acceptConsent() {
-        lives = 5; 
-        sessionCoinsEarned = 0;
-        quizMistakes = [];
-        isWorkOnErrors = false;
-        tg.MainButton.show();
-        tg.MainButton.showProgress();
+    async function startQuizWithConsent(consent) {
+    userConsent = consent; // Запоминаем выбор ученика
+    
+    lives = 5; 
+    sessionCoinsEarned = 0;
+    quizMistakes = [];
+    isWorkOnErrors = false;
+    
+    tg.MainButton.show();
+    tg.MainButton.showProgress();
+    
+    try {
+        const response = await fetch(CSV_URL);
+        const text = await response.text();
+        allQuestionsBase = parseCSV(text);
         
-        try {
-            const response = await fetch(CSV_URL);
-            const text = await response.text();
-            allQuestionsBase = parseCSV(text);
-            
-            let classQuestions = allQuestionsBase.filter(row => row[0] == currentClass);
-            if (classQuestions.length === 0) {
-                alert('Для этого класса пока нет заданий в базе!');
-                tg.MainButton.hide();
-                showScreen('mainMenu');
-                return;
-            }
-
-            let questionsNeeded = (currentClass >= 5 && currentClass <= 8) ? 5 : 10;
-            currentQuizQuestions = classQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
-            currentQuestionIndex = 0;
-            tg.MainButton.hide();
-            showScreen('quizScreen');
-            renderCurrentQuestion();
-        } catch (error) {
-            alert('Ошибка загрузки заданий. Проверьте подключение.');
+        let classQuestions = allQuestionsBase.filter(row => row[0] == currentClass);
+        if (classQuestions.length === 0) {
+            alert('Заданий пока нет!');
             tg.MainButton.hide();
             showScreen('mainMenu');
+            return;
         }
+
+        let questionsNeeded = (currentClass >= 5 && currentClass <= 8) ? 5 : 10;
+        currentQuizQuestions = classQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
+        
+        currentQuestionIndex = 0;
+        tg.MainButton.hide();
+        showScreen('quizScreen');
+        renderCurrentQuestion();
+        
+    } catch (error) {
+        alert('Ошибка связи с базой.');
+        tg.MainButton.hide();
+        showScreen('mainMenu');
     }
+}
 
     function renderCurrentQuestion() {
         document.getElementById('quizLives').innerText = lives;
@@ -433,6 +462,8 @@ function updateUI() {
         renderMathInElement(document.getElementById('quizFeedback'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
         
         tg.sendData(JSON.stringify({ action: 'save_result', class: currentClass, topic: currentQuestionData.topic, isCorrect: isCorrect }));
+        // Отправка данных в твою Google Таблицу
+sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "Ошибка");
     }
 
     function nextQuestion() {
@@ -447,7 +478,7 @@ function updateUI() {
         document.getElementById('resultCoins').innerText = sessionCoinsEarned;
         let actionsHtml = '';
         if (quizMistakes.length > 0) actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="startWorkOnErrors()">Пройти тест повторно (Работа над ошибками)</button>`;
-        else actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="acceptConsent()">Пройти еще один тест</button>`;
+        else actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="startPractice()">Пройти еще один тест</button>`;
         document.getElementById('resultActions').innerHTML = actionsHtml;
         showScreen('resultScreen');
     }
