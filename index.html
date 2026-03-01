@@ -379,8 +379,7 @@ function sendToForm(grade, topic, status) {
     function startPractice() { showScreen('consentScreen'); }
 
     async function startQuizWithConsent(consent) {
-    userConsent = consent; // Запоминаем выбор ученика
-    
+    userConsent = consent;
     lives = 5; 
     sessionCoinsEarned = 0;
     quizMistakes = [];
@@ -391,26 +390,43 @@ function sendToForm(grade, topic, status) {
     
     try {
         const response = await fetch(CSV_URL);
+        if (!response.ok) throw new Error("Код ошибки: " + response.status);
+        
         const text = await response.text();
-        allQuestionsBase = parseCSV(text);
-        alert("Загружено: " + allQuestionsBase.length + " строк. Первая строка: " + JSON.stringify(allQuestionsBase[0]));
-        // Фильтр: убираем пробелы и сравниваем как текст
-let classQuestions = allQuestionsBase.filter(row => {
-    if (!row || row.length < 1 || !row[0]) return false;
-    
-    // Оставляем только цифры: если в таблице написано "5 класс", останется "5"
-    let rowGrade = row[0].toString().replace(/\D/g, ""); 
-    let selectedGrade = currentClass.toString();
+        
+        // Диагностика 1: Проверяем, что вообще скачалось
+        if (text.includes("<!DOCTYPE")) {
+            alert("Ошибка: Вместо данных пришел HTML. Проверь публикацию таблицы!");
+            return;
+        }
 
-    return rowGrade === selectedGrade;
-});
+        allQuestionsBase = parseCSV(text);
+        
+        // Диагностика 2: Смотрим, что получилось после парсинга
+        alert("Всего строк в базе: " + allQuestionsBase.length + "\nПервая строка: " + JSON.stringify(allQuestionsBase[0]));
+
+        // ФИЛЬТР (самое важное место)
+        let classQuestions = allQuestionsBase.filter(row => {
+            if (!row || row.length < 1 || !row[0]) return false;
+            
+            // Чистим данные от пробелов и мусора
+            let rowGrade = row[0].toString().trim().replace(/\D/g, ""); 
+            let selectedGrade = currentClass.toString().trim();
+
+            return rowGrade === selectedGrade;
+        });
+
         if (classQuestions.length === 0) {
-            alert('Заданий пока нет!');
+            // Диагностика 3: Если пусто, узнаем что мы искали
+            alert("Заданий не найдено!\nИскали класс: " + currentClass + "\nПервые 3 значения в колонке 'Класс' из таблицы: " + 
+                  allQuestionsBase.slice(0,3).map(r => "["+r[0]+"]").join(", "));
+            
             tg.MainButton.hide();
             showScreen('mainMenu');
             return;
         }
 
+        // Если нашли задания, запускаем тест
         let questionsNeeded = (currentClass >= 5 && currentClass <= 8) ? 5 : 10;
         currentQuizQuestions = classQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
         
@@ -420,7 +436,7 @@ let classQuestions = allQuestionsBase.filter(row => {
         renderCurrentQuestion();
         
     } catch (error) {
-        alert('Ошибка связи с базой.');
+        alert('Ошибка связи: ' + error.message);
         tg.MainButton.hide();
         showScreen('mainMenu');
     }
