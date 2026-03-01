@@ -28,11 +28,18 @@ def save_user(user_id):
     with open(USERS_FILE, "w") as f:
         json.dump(list(users), f)
 
+import time # Добавь в начало файла, где импорты
+
 @dp.message(Command("start"))
 async def start(message: types.Message):
     save_user(message.from_user.id)
+    
+    # Добавляем параметр времени (cache-buster), чтобы убить кэш ТГ
+    cache_buster = int(time.time())
+    safe_url = f"{WEBAPP_URL}?v={cache_buster}"
+    
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Прокачать матан", web_app=WebAppInfo(url=WEBAPP_URL))]
+        [InlineKeyboardButton(text="🚀 Прокачать матан", web_app=WebAppInfo(url=safe_url))]
     ])
     await message.answer(f"Привет, {message.from_user.first_name}! 👋\nЖми кнопку ниже!", reply_markup=markup)
 
