@@ -393,7 +393,7 @@ function sendToForm(grade, topic, status) {
         const response = await fetch(CSV_URL);
         const text = await response.text();
         allQuestionsBase = parseCSV(text);
-        alert("Всего строк загружено из таблицы: " + allQuestionsBase.length);
+        alert("Загружено: " + allQuestionsBase.length + " строк. Первая строка: " + JSON.stringify(allQuestionsBase[0]));
         // Фильтр: убираем пробелы и сравниваем как текст
 let classQuestions = allQuestionsBase.filter(row => {
     if (!row || !row[0]) return false;
@@ -527,7 +527,7 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
             let cc = str[c], nc = str[c+1];
             if (cc == '"' && quote && nc == '"') { col += cc; ++c; continue; }
             if (cc == '"') { quote = !quote; continue; }
-            if (cc == ',' && !quote) { row.push(col); col = ''; continue; }
+            if ((cc == ',' || cc == ';') && !quote) { row.push(col); col = ''; continue; }
             if (cc == '\r' && nc == '\n' && !quote) { row.push(col); arr.push(row); col = ''; row = []; ++c; continue; }
             if (cc == '\n' && !quote) { row.push(col); arr.push(row); col = ''; row = []; continue; }
             col += cc;
