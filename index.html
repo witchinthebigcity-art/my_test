@@ -394,7 +394,7 @@ function sendToForm(grade, topic, status) {
         const text = await response.text();
         allQuestionsBase = parseCSV(text);
         
-        let classQuestions = allQuestionsBase.filter(row => row[0] == currentClass);
+        let classQuestions = allQuestionsBase.filter(row => row[0] && row[0].toString().trim() == currentClass.toString());
         if (classQuestions.length === 0) {
             alert('Заданий пока нет!');
             tg.MainButton.hide();
