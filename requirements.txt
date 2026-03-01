@@ -1,4 +1,2 @@
 aiogram
 aiohttp
-gspread
-oauth2client
