@@ -48,39 +48,46 @@ async def admin_panel(message: types.Message):
     if str(message.from_user.id) == str(ADMIN_ID):
         await message.answer("🛠 Панель админа: отправь любое сообщение для рассылки!")
 
-BROADCAST_FILE = "last_broadcast.json" # Файл для хранения ID отправленных сообщений
+BROADCAST_FILE = "last_broadcast.json" 
 
 @dp.message()
 async def broadcast(message: types.Message):
-    # Проверяем, что пишет админ и есть ли кого рассылать
-    if str(message.from_user.id) != str(ADMIN_ID) or not os.path.exists(USERS_FILE): 
+    # 1. Сначала жестко отсекаем всех, кто не админ (им бот ничего не отвечает)
+    if str(message.from_user.id) != str(ADMIN_ID): 
         return
         
-    with open(USERS_FILE, "r") as f:
-        users = json.load(f)
-        
-    sent_messages = [] # Сюда будем складывать данные для удаления
+    # 2. Теперь проверяем файл. Если админ пишет, а файла нет — предупреждаем!
+    if not os.path.exists(USERS_FILE):
+        await message.answer("⚠ Ошибка: Файл users.json не найден. База пуста (возможно, сервер перезапускался). Нажми /start, чтобы добавить себя в базу.")
+        return
+
+    # 3. Читаем файл
+    try:
+        with open(USERS_FILE, "r") as f:
+            users = json.load(f)
+    except json.JSONDecodeError:
+        await message.answer("⚠ Ошибка: Файл users.json поврежден.")
+        return
+
+    if not users:
+        await message.answer("⚠ В базе пока нет ни одного пользователя для рассылки.")
+        return
+
+    # 4. Сама рассылка
+    sent_messages = [] 
     
     for user_id in users:
         try:
-            # Отправляем сообщение и сохраняем то, что вернул Телеграм
             msg_obj = await bot.copy_message(chat_id=user_id, from_chat_id=message.chat.id, message_id=message.message_id)
-            
-            # Сохраняем ID чата и ID сообщения
-            sent_messages.append({
-                "chat_id": user_id, 
-                "message_id": msg_obj.message_id
-            })
-            await asyncio.sleep(0.05) # Пауза, чтобы Телеграм не забанил за спам
+            sent_messages.append({"chat_id": user_id, "message_id": msg_obj.message_id})
+            await asyncio.sleep(0.05) 
         except Exception: 
-            pass # Если юзер заблокировал бота, просто пропускаем
+            pass 
 
-    # Записываем историю этой рассылки в файл
     with open(BROADCAST_FILE, "w") as f:
         json.dump(sent_messages, f)
         
     await message.answer(f"✅ Рассылка завершена! Отправлено: {len(sent_messages)}.\n\nЕсли ошибся, отправь /delete_last чтобы всё удалить.")
-from aiogram.exceptions import TelegramBadRequest # Добавь этот импорт в самый верх файла к остальным импортам
 
 @dp.message(Command("delete_last"))
 async def delete_last_broadcast(message: types.Message):
