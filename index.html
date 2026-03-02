@@ -478,7 +478,22 @@ function sendToForm(grade, topic, status) {
         document.getElementById('feedbackText').innerHTML = `<b>Решение:</b><br>${currentQuestionData.solution}`;
         renderMathInElement(document.getElementById('quizFeedback'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
         
-        tg.sendData(JSON.stringify({ action: 'save_result', class: currentClass, topic: currentQuestionData.topic, isCorrect: isCorrect }));
+        if (userConsent) {
+    const username = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : "anonymous";
+    const resultData = {
+        username: username,
+        class: currentClass,
+        topic: currentQuestionData.topic,
+        isCorrect: isCorrect,
+        time: new Date().toLocaleString("ru-RU")
+    };
+
+    fetch('/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resultData)
+    }).catch(err => console.error("Ошибка сохранения:", err));
+}
         // Отправка данных в твою Google Таблицу
 sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "Ошибка");
     }
