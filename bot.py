@@ -48,18 +48,67 @@ async def admin_panel(message: types.Message):
     if str(message.from_user.id) == str(ADMIN_ID):
         await message.answer("🛠 Панель админа: отправь любое сообщение для рассылки!")
 
+BROADCAST_FILE = "last_broadcast.json" # Файл для хранения ID отправленных сообщений
+
 @dp.message()
 async def broadcast(message: types.Message):
-    if str(message.from_user.id) != str(ADMIN_ID) or not os.path.exists(USERS_FILE): return
+    # Проверяем, что пишет админ и есть ли кого рассылать
+    if str(message.from_user.id) != str(ADMIN_ID) or not os.path.exists(USERS_FILE): 
+        return
+        
     with open(USERS_FILE, "r") as f:
         users = json.load(f)
+        
+    sent_messages = [] # Сюда будем складывать данные для удаления
+    
     for user_id in users:
         try:
-            await bot.copy_message(chat_id=user_id, from_chat_id=message.chat.id, message_id=message.message_id)
-            await asyncio.sleep(0.05)
-        except: pass
-    await message.answer("✅ Рассылка завершена!")
+            # Отправляем сообщение и сохраняем то, что вернул Телеграм
+            msg_obj = await bot.copy_message(chat_id=user_id, from_chat_id=message.chat.id, message_id=message.message_id)
+            
+            # Сохраняем ID чата и ID сообщения
+            sent_messages.append({
+                "chat_id": user_id, 
+                "message_id": msg_obj.message_id
+            })
+            await asyncio.sleep(0.05) # Пауза, чтобы Телеграм не забанил за спам
+        except Exception: 
+            pass # Если юзер заблокировал бота, просто пропускаем
 
+    # Записываем историю этой рассылки в файл
+    with open(BROADCAST_FILE, "w") as f:
+        json.dump(sent_messages, f)
+        
+    await message.answer(f"✅ Рассылка завершена! Отправлено: {len(sent_messages)}.\n\nЕсли ошибся, отправь /delete_last чтобы всё удалить.")
+from aiogram.exceptions import TelegramBadRequest # Добавь этот импорт в самый верх файла к остальным импортам
+
+@dp.message(Command("delete_last"))
+async def delete_last_broadcast(message: types.Message):
+    if str(message.from_user.id) != str(ADMIN_ID): 
+        return
+
+    if not os.path.exists(BROADCAST_FILE):
+        await message.answer("⚠ Нет данных о последней рассылке (возможно, она уже удалена).")
+        return
+
+    with open(BROADCAST_FILE, "r") as f:
+        sent_messages = json.load(f)
+
+    deleted_count = 0
+    await message.answer("⏳ Начинаю удаление...")
+
+    for item in sent_messages:
+        try:
+            await bot.delete_message(chat_id=item["chat_id"], message_id=item["message_id"])
+            deleted_count += 1
+            await asyncio.sleep(0.05)
+        except TelegramBadRequest:
+            # Ошибка возникает, если юзер уже сам удалил переписку или прошло слишком много времени
+            pass 
+
+    # Очищаем файл, чтобы не удалить лишнее в следующий раз
+    os.remove(BROADCAST_FILE)
+    await message.answer(f"🗑 Успешно удалено сообщений: {deleted_count} из {len(sent_messages)}.")
 # --- ЛОГИКА ВЕБ-СЕРВЕРА (чтобы сайт открывался) ---
 async def handle_index(request):
     return web.FileResponse('index.html')
