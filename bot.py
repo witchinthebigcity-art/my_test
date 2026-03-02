@@ -63,7 +63,20 @@ async def broadcast(message: types.Message):
 # --- ЛОГИКА ВЕБ-СЕРВЕРА (чтобы сайт открывался) ---
 async def handle_index(request):
     return web.FileResponse('index.html')
+# --- ДОБАВИТЬ СЮДА ---
+async def save_progress(request):
+    try:
+        data = await request.json()
+        # Сохраняем в файл results.json каждую новую попытку с новой строки
+        with open("results.json", "a", encoding="utf-8") as f:
+            f.write(json.dumps(data, ensure_ascii=False) + "\n")
+        return web.json_response({"status": "success"})
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500)
 
+app = web.Application()
+app.router.add_get('/', handle_index)
+app.router.add_post('/save', save_progress) # <- Обязательно добавь этот маршрут
 app = web.Application()
 app.router.add_get('/', handle_index)
 
