@@ -136,7 +136,32 @@ async def save_progress(request):
         return web.json_response({"status": "success"})
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
-
+async def get_stats(request):
+    user_id = request.query.get('user_id')
+    if not user_id:
+        return web.json_response({"error": "No user_id"}, status=400)
+    
+    stats = {"total": 0, "correct": 0, "topics": {}}
+    
+    if os.path.exists(RESULTS_FILE):
+        with open(RESULTS_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    data = json.loads(line)
+                    if str(data.get('user_id')) == str(user_id) or data.get('username') == request.query.get('username'):
+                        stats["total"] += 1
+                        if data.get('isCorrect'):
+                            stats["correct"] += 1
+                        
+                        topic = data.get('topic', 'Общее')
+                        if topic not in stats["topics"]:
+                            stats["topics"][topic] = {"total": 0, "correct": 0}
+                        stats["topics"][topic]["total"] += 1
+                        if data.get('isCorrect'):
+                            stats["topics"][topic]["correct"] += 1
+                except: continue
+                
+    return web.json_response(stats)
 app = web.Application()
 app.router.add_get('/', handle_index)
 app.router.add_post('/save', save_progress) # Маршрут для сохранения статистики
