@@ -143,32 +143,6 @@ async def get_stats(request):
     
     stats = {"total": 0, "correct": 0, "topics": {}}
     
-    if os.path.exists(RESULTS_FILE):
-        with open(RESULTS_FILE, "r", encoding="utf-8") as f:
-            for line in f:
-                try:
-                    data = json.loads(line)
-                    if str(data.get('user_id')) == str(user_id) or data.get('username') == request.query.get('username'):
-                        stats["total"] += 1
-                        if data.get('isCorrect'):
-                            stats["correct"] += 1
-                        
-                        topic = data.get('topic', 'Общее')
-                        if topic not in stats["topics"]:
-                            stats["topics"][topic] = {"total": 0, "correct": 0}
-                        stats["topics"][topic]["total"] += 1
-                        if data.get('isCorrect'):
-                            stats["topics"][topic]["correct"] += 1
-                except: continue
-                
-    return web.json_response(stats)
-    async def get_stats(request):
-    user_id = request.query.get('user_id')
-    if not user_id:
-        return web.json_response({"error": "No user_id"}, status=400)
-    
-    stats = {"total": 0, "correct": 0, "topics": {}}
-    
     # Если файла еще нет, просто возвращаем нули (0%)
     if not os.path.exists(RESULTS_FILE):
         return web.json_response(stats)
