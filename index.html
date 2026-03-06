@@ -33,6 +33,11 @@
 }
 .shop-item h3 { margin: 0 0 5px 0; font-size: 18px; }
 .shop-item p { margin: 0 0 10px 0; font-weight: bold; color: var(--accent-color); }
+        /* Стили Матрицы для профиля */
+        .matrix-screen { background-color: #000 !important; color: #00FF41 !important; font-family: 'Courier New', Courier, monospace; text-shadow: 0 0 5px #00FF41; padding: 20px; }
+        .matrix-btn { background: transparent !important; color: #00FF41 !important; border: 1px solid #00FF41 !important; box-shadow: 0 0 10px #00FF41; text-transform: uppercase; margin-top: 20px; }
+        .sync-bar-container { width: 100%; height: 20px; border: 1px solid #00FF41; margin: 15px 0; }
+        .sync-bar-fill { height: 100%; background-color: #00FF41; box-shadow: 0 0 15px #00FF41; width: 0%; transition: width 2s ease-in-out; }
     </style>
 </head>
 <body>
@@ -40,9 +45,24 @@
     <div id="classSelection" class="screen active">
         <h2 id="greetingText">Привет! Выбери свой класс:</h2>
         <div id="classButtons"></div>
+        <button class="btn" onclick="loadMyStats()" style="background-color: #2196F3; margin-bottom: 10px;">📊 Мой прогресс</button>
         <button class="btn" onclick="goToChat()" style="background-color: #666;">Служба поддержки</button>
     </div>
-
+<div id="statsScreen" class="screen matrix-screen">
+        <h2 style="text-align: center;">СИНХРОНИЗАЦИЯ: <span id="syncPercent">0</span>%</h2>
+        <div class="sync-bar-container">
+            <div id="syncBar" class="sync-bar-fill"></div>
+        </div>
+        
+        <div id="statsData">
+            <p>> ОБРАБОТАНО ЗАДАЧ: <span id="totalSolved">0</span></p>
+            <p>> УСПЕШНЫЙ ВЗЛОМ: <span id="correctSolved">0</span></p>
+            <hr style="border: 0.5px solid #00FF41;">
+            <div id="topicsBreakdown"></div>
+        </div>
+        
+        <button class="btn matrix-btn" onclick="showScreen('classSelection')">Вернуться в систему</button>
+    </div>
     <div id="mainMenu" class="screen">
         <div class="stats"><span>❤️ Жизни: <span id="livesCount">5</span></span><span>🪙 Монеты: <span id="coinsCount">0</span></span></div>
         <h2 id="classTitle"></h2>
@@ -293,7 +313,42 @@
         if (activeTheory) activeTheory.style.display = 'block';
         showScreen('theoryScreen');
     }
+async function loadMyStats() {
+    const user = tg.initDataUnsafe.user;
+    const userId = user ? user.id : '';
+    const username = user ? user.username : '';
 
+    if (!userId && !username) return;
+
+    try {
+        const response = await fetch(`/stats?user_id=${userId}&username=${username}`);
+        const stats = await response.json();
+
+        const overallPercent = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+        
+        document.getElementById('syncPercent').innerText = overallPercent;
+        document.getElementById('totalSolved').innerText = stats.total;
+        document.getElementById('correctSolved').innerText = stats.correct;
+        
+        showScreen('statsScreen');
+
+        setTimeout(() => {
+            document.getElementById('syncBar').style.width = overallPercent + '%';
+        }, 100);
+
+        let topicsHtml = '<p>> АНАЛИЗ ПО СЕКТОРАМ:</p>';
+        for (let topic in stats.topics) {
+            let t = stats.topics[topic];
+            let p = Math.round((t.correct / t.total) * 100);
+            topicsHtml += `<p style="font-size: 0.8em;">[${topic}]: ${p}% (${t.correct}/${t.total})</p>`;
+        }
+        document.getElementById('topicsBreakdown').innerHTML = topicsHtml;
+        
+    } catch (err) {
+        console.error("Ошибка Матрицы:", err);
+        alert("Не удалось загрузить данные из системы.");
+    }
+}
     // --- КОНСТАНТЫ ССЫЛОК ---
 const CHAT_SUPPORT = "https://t.me/+cR1lvAy5gNIxNDVi";
 const ADMIN_LS = "https://t.me/supertutor15";
