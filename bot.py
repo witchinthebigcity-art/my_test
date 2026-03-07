@@ -7,7 +7,7 @@ from aiohttp import web
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 from aiogram.exceptions import TelegramBadRequest
 
 # === НАСТРОЙКИ ===
@@ -85,7 +85,43 @@ async def delete_last_broadcast(message: types.Message):
 
     os.remove(BROADCAST_FILE)
     await message.answer(f"🗑 Успешно удалено сообщений: {deleted_count} из {len(sent_messages)}.")
+@dp.message(Command("users"))
+async def get_all_users(message: types.Message):
+    # Проверка, что пишет именно админ
+    if str(message.from_user.id) != str(ADMIN_ID): 
+        return
 
+    if not os.path.exists(USERS_FILE):
+        await message.answer("⚠ База пользователей пока пуста.")
+        return
+
+    try:
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            users = json.load(f)
+    except:
+        await message.answer("⚠ Ошибка чтения файла.")
+        return
+
+    # Создаем временный файл-отчет
+    report_path = f"{DATA_DIR}/users_report.txt"
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write(f"📊 Всего в боте: {len(users)} чел.\n")
+        f.write("="*40 + "\n\n")
+        
+        # Если база уже в новом формате (словарь)
+        if isinstance(users, dict):
+            for uid, info in users.items():
+                name = info.get("name", "Без имени")
+                username = f"@{info.get('username')}" if info.get('username') else "Нет @username"
+                f.write(f"ID: {uid} | Имя: {name} | ТГ: {username}\n")
+        # Если база еще старая (список ID)
+        else:
+            for uid in users:
+                f.write(f"ID: {uid} (Нужно обновить данные, нажав /start)\n")
+
+    # Отправляем файл пользователю
+    doc = FSInputFile(report_path)
+    await message.answer_document(doc, caption="👥 База твоих учеников")
 
 # === БЛОК 2: РАССЫЛКА (Должна быть строго ПОСЛЕ всех команд!) ===
 
