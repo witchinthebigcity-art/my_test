@@ -46,7 +46,7 @@
         .tutor-container { perspective: 1000px; display: flex; justify-content: center; margin-bottom: 20px; }
 .tutor-avatar { 
     width: 100px; height: 100px; 
-    background-image: url('https://i.postimg.cc/pT4By4p7/supertutor.jpg'); /* Ссылка на твое фото */
+    background-image: url('https://i.postimg.cc/76SgzNqW/MATRICA-FINAL.png'); /* Ссылка на твое фото */
     background-size: cover; border-radius: 50%; border: 2px solid #00FF41; 
     box-shadow: 0 0 15px #00FF41; animation: rotate3d 8s infinite linear; 
 }
@@ -341,7 +341,7 @@
         if (activeTheory) activeTheory.style.display = 'block';
         showScreen('theoryScreen');
     }
-let myRadarChart = null; // Глобальная переменная для графика
+let myRadarChart = null; 
 
 async function loadMyStats() {
     const user = tg.initDataUnsafe.user;
@@ -356,18 +356,15 @@ async function loadMyStats() {
         
         const overallPercent = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
         
-        // 1. Обновляем основные цифры
         document.getElementById('syncPercent').innerText = overallPercent;
         document.getElementById('totalSolved').innerText = stats.total;
         document.getElementById('correctSolved').innerText = stats.correct;
         
         showScreen('statsScreen');
-        
-        // 2. Анимация полоски
         setTimeout(() => { document.getElementById('syncBar').style.width = overallPercent + '%'; }, 100);
 
-        // 3. Формируем текстовую разбивку по темам (ИСПРАВЛЕНО: теперь текст появится)
-        let topicsHtml = '<p>> АНАЛИЗ ПО СЕКТОРАМ:</p>';
+        // --- ДЕТАЛЬНЫЙ ТЕКСТ ПО ТЕМАМ ---
+        let topicsHtml = '<p>> ДЕТАЛИЗАЦИЯ ПО БАЗАМ ДАННЫХ:</p>';
         for (let topic in stats.topics) {
             let t = stats.topics[topic];
             let p = Math.round((t.correct / t.total) * 100);
@@ -375,16 +372,36 @@ async function loadMyStats() {
         }
         document.getElementById('topicsBreakdown').innerHTML = topicsHtml;
 
-        // 4. Готовим данные для паутинки
-        const labels = Object.keys(stats.topics);
-        const dataValues = labels.map(topic => {
-            const t = stats.topics[topic];
-            return Math.round((t.correct / t.total) * 100);
-        });
+        // --- УМНАЯ ГРУППИРОВКА ДЛЯ ДИАГРАММЫ ---
+        // Создаем главные ветки навыков
+        const groupedStats = {
+            "Алгебра": { correct: 0, total: 0 },
+            "Геометрия": { correct: 0, total: 0 },
+            "Тригонометрия": { correct: 0, total: 0 },
+            "Арифметика": { correct: 0, total: 0 }
+        };
 
-        // 5. Рисуем график
+        // Раскидываем детальные темы по большим группам
+        for (let topic in stats.topics) {
+            let t = stats.topics[topic];
+            let lowerTopic = topic.toLowerCase();
+            let cat = "Арифметика"; // Сектор по умолчанию
+
+            if (lowerTopic.includes("тригоном")) cat = "Тригонометрия";
+            else if (lowerTopic.includes("планиметр") || lowerTopic.includes("стереометр") || lowerTopic.includes("вектор") || lowerTopic.includes("треугольник") || lowerTopic.includes("четырехугольник")) cat = "Геометрия";
+            else if (lowerTopic.includes("степен") || lowerTopic.includes("логарифм") || lowerTopic.includes("производн") || lowerTopic.includes("уравнен") || lowerTopic.includes("функци") || lowerTopic.includes("прогресси")) cat = "Алгебра";
+
+            groupedStats[cat].correct += t.correct;
+            groupedStats[cat].total += t.total;
+        }
+
+        // Фильтруем пустые сектора (если ученик еще не решал геометрию, ее не будет на графике)
+        const labels = Object.keys(groupedStats).filter(k => groupedStats[k].total > 0);
+        const dataValues = labels.map(k => Math.round((groupedStats[k].correct / groupedStats[k].total) * 100));
+
+        // --- ОТРИСОВКА ЧИСТОЙ ДИАГРАММЫ ---
         const ctx = document.getElementById('radarChart').getContext('2d');
-        if (myRadarChart) { myRadarChart.destroy(); } // Удаляем старый при повторном открытии
+        if (myRadarChart) { myRadarChart.destroy(); } 
         
         myRadarChart = new Chart(ctx, {
             type: 'radar',
@@ -396,27 +413,28 @@ async function loadMyStats() {
                     backgroundColor: 'rgba(0, 255, 65, 0.2)',
                     borderColor: '#00FF41',
                     pointBackgroundColor: '#00FF41',
-                    pointBorderColor: '#000',
                     borderWidth: 2
                 }]
             },
             options: {
+                // Делаем график компактным, чтобы он не вылезал за края
+                maintainAspectRatio: false, 
                 scales: { 
                     r: { 
                         grid: { color: 'rgba(0, 255, 65, 0.3)' },
                         angleLines: { color: 'rgba(0, 255, 65, 0.3)' },
                         suggestedMin: 0, 
                         suggestedMax: 100,
-                        ticks: { display: false, stepSize: 20 },
-                        pointLabels: { color: '#00FF41', font: { size: 10, family: 'Courier New' } }
+                        ticks: { display: false },
+                        // Уменьшаем шрифт и добавляем отступы
+                        pointLabels: { color: '#00FF41', font: { size: 12, family: 'Courier New' }, padding: 10 }
                     }
                 },
                 plugins: { legend: { display: false } }
             }
         });
     } catch (err) { 
-        console.error("Ошибка загрузки профиля:", err);
-        alert("Ошибка связи с терминалом Матрицы..."); 
+        console.error("Ошибка:", err);
     }
 }
     // --- КОНСТАНТЫ ССЫЛОК ---
