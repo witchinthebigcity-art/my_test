@@ -626,12 +626,16 @@ function sendToForm(grade, topic, status) {
     // 4. Находим на странице тег <img> для картинки
     const imgElement = document.getElementById('questionImage');
 
-    // === БЛОК ЛОГИКИ ДЛЯ КАРТИНОК ===
-    if (currentQuestionData.imageUrl && currentQuestionData.imageUrl.trim() !== "") {
-        imgElement.src = currentQuestionData.imageUrl;
-        imgElement.style.display = 'block';
+    // Проверяем, существует ли вообще элемент картинки на странице
+    if (imgElement) {
+        if (currentQuestionData.imageUrl && currentQuestionData.imageUrl.trim() !== "") {
+            imgElement.src = currentQuestionData.imageUrl;
+            imgElement.style.display = 'block';
+        } else {
+            imgElement.style.display = 'none';
+        }
     } else {
-        imgElement.style.display = 'none';
+        console.warn("ВНИМАНИЕ: Тег <img id='questionImage'> не найден в HTML!");
     }
 
     // 5. Выводим текст темы и сам вопрос
