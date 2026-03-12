@@ -11,6 +11,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -113,23 +114,14 @@
 </div>
 
     <div id="quizScreen" class="screen">
-        <div class="stats">
-            <span>❤️ Жизни: <span id="quizLives">5</span></span>
-            <span>🪙 Монеты: <span id="quizCoins">0</span></span>
-        </div>
-        
+        <div class="stats"><span>❤️ Жизни: <span id="quizLives">5</span></span><span>🪙 Монеты: <span id="quizCoins">0</span></span></div>
         <h3 id="quizTopic" style="color: var(--accent-color); font-size: 14px;"></h3>
-
-        <img id="questionImage" style="display: none; width: 100%; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--accent-color); box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);">
-        
         <h2 id="quizQuestionText">Загрузка...</h2>
-        
         <div id="quizOptions"></div>
-
         <div id="quizFeedback" style="display: none; margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
             <h4 id="feedbackTitle" style="margin-top: 0;"></h4>
             <p id="feedbackText"></p>
-            <button id="nextButton" class="btn" onclick="nextQuestion()">Далее</button>
+            <button class="btn" onclick="nextQuestion()">Далее</button>
             <button class="btn" style="background-color: #ff4444; margin-top: 10px;" onclick="handleErrorReport()">Сообщить об ошибке</button>
         </div>
     </div>
@@ -606,66 +598,25 @@ function sendToForm(grade, topic, status) {
 }
 
     function renderCurrentQuestion() {
-    // 1. Прячем элементы от предыдущего вопроса (с проверкой на существование)
-    const nextBtn = document.getElementById('nextButton');
-    if (nextBtn) nextBtn.style.display = 'none';
+        document.getElementById('quizLives').innerText = lives;
+        document.getElementById('quizCoins').innerText = coins;
+        document.getElementById('quizFeedback').style.display = 'none';
+        document.getElementById('quizOptions').style.display = 'block';
+        
+        let row = currentQuizQuestions[currentQuestionIndex];
+        currentQuestionData = { topic: row[1], question: row[2], options: [row[3], row[4], row[5], row[6]], correctIndex: parseInt(row[7]) - 1, solution: row[8] };
+        
+        document.getElementById('quizTopic').innerText = `Тема: ${currentQuestionData.topic}`;
+        document.getElementById('quizQuestionText').innerHTML = currentQuestionData.question;
+        
+        let optionsHtml = '';
+        currentQuestionData.options.forEach((opt, idx) => {
+            optionsHtml += `<button class="btn" style="background-color: #f0f0f0; color: #000;" onclick="checkAnswer(${idx})">${opt}</button>`;
+        });
+        document.getElementById('quizOptions').innerHTML = optionsHtml;
 
-    const solutionBlock = document.getElementById('solutionBlock');
-    if (solutionBlock) solutionBlock.style.display = 'none';
-
-    // 2. Берем текущую строку из базы
-    let row = currentQuizQuestions[currentQuestionIndex];
-    
-    // 3. Собираем данные (ВНИМАНИЕ: индексы настроены под новую таблицу!)
-    currentQuestionData = { 
-        topic: row[2],                               // Тема (столбец C)
-        question: row[3],                            // Вопрос (столбец D)
-        options: [row[4], row[5], row[6], row[7]],   // Варианты (столбцы E, F, G, H)
-        correctIndex: parseInt(row[8]) - 1,          // Верный ответ (столбец I)
-        solution: row[9],                            // Разбор (столбец J)
-        imageUrl: row[10]                            // Картинка (столбец K)
-    };
-
-    // 4. Находим на странице тег <img> для картинки
-    const imgElement = document.getElementById('questionImage');
-
-    // Проверяем, существует ли вообще элемент картинки на странице
-    if (imgElement) {
-        if (currentQuestionData.imageUrl && currentQuestionData.imageUrl.trim() !== "") {
-            imgElement.src = currentQuestionData.imageUrl;
-            imgElement.style.display = 'block';
-        } else {
-            imgElement.style.display = 'none';
-        }
-    } else {
-        console.warn("ВНИМАНИЕ: Тег <img id='questionImage'> не найден в HTML!");
+        renderMathInElement(document.getElementById('quizScreen'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     }
-
-    // 5. Выводим текст темы и сам вопрос
-    document.getElementById('quizTopic').innerText = `> СЕКТОР: ${currentQuestionData.topic}`;
-    document.getElementById('quizQuestionText').innerHTML = currentQuestionData.question || ""; 
-
-    // 6. Рисуем кнопки с вариантами ответов
-    const optionsContainer = document.getElementById('quizOptions');
-    optionsContainer.innerHTML = '';
-    
-    currentQuestionData.options.forEach((opt, index) => {
-        const btn = document.createElement('button');
-        btn.className = 'btn matrix-btn option-btn';
-        btn.innerHTML = opt;
-        btn.onclick = () => checkAnswer(index, btn);
-        optionsContainer.appendChild(btn);
-    });
-
-    // 7. Запускаем рендер математических формул (KaTeX)
-    renderMathInElement(document.getElementById('quizScreen'), {
-        delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false}
-        ],
-        throwOnError: false
-    });
-}
 
     function checkAnswer(selectedIndex) {
         document.getElementById('quizOptions').style.display = 'none';
