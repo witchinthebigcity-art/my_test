@@ -598,25 +598,59 @@ function sendToForm(grade, topic, status) {
 }
 
     function renderCurrentQuestion() {
-        document.getElementById('quizLives').innerText = lives;
-        document.getElementById('quizCoins').innerText = coins;
-        document.getElementById('quizFeedback').style.display = 'none';
-        document.getElementById('quizOptions').style.display = 'block';
-        
-        let row = currentQuizQuestions[currentQuestionIndex];
-        currentQuestionData = { topic: row[1], question: row[2], options: [row[3], row[4], row[5], row[6]], correctIndex: parseInt(row[7]) - 1, solution: row[8] };
-        
-        document.getElementById('quizTopic').innerText = `Тема: ${currentQuestionData.topic}`;
-        document.getElementById('quizQuestionText').innerHTML = currentQuestionData.question;
-        
-        let optionsHtml = '';
-        currentQuestionData.options.forEach((opt, idx) => {
-            optionsHtml += `<button class="btn" style="background-color: #f0f0f0; color: #000;" onclick="checkAnswer(${idx})">${opt}</button>`;
-        });
-        document.getElementById('quizOptions').innerHTML = optionsHtml;
+    // 1. Прячем кнопки от предыдущего вопроса
+    document.getElementById('nextButton').style.display = 'none';
+    document.getElementById('solutionBlock').style.display = 'none';
 
-        renderMathInElement(document.getElementById('quizScreen'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
+    // 2. Берем текущую строку из базы
+    let row = currentQuizQuestions[currentQuestionIndex];
+    
+    // 3. Собираем данные (ВНИМАНИЕ: индексы настроены под новую таблицу!)
+    currentQuestionData = { 
+        topic: row[2],                               // Тема (столбец C)
+        question: row[3],                            // Вопрос (столбец D)
+        options: [row[4], row[5], row[6], row[7]],   // Варианты (столбцы E, F, G, H)
+        correctIndex: parseInt(row[8]) - 1,          // Верный ответ (столбец I)
+        solution: row[9],                            // Разбор (столбец J)
+        imageUrl: row[10]                            // Картинка (столбец K)
+    };
+
+    // 4. Находим на странице тег <img> для картинки
+    const imgElement = document.getElementById('questionImage');
+
+    // === БЛОК ЛОГИКИ ДЛЯ КАРТИНОК ===
+    if (currentQuestionData.imageUrl && currentQuestionData.imageUrl.trim() !== "") {
+        imgElement.src = currentQuestionData.imageUrl;
+        imgElement.style.display = 'block';
+    } else {
+        imgElement.style.display = 'none';
     }
+
+    // 5. Выводим текст темы и сам вопрос
+    document.getElementById('quizTopic').innerText = `> СЕКТОР: ${currentQuestionData.topic}`;
+    document.getElementById('quizQuestionText').innerHTML = currentQuestionData.question || ""; 
+
+    // 6. Рисуем кнопки с вариантами ответов
+    const optionsContainer = document.getElementById('quizOptions');
+    optionsContainer.innerHTML = '';
+    
+    currentQuestionData.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn matrix-btn option-btn';
+        btn.innerHTML = opt;
+        btn.onclick = () => checkAnswer(index, btn);
+        optionsContainer.appendChild(btn);
+    });
+
+    // 7. Запускаем рендер математических формул (KaTeX)
+    renderMathInElement(document.getElementById('quizScreen'), {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+        ],
+        throwOnError: false
+    });
+}
 
     function checkAnswer(selectedIndex) {
         document.getElementById('quizOptions').style.display = 'none';
