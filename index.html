@@ -11,7 +11,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -114,10 +113,19 @@
 </div>
 
     <div id="quizScreen" class="screen">
-        <div class="stats"><span>❤️ Жизни: <span id="quizLives">5</span></span><span>🪙 Монеты: <span id="quizCoins">0</span></span></div>
+        <div class="stats">
+            <span>❤️ Жизни: <span id="quizLives">5</span></span>
+            <span>🪙 Монеты: <span id="quizCoins">0</span></span>
+        </div>
+        
         <h3 id="quizTopic" style="color: var(--accent-color); font-size: 14px;"></h3>
+
+        <img id="questionImage" style="display: none; width: 100%; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--accent-color); box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);">
+        
         <h2 id="quizQuestionText">Загрузка...</h2>
+        
         <div id="quizOptions"></div>
+
         <div id="quizFeedback" style="display: none; margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
             <h4 id="feedbackTitle" style="margin-top: 0;"></h4>
             <p id="feedbackText"></p>
