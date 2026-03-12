@@ -129,7 +129,7 @@
         <div id="quizFeedback" style="display: none; margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
             <h4 id="feedbackTitle" style="margin-top: 0;"></h4>
             <p id="feedbackText"></p>
-            <button class="btn" onclick="nextQuestion()">Далее</button>
+            <button id="nextButton" class="btn" onclick="nextQuestion()">Далее</button>
             <button class="btn" style="background-color: #ff4444; margin-top: 10px;" onclick="handleErrorReport()">Сообщить об ошибке</button>
         </div>
     </div>
@@ -606,9 +606,12 @@ function sendToForm(grade, topic, status) {
 }
 
     function renderCurrentQuestion() {
-    // 1. Прячем кнопки от предыдущего вопроса
-    document.getElementById('nextButton').style.display = 'none';
-    document.getElementById('solutionBlock').style.display = 'none';
+    // 1. Прячем элементы от предыдущего вопроса (с проверкой на существование)
+    const nextBtn = document.getElementById('nextButton');
+    if (nextBtn) nextBtn.style.display = 'none';
+
+    const solutionBlock = document.getElementById('solutionBlock');
+    if (solutionBlock) solutionBlock.style.display = 'none';
 
     // 2. Берем текущую строку из базы
     let row = currentQuizQuestions[currentQuestionIndex];
