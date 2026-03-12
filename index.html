@@ -55,6 +55,14 @@
     100% { transform: rotateY(360deg); }
 }
 #radarChart { filter: drop-shadow(0 0 5px #00FF41); }
+        /* Новые стили для Матричного магазина */
+.matrix-shop { background-color: rgba(0, 0, 0, 0.7); color: #00FF41; border: 1px solid #00FF41; box-shadow: inset 0 0 15px rgba(0, 255, 65, 0.2); border-radius: 10px; padding: 20px; }
+.shop-counter { display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; }
+.character-3d { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #00FF41; box-shadow: 0 0 15px #00FF41; animation: hover3d 4s infinite ease-in-out; object-fit: cover; }
+@keyframes hover3d {
+    0%, 100% { transform: translateY(0) rotateY(0deg); }
+    50% { transform: translateY(-10px) rotateY(20deg); }
+}
     </style>
 </head>
 <body>
@@ -96,7 +104,7 @@
         <h2 id="classTitle"></h2>
         <button class="btn" onclick="openTheory()">Теория</button>
         <button class="btn" onclick="startPractice()">Практика</button>
-        <button class="btn" onclick="showScreen('shopScreen')">Магазин</button>
+        <button class="btn" onclick="openShop()">Перейти в магазин</button>
         <button class="btn" onclick="showScreen('classSelection')" style="background-color: #888;">Сменить класс</button>
         <button class="btn" onclick="goToChat()" style="background-color: #ff4444; margin-top: 15px;">Обратная связь</button>
     </div>
@@ -132,7 +140,7 @@
         <p>Заработано монет: <span id="resultCoins"></span> 🪙</p>
         <p id="limitWarning" style="color: #ff4444; font-size: 12px; display: none;">Достигнут лимит монет (100/100). Приходи через <span id="timeToReset"></span> за новыми!</p>
         <div id="resultActions"></div>
-        <button class="btn" onclick="showScreen('shopScreen')">Перейти в магазин</button>
+        <button class="btn" onclick="openShop()">Перейти в магазин</button>
         <button class="btn" onclick="showScreen('classSelection')" style="background-color: #888;">Поменять класс</button>
         <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555;">Главное меню</button>
     </div>
@@ -263,32 +271,47 @@
         <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555; margin-top: 15px;">Назад в меню</button>
     </div>
 
-    <div id="shopScreen" class="screen">
-    <div class="stats"><span>🪙 Баланс: <span id="shopCoins">0</span></span></div>
-    <h2 style="text-align: center;">Математический Магазин</h2>
-    
-    <div class="shop-item">
-        <h3>🎁 Мини-гайд по темам</h3>
-        <p>30 🪙</p>
-        <button class="btn" onclick="buyItem(30)">Приобрести</button>
+    <div id="theory-data-5" class="theory-class-container">
+            </div>
+
+        <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555; margin-top: 15px;">Назад в меню</button>
     </div>
 
-    <div class="shop-item">
-        <h3>📜 Шпаргалка (PDF)</h3>
-        <p>50 🪙</p>
-        <button class="btn" onclick="buyItem(50)">Приобрести</button>
+    ```
+
+**ЧТО ВСТАВЛЯЕМ (полный новый блок магазина):**
+```html
+    <div id="shopScreen" class="screen matrix-screen">
+        <div class="shop-counter">
+            <img src="https://progressman.ru/wp-content/uploads/2009/05/neo300.jpg" class="character-3d" alt="Neo">
+            <div>
+                <h2 style="margin: 0; text-shadow: 0 0 10px #00FF41; text-align: center;">МАГАЗИН<br>СИОНА</h2>
+                <p style="text-align: center; margin: 5px 0;">🪙 Баланс: <span id="shopCoins">0</span></p>
+            </div>
+            <img src="https://i.ytimg.com/vi/v8IHMhrTzMM/maxresdefault.jpg" class="character-3d" alt="Architect">
+        </div>
+        
+        <div class="shop-item matrix-shop">
+            <h3 style="color: #fff; margin-bottom: 5px;">🎁 Мини-гайд по темам</h3>
+            <p>30 🪙</p>
+            <button class="btn matrix-btn" onclick="buyItem(30)">Загрузить в мозг</button>
+        </div>
+
+        <div class="shop-item matrix-shop">
+            <h3 style="color: #fff; margin-bottom: 5px;">📜 Шпаргалка (PDF)</h3>
+            <p>50 🪙</p>
+            <button class="btn matrix-btn" onclick="buyItem(50)">Загрузить в мозг</button>
+        </div>
+
+        <div class="shop-item matrix-shop">
+            <h3 style="color: #fff; margin-bottom: 5px;">💎 Секретный файл 80+</h3>
+            <p>100 🪙</p>
+            <button class="btn matrix-btn" onclick="buyItem(100)">Загрузить в мозг</button>
+        </div>
+
+        <button class="btn matrix-btn" onclick="showScreen('mainMenu')" style="margin-bottom: 10px;">Отключиться (Меню)</button>
+        <button class="btn matrix-btn" onclick="goToChat()" style="border-color: #ff4444 !important; color: #ff4444 !important; box-shadow: 0 0 10px #ff4444;">Обратная связь / Чат</button>
     </div>
-
-    <div class="shop-item">
-        <h3>💎 Секретный файл 80+</h3>
-        <p>100 🪙</p>
-        <button class="btn" onclick="buyItem(100)">Приобрести</button>
-    </div>
-
-    <button class="btn" onclick="showScreen('mainMenu')">Главное меню</button>
-    <button class="btn" onclick="goToChat()" style="background-color: #ff4444;">Обратная связь / Чат</button>
-</div>
-
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand(); 
@@ -297,7 +320,10 @@
     let coins = parseInt(localStorage.getItem('mathCoins')) || 0;
     let lives = 5;
     let userConsent = false; // Согласие по умолчанию
-
+function openShop() {
+    document.getElementById('shopCoins').innerText = coins; // Обновляем баланс
+    showScreen('shopScreen'); // Открываем экран
+}
     // Стилистика
     const classThemes = {
         5: { bg: '#E0F7FA', text: '#000', font: 'Nunito, sans-serif', accent: '#FF9800', chars: 'Кот-космонавт 🐱🚀' },
