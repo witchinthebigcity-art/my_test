@@ -258,32 +258,53 @@ body::before {
 }
 
 .btn {
-    min-height: 52px;
-    margin: 0 !important;
-    padding: 14px 18px;
-    border: 1px solid transparent !important;
-    border-radius: 16px !important;
-    background: linear-gradient(135deg, var(--theme-accent), color-mix(in srgb, var(--theme-accent) 66%, var(--theme-accent-2))) !important;
-    box-shadow: none !important;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 14px;
+    border: 1.5px solid color-mix(in srgb, var(--theme-accent) 70%, white 14%) !important;
+    border-radius: 13px !important;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 84%, var(--surface-strong)), color-mix(in srgb, var(--theme-accent) 52%, var(--theme-accent-2))) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 5px 14px rgba(0, 0, 0, 0.12) !important;
     color: var(--theme-on-accent) !important;
     font: inherit !important;
-    font-size: 15px !important;
-    font-weight: 850 !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    line-height: 1.25;
     text-shadow: none !important;
     text-transform: none !important;
     cursor: pointer;
+    transition: transform 140ms ease, border-color 140ms ease, filter 140ms ease;
 }
 
+.btn:hover { border-color: color-mix(in srgb, var(--theme-accent) 78%, white 22%) !important; filter: brightness(1.05); }
+.btn:active { transform: scale(0.985); }
+.btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.btn:disabled { cursor: not-allowed; opacity: .55; }
+
 .btn-secondary {
-    border-color: var(--theme-border) !important;
-    background: var(--surface-soft) !important;
+    border-color: color-mix(in srgb, var(--theme-border) 78%, white 12%) !important;
+    background: color-mix(in srgb, var(--surface-strong) 48%, transparent) !important;
     color: var(--text-main) !important;
 }
 
 .btn-danger {
-    border-color: color-mix(in srgb, var(--danger) 45%, transparent) !important;
-    background: color-mix(in srgb, var(--danger) 14%, transparent) !important;
-    color: #ffb9c0 !important;
+    border-color: color-mix(in srgb, var(--danger) 68%, white 8%) !important;
+    background: color-mix(in srgb, var(--danger) 20%, var(--surface-strong)) !important;
+    color: #ffd7db !important;
+}
+
+.screen > .btn + .btn,
+#quizFeedback .btn + .btn,
+#resultActions .btn + .btn,
+.diagnostic-summary .btn + .btn {
+    margin-top: 9px !important;
+}
+
+.screen > :not(.btn) + .btn,
+#quizFeedback > :not(.btn) + .btn,
+#resultActions > :not(.btn) + .btn,
+.diagnostic-summary > :not(.btn) + .btn {
+    margin-top: 10px !important;
 }
 
 .action-card {
@@ -292,13 +313,16 @@ body::before {
     gap: 13px;
     align-items: center;
     padding: 15px;
-    border: 1px solid var(--theme-border);
+    border: 1.5px solid color-mix(in srgb, var(--theme-border) 82%, white 8%);
     border-radius: 18px;
     background: var(--surface-soft);
     color: var(--text-main);
     text-align: left;
     cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
 }
+.action-card + .action-card { margin-top: 1px; }
+.action-card:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
 .action-card strong { display: block; font-size: 15px; }
 .action-card small { display: block; margin-top: 3px; color: var(--text-muted); }
 .action-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 15px; background: var(--surface-strong); font-size: 22px; }
@@ -311,9 +335,20 @@ body::before {
 
 #quizTopic { margin-top: 22px; color: var(--theme-accent) !important; }
 #quizQuestionText { line-height: 1.35; }
-#quizOptions { display: grid; gap: 10px; }
-#quizOptions .btn { border-color: var(--theme-border) !important; background: var(--surface-soft) !important; color: var(--text-main) !important; text-align: left; }
+#quizOptions { display: grid; gap: 9px; }
+#quizOptions .btn {
+    min-height: 42px;
+    padding: 9px 13px;
+    border-color: color-mix(in srgb, var(--theme-border) 78%, white 12%) !important;
+    border-radius: 12px !important;
+    background: color-mix(in srgb, var(--surface-strong) 46%, transparent) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.035) !important;
+    color: var(--text-main) !important;
+    text-align: left;
+}
+#quizOptions .btn:hover { border-color: var(--theme-accent) !important; background: color-mix(in srgb, var(--surface-strong) 72%, transparent) !important; }
 #quizFeedback { border: 1px solid var(--theme-border); background: var(--surface-soft) !important; }
+#quizFeedback .btn { min-height: 42px; padding-block: 9px; }
 
 .question-media {
     display: block;
@@ -509,7 +544,8 @@ details.theory-section summary { background: transparent !important; }
 .battle-players { display: grid; grid-template-columns: 1fr 1fr; margin: 18px 0; }
 .battle-player { padding: 13px; border: 1px solid var(--theme-border); border-radius: 17px; background: var(--surface-soft); }
 .battle-player strong { display: block; }
-.battle-options { display: grid; gap: 10px; }
+.battle-options { display: grid; gap: 9px; }
+.battle-options .btn { min-height: 42px; padding: 9px 13px; text-align: left; }
 
 @media (max-width: 520px) {
     .leaderboard-row { grid-template-columns: 30px 42px minmax(0, 1fr); }
@@ -521,6 +557,9 @@ details.theory-section summary { background: transparent !important; }
     .screen { padding: 18px; border-radius: 23px; }
     .grade-card { min-height: 139px; padding: 15px; }
     .hero { padding-top: 28px; }
+    .btn { min-height: 42px; padding: 9px 12px; font-size: 13.5px !important; }
+    .action-card { padding: 12px; border-radius: 15px; }
+    .action-icon { width: 42px; height: 42px; border-radius: 13px; font-size: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

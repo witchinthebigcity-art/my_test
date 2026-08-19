@@ -61,7 +61,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=2">
+    <link rel="stylesheet" href="/app.css?v=3">
 </head>
 <body data-grade="8">
 
@@ -227,9 +227,9 @@
     
     <button class="btn" onclick="startQuizWithConsent(true)">Да, сохранять прогресс</button>
     
-    <button class="btn" onclick="startQuizWithConsent(false)" style="background-color: #888;">Нет, просто тренировка</button>
+    <button class="btn btn-secondary" onclick="startQuizWithConsent(false)">Нет, просто тренировка</button>
     
-    <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555;">Назад в меню</button>
+    <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад в меню</button>
 </div>
 
     <div id="quizScreen" class="screen">
@@ -243,7 +243,7 @@
             <p id="feedbackText"></p>
             <img id="quizSolutionImage" class="question-media" alt="Иллюстрация к решению" hidden>
             <button class="btn" onclick="nextQuestion()">Далее</button>
-            <button class="btn" style="background-color: #ff4444; margin-top: 10px;" onclick="handleErrorReport()">Сообщить об ошибке</button>
+            <button class="btn btn-danger" onclick="handleErrorReport()">Сообщить об ошибке</button>
         </div>
     </div>
 
@@ -255,8 +255,8 @@
         <div id="diagnosticSummary" class="diagnostic-summary" hidden></div>
         <div id="resultActions"></div>
         <button class="btn" onclick="openShop()">Перейти в магазин</button>
-        <button class="btn" onclick="showScreen('classSelection')" style="background-color: #888;">Поменять класс</button>
-        <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555;">Главное меню</button>
+        <button class="btn btn-secondary" onclick="showScreen('classSelection')">Поменять класс</button>
+        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
     </div>
 
     <div id="theoryScreen" class="screen">
@@ -385,7 +385,7 @@
     <div id="legacy-theory-data-placeholder" class="theory-class-container">
             </div>
 
-        <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555; margin-top: 15px;">Назад в меню</button>
+        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад в меню</button>
     </div>
     <div id="shopScreen" class="screen matrix-screen">
         <div class="shop-counter">
@@ -778,7 +778,7 @@ function sendToForm(grade, topic, status) {
         
         let optionsHtml = '';
         currentQuestionData.options.forEach((opt, idx) => {
-            optionsHtml += `<button class="btn" style="background-color: #f0f0f0; color: #000;" onclick="checkAnswer(${idx})">${opt}</button>`;
+            optionsHtml += `<button class="btn" onclick="checkAnswer(${idx})">${opt}</button>`;
         });
         document.getElementById('quizOptions').innerHTML = optionsHtml;
 
@@ -873,8 +873,8 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
             diagnosticSummary.hidden = true;
         }
         let actionsHtml = '';
-        if (quizMistakes.length > 0) actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="startWorkOnErrors()">Пройти тест повторно (Работа над ошибками)</button>`;
-        else actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="startPractice()">Пройти еще один тест</button>`;
+        if (quizMistakes.length > 0) actionsHtml += `<button class="btn" onclick="startWorkOnErrors()">Пройти тест повторно (Работа над ошибками)</button>`;
+        else actionsHtml += `<button class="btn" onclick="startPractice()">Пройти еще один тест</button>`;
         document.getElementById('resultActions').innerHTML = actionsHtml;
         showScreen('resultScreen');
     }
