@@ -1,8 +1,11 @@
 import os
 import json
 import asyncio
+import ssl
 import time
 
+import aiohttp
+import certifi
 from aiohttp import web
 
 from aiogram import Bot, Dispatcher, types
@@ -10,11 +13,20 @@ from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 from aiogram.exceptions import TelegramBadRequest
 
+from community import CommunityError, CommunityStore, validate_telegram_init_data
+from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
+
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 ADMIN_ID = os.getenv("ADMIN_ID")
 PORT = int(os.getenv("PORT", 8080))
+QUESTIONS_CSV_URL = os.getenv(
+    "QUESTIONS_CSV_URL",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv",
+)
+QUESTIONS_CACHE_TTL = int(os.getenv("QUESTIONS_CACHE_TTL", "60"))
+LOCAL_IMAGE_QUESTIONS_FILE = os.getenv("LOCAL_IMAGE_QUESTIONS_FILE", "image_questions.csv")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -25,6 +37,12 @@ DATA_DIR = "/data" if os.path.exists("/data") else "."
 USERS_FILE = f"{DATA_DIR}/users.json"
 BROADCAST_FILE = f"{DATA_DIR}/last_broadcast.json"
 RESULTS_FILE = f"{DATA_DIR}/results.json" # Сюда будут падать результаты из WebApp
+COMMUNITY_FILE = f"{DATA_DIR}/community.json"
+
+community_store = CommunityStore(COMMUNITY_FILE)
+
+questions_cache = {"loaded_at": 0.0, "items": []}
+questions_cache_lock = asyncio.Lock()
 
 def save_user(user_id):
     users = set()
@@ -163,15 +181,198 @@ async def broadcast(message: types.Message):
 async def handle_index(request):
     return web.FileResponse('index.html')
 
+
+async def handle_styles(request):
+    return web.FileResponse('app.css')
+
+
+async def handle_community_script(request):
+    return web.FileResponse('community.js')
+
+
+def _authenticated_user(request):
+    init_data = request.headers.get("X-Telegram-Init-Data", "")
+    return validate_telegram_init_data(init_data, TOKEN)
+
+
+def _community_error(error, status=400):
+    return web.json_response({"error": str(error)}, status=status)
+
+
+async def _load_questions():
+    now = time.monotonic()
+    if questions_cache["items"] and now - questions_cache["loaded_at"] < QUESTIONS_CACHE_TTL:
+        return questions_cache["items"]
+
+    async with questions_cache_lock:
+        now = time.monotonic()
+        if questions_cache["items"] and now - questions_cache["loaded_at"] < QUESTIONS_CACHE_TTL:
+            return questions_cache["items"]
+
+        separator = "&" if "?" in QUESTIONS_CSV_URL else "?"
+        cache_busted_url = f"{QUESTIONS_CSV_URL}{separator}t={int(time.time())}"
+        timeout = aiohttp.ClientTimeout(total=15)
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+            async with session.get(cache_busted_url) as response:
+                response.raise_for_status()
+                csv_text = await response.text()
+
+        questions = parse_questions_csv(csv_text)
+        if os.path.exists(LOCAL_IMAGE_QUESTIONS_FILE):
+            with open(LOCAL_IMAGE_QUESTIONS_FILE, "r", encoding="utf-8") as source:
+                questions.extend(parse_questions_csv(source.read()))
+        questions = list({question.question_id: question for question in questions}.values())
+        questions_cache["items"] = questions
+        questions_cache["loaded_at"] = time.monotonic()
+        return questions
+
+
+async def get_questions(request):
+    try:
+        grade = int(request.query.get("grade", ""))
+    except ValueError:
+        return web.json_response({"error": "Укажите класс от 8 до 11"}, status=400)
+
+    if grade not in SUPPORTED_GRADES:
+        return web.json_response({"error": "Поддерживаются только 8–11 классы"}, status=400)
+
+    try:
+        questions = await _load_questions()
+    except QuestionFormatError as error:
+        return web.json_response({"error": str(error)}, status=502)
+    except (aiohttp.ClientError, asyncio.TimeoutError) as error:
+        print(f"Ошибка загрузки Google Таблицы: {error}")
+        return web.json_response(
+            {"error": "Не удалось загрузить Google Таблицу. Проверьте публикацию и ссылку."},
+            status=502,
+        )
+
+    grade_questions = [question.as_dict() for question in questions if question.grade == grade]
+    return web.json_response(
+        {"grade": grade, "count": len(grade_questions), "questions": grade_questions},
+        headers={"Cache-Control": "no-store"},
+    )
+
 # Эта функция принимает результаты тестов от учеников и сохраняет их в файл
 async def save_progress(request):
     try:
         data = await request.json()
+        init_data = request.headers.get("X-Telegram-Init-Data", "")
+        if init_data:
+            user = validate_telegram_init_data(init_data, TOKEN)
+            await community_store.record_attempt(user, data)
         with open(RESULTS_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
         return web.json_response({"status": "success"})
+    except CommunityError as error:
+        return _community_error(error, status=401)
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
+
+
+async def get_profile(request):
+    try:
+        return web.json_response(await community_store.get_profile(_authenticated_user(request)))
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
+async def update_profile(request):
+    try:
+        user = _authenticated_user(request)
+        payload = await request.json()
+        return web.json_response(await community_store.update_profile(user, payload))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def get_leaderboard(request):
+    try:
+        grade_value = request.query.get("grade")
+        grade = int(grade_value) if grade_value else None
+        return web.json_response(
+            await community_store.leaderboard(request.query.get("period", "day"), grade)
+        )
+    except (CommunityError, ValueError) as error:
+        return _community_error(error)
+
+
+async def create_enrollment(request):
+    try:
+        user = _authenticated_user(request)
+        payload = await request.json()
+        lead = await community_store.create_enrollment(user, payload)
+        if ADMIN_ID:
+            username = f"@{lead['telegram_username']}" if lead["telegram_username"] else "без username"
+            diagnostic = lead.get("diagnostic_score")
+            diagnostic_text = f"\nДиагностика: {diagnostic}%" if diagnostic is not None else ""
+            await bot.send_message(
+                int(ADMIN_ID),
+                "📝 Новая заявка на урок\n"
+                f"Заявка: {lead['id']}\n"
+                f"Ученик: {lead['nickname']} ({username})\n"
+                f"Класс: {lead['grade']}\n"
+                f"Цель: {lead['goal']}\n"
+                f"Частота: {lead['frequency']} раз(а) в неделю"
+                f"{diagnostic_text}",
+            )
+        return web.json_response({"status": "success", "leadId": lead["id"]})
+    except CommunityError as error:
+        return _community_error(error, status=422)
+    except (ValueError, TelegramBadRequest) as error:
+        return _community_error(error, status=500)
+
+
+async def join_battle(request):
+    try:
+        user = _authenticated_user(request)
+        payload = await request.json()
+        grade = int(payload.get("grade") or 0)
+        questions = [question for question in await _load_questions() if question.grade == grade]
+        battle_id = await community_store.join_battle(user, grade, questions)
+        question_map = {question.question_id: question for question in questions}
+        state = await community_store.battle_state(user, battle_id, question_map)
+        return web.json_response(state)
+    except (CommunityError, ValueError) as error:
+        return _community_error(error, status=422)
+    except (QuestionFormatError, aiohttp.ClientError, asyncio.TimeoutError) as error:
+        return _community_error(error, status=502)
+
+
+async def get_battle(request):
+    try:
+        user = _authenticated_user(request)
+        questions = await _load_questions()
+        question_map = {question.question_id: question for question in questions}
+        return web.json_response(
+            await community_store.battle_state(user, request.match_info["battle_id"], question_map)
+        )
+    except CommunityError as error:
+        return _community_error(error, status=404)
+    except (QuestionFormatError, aiohttp.ClientError, asyncio.TimeoutError) as error:
+        return _community_error(error, status=502)
+
+
+async def answer_battle(request):
+    try:
+        user = _authenticated_user(request)
+        payload = await request.json()
+        questions = await _load_questions()
+        question_map = {question.question_id: question for question in questions}
+        result = await community_store.answer_battle(
+            user,
+            request.match_info["battle_id"],
+            str(payload.get("questionId") or ""),
+            int(payload.get("selectedIndex")),
+            question_map,
+        )
+        return web.json_response(result)
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+    except (QuestionFormatError, aiohttp.ClientError, asyncio.TimeoutError) as error:
+        return _community_error(error, status=502)
 async def get_stats(request):
     user_id = request.query.get('user_id')
     if not user_id:
@@ -204,10 +405,25 @@ async def get_stats(request):
         print(f"Ошибка чтения файла: {e}")
                 
     return web.json_response(stats)
-app = web.Application()
-app.router.add_get('/', handle_index)
-app.router.add_post('/save', save_progress) # Маршрут для сохранения статистики
-app.router.add_get('/stats', get_stats) # <--- ВОТ ЭТА СТРОЧКА ВКЛЮЧИТ МАТРИЦУ!
+def create_app():
+    application = web.Application()
+    application.router.add_get('/', handle_index)
+    application.router.add_get('/app.css', handle_styles)
+    application.router.add_get('/community.js', handle_community_script)
+    application.router.add_get('/api/questions', get_questions)
+    application.router.add_post('/save', save_progress)
+    application.router.add_get('/stats', get_stats)
+    application.router.add_get('/api/profile', get_profile)
+    application.router.add_post('/api/profile', update_profile)
+    application.router.add_get('/api/leaderboard', get_leaderboard)
+    application.router.add_post('/api/enrollments', create_enrollment)
+    application.router.add_post('/api/battles/join', join_battle)
+    application.router.add_get('/api/battles/{battle_id}', get_battle)
+    application.router.add_post('/api/battles/{battle_id}/answer', answer_battle)
+    return application
+
+
+app = create_app()
 
 
 # === ЗАПУСК ===

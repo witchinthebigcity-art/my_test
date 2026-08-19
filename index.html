@@ -8,11 +8,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-</head>
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
         body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-family); margin: 0; padding: 20px; transition: all 0.3s ease; }
@@ -64,14 +61,25 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
+    <link rel="stylesheet" href="/app.css?v=2">
 </head>
-<body>
+<body data-grade="8">
 
     <div id="classSelection" class="screen active">
-        <h2 id="greetingText">Привет! Выбери свой класс:</h2>
-        <div id="classButtons"></div>
-        <button class="btn" onclick="loadMyStats()" style="background-color: #2196F3; margin-bottom: 10px;">📊 Мой прогресс</button>
-        <button class="btn" onclick="goToChat()" style="background-color: #666;">Служба поддержки</button>
+        <div class="brand-row">
+            <div class="brand"><span class="brand-mark">∑</span><span>Прокачать матан</span></div>
+            <span class="soft-pill">8–11 классы</span>
+        </div>
+        <div class="hero">
+            <p class="eyebrow">Персональная тренировка</p>
+            <h1 id="greetingText">Выбери свой класс</h1>
+            <p>Задания, теория и прогресс — в одном понятном пространстве.</p>
+        </div>
+        <div id="classButtons" class="grade-grid"></div>
+        <div class="secondary-actions">
+            <button class="btn btn-secondary" onclick="loadMyStats()">📊 Мой прогресс</button>
+            <button class="btn btn-secondary" onclick="goToChat()">💬 Служба поддержки</button>
+        </div>
     </div>
 <div id="statsScreen" class="screen matrix-screen">
     
@@ -100,13 +108,116 @@
     <button class="btn matrix-btn" onclick="showScreen('classSelection')" style="width: 100%;">Вернуться в систему</button>
 </div>
     <div id="mainMenu" class="screen">
-        <div class="stats"><span>❤️ Жизни: <span id="livesCount">5</span></span><span>🪙 Монеты: <span id="coinsCount">0</span></span></div>
-        <h2 id="classTitle"></h2>
-        <button class="btn" onclick="openTheory()">Теория</button>
-        <button class="btn" onclick="startPractice()">Практика</button>
-        <button class="btn" onclick="openShop()">Перейти в магазин</button>
-        <button class="btn" onclick="showScreen('classSelection')" style="background-color: #888;">Сменить класс</button>
-        <button class="btn" onclick="goToChat()" style="background-color: #ff4444; margin-top: 15px;">Обратная связь</button>
+        <div class="menu-topline">
+            <button class="btn btn-secondary" style="width:auto" onclick="showScreen('classSelection')">← Классы</button>
+            <div class="stats"><span>❤️ <span id="livesCount">5</span></span><span>🪙 <span id="coinsCount">0</span></span></div>
+        </div>
+        <div class="menu-hero">
+            <p class="eyebrow" id="classTitle">8 класс</p>
+            <h1 id="gradeHeadline">Стартовая орбита</h1>
+            <p id="gradeDescription">Укрепляем базу и учимся видеть логику задачи.</p>
+        </div>
+        <div class="menu-actions">
+            <button class="action-card" onclick="startPractice()"><span class="action-icon">✏️</span><span><strong>Начать тренировку</strong><small>Новая подборка из таблицы</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" onclick="startDiagnostic()"><span class="action-icon">🧭</span><span><strong>Пробное тестирование</strong><small>Определить уровень и получить рекомендации</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" onclick="openBattle()"><span class="action-icon">⚔️</span><span><strong>Баттлы</strong><small>Пять одинаковых задач против ученика своего класса</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" onclick="openLeaderboard('day')"><span class="action-icon">🏅</span><span><strong>Рейтинг</strong><small>Лучшие результаты дня и месяца</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" onclick="openTheory()"><span class="action-icon">📚</span><span><strong>Открыть теорию</strong><small>Формулы и короткие объяснения</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" onclick="openShop()"><span class="action-icon">🎁</span><span><strong>Магазин наград</strong><small>Использовать заработанные монеты</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" onclick="openEnrollment()"><span class="action-icon">📅</span><span><strong>Записаться на урок</strong><small>Оставить цель и выбрать частоту занятий</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card action-card-disabled" disabled aria-disabled="true"><span class="action-icon">👨‍🏫</span><span><strong>Об авторе</strong><small>Раздел скоро появится</small></span><span class="action-badge">Скоро</span></button>
+        </div>
+        <div class="secondary-actions">
+            <button class="btn btn-secondary" onclick="openProfile()">Личный кабинет</button>
+            <button class="btn btn-secondary" onclick="loadMyStats()">Мой прогресс</button>
+            <button class="btn btn-secondary" onclick="goToChat()">Обратная связь</button>
+        </div>
+    </div>
+
+    <div id="profileScreen" class="screen">
+        <p class="eyebrow">Личный кабинет</p>
+        <h2>Профиль участника</h2>
+        <div class="profile-card">
+            <img id="profileAvatar" class="profile-avatar" alt="Аватар участника" hidden>
+            <div class="avatar-placeholder" id="profileAvatarPlaceholder">∑</div>
+            <div><strong id="profilePreviewName">Участник</strong><small>Фото берётся из Telegram</small></div>
+        </div>
+        <label class="field-label" for="profileNickname">Публичный никнейм</label>
+        <input id="profileNickname" class="text-field" maxlength="24" placeholder="Например, Геометр_11">
+        <label class="consent-card">
+            <input id="leaderboardConsent" type="checkbox">
+            <span><strong>Участвовать в рейтинге и баттлах</strong><small>Другим участникам будут видны только никнейм, аватар и результат. Настройку можно отключить.</small></span>
+        </label>
+        <div id="profileMessage" class="inline-message" hidden></div>
+        <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
+        <div class="section-heading"><h3>Мои награды</h3></div>
+        <div id="awardShelf" class="award-grid"><p class="empty-state">Награды появятся после попадания в тройку лучших.</p></div>
+        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
+    </div>
+
+    <div id="leaderboardScreen" class="screen">
+        <p class="eyebrow">Только добровольные участники</p>
+        <h2>Рейтинг <span id="leaderboardGrade"></span> класса</h2>
+        <p class="supporting-text">Публично показываются только никнейм, аватар и результат.</p>
+        <div class="segmented-control">
+            <button id="ratingDayButton" class="segment active" onclick="openLeaderboard('day')">Сегодня</button>
+            <button id="ratingMonthButton" class="segment" onclick="openLeaderboard('month')">Месяц</button>
+        </div>
+        <div id="leaderboardList" class="leaderboard-list"></div>
+        <div class="award-legend">
+            <h3>Награды</h3>
+            <p><span>🥇</span> Победитель дня · <span>🥈</span> Второе место дня · <span>🥉</span> Третье место дня</p>
+            <p><span>🏆</span> Чемпион месяца · Серебряный и бронзовый призёры месяца</p>
+        </div>
+        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
+    </div>
+
+    <div id="battleScreen" class="screen">
+        <p class="eyebrow">Одинаковые условия</p>
+        <h2>Математический баттл</h2>
+        <p class="supporting-text">Соперники одного класса получают пять одинаковых заданий. За победу начисляется бонус рейтинга.</p>
+        <div id="battleLobby" class="battle-lobby">
+            <div class="battle-versus"><span>Вы</span><b>VS</b><span>Соперник</span></div>
+            <button class="btn" onclick="joinBattle()">Найти соперника</button>
+            <p id="battleStatus" class="inline-message" hidden></p>
+        </div>
+        <div id="battleGame" hidden>
+            <div id="battlePlayers" class="battle-players"></div>
+            <p id="battleProgress" class="soft-pill"></p>
+            <h3 id="battleTopic"></h3>
+            <h2 id="battleQuestion"></h2>
+            <img id="battleQuestionImage" class="question-media" alt="Изображение задания баттла" hidden>
+            <div id="battleOptions" class="battle-options"></div>
+            <div id="battleFeedback" class="inline-message" hidden></div>
+            <button id="battleNextButton" class="btn" onclick="nextBattleQuestion()" hidden>Следующее задание</button>
+        </div>
+        <button class="btn btn-secondary" onclick="leaveBattleScreen()">Назад</button>
+    </div>
+
+    <div id="enrollmentScreen" class="screen">
+        <p class="eyebrow">Первый шаг</p>
+        <h2>Записаться на урок</h2>
+        <p class="supporting-text">Ответьте на три коротких вопроса. После отправки преподаватель получит заявку.</p>
+        <label class="field-label" for="enrollmentGrade">Класс</label>
+        <select id="enrollmentGrade" class="text-field"><option>8</option><option>9</option><option>10</option><option>11</option></select>
+        <label class="field-label" for="enrollmentGoal">Цель</label>
+        <select id="enrollmentGoal" class="text-field">
+            <option value="Повысить школьную оценку">Повысить школьную оценку</option>
+            <option value="Закрыть пробелы">Закрыть пробелы</option>
+            <option value="Подготовиться к ОГЭ">Подготовиться к ОГЭ</option>
+            <option value="Подготовиться к ЕГЭ">Подготовиться к ЕГЭ</option>
+            <option value="Углублённая математика">Углублённая математика</option>
+        </select>
+        <label class="field-label" for="enrollmentFrequency">Частота занятий</label>
+        <select id="enrollmentFrequency" class="text-field"><option value="1">Раз в неделю</option><option value="2">Два раза в неделю</option><option value="3">Три раза в неделю</option></select>
+        <label class="consent-card">
+            <input id="enrollmentConsent" type="checkbox">
+            <span><strong>Согласие на обработку заявки</strong><small>Данные используются только для связи и организации занятий.</small></span>
+        </label>
+        <div id="enrollmentMessage" class="inline-message" hidden></div>
+        <button class="btn" onclick="submitEnrollment()">Отправить заявку</button>
+        <button class="btn btn-secondary" onclick="startDiagnostic()">Сначала пройти диагностику</button>
+        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
     </div>
 
     <div id="consentScreen" class="screen">
@@ -125,10 +236,12 @@
         <div class="stats"><span>❤️ Жизни: <span id="quizLives">5</span></span><span>🪙 Монеты: <span id="quizCoins">0</span></span></div>
         <h3 id="quizTopic" style="color: var(--accent-color); font-size: 14px;"></h3>
         <h2 id="quizQuestionText">Загрузка...</h2>
+        <img id="quizQuestionImage" class="question-media" alt="Иллюстрация к заданию" hidden>
         <div id="quizOptions"></div>
         <div id="quizFeedback" style="display: none; margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
             <h4 id="feedbackTitle" style="margin-top: 0;"></h4>
             <p id="feedbackText"></p>
+            <img id="quizSolutionImage" class="question-media" alt="Иллюстрация к решению" hidden>
             <button class="btn" onclick="nextQuestion()">Далее</button>
             <button class="btn" style="background-color: #ff4444; margin-top: 10px;" onclick="handleErrorReport()">Сообщить об ошибке</button>
         </div>
@@ -139,6 +252,7 @@
         <p>Осталось жизней: <span id="resultLives"></span> ❤️</p>
         <p>Заработано монет: <span id="resultCoins"></span> 🪙</p>
         <p id="limitWarning" style="color: #ff4444; font-size: 12px; display: none;">Достигнут лимит монет (100/100). Приходи через <span id="timeToReset"></span> за новыми!</p>
+        <div id="diagnosticSummary" class="diagnostic-summary" hidden></div>
         <div id="resultActions"></div>
         <button class="btn" onclick="openShop()">Перейти в магазин</button>
         <button class="btn" onclick="showScreen('classSelection')" style="background-color: #888;">Поменять класс</button>
@@ -232,7 +346,7 @@
             </div></details>
         </div>
 
-        <div id="theory-data-7" class="theory-class-container">
+        <div id="legacy-theory-data-7" class="theory-class-container">
             <details class="theory-section"><summary>Раздел 1: Свойства степеней и ФСУ</summary><div class="theory-content">
                 <div class="theory-item"><p>1. Умножение степеней:</p><div class="math-block">$$a^n\cdot a^m=a^{n+m}$$</div></div><div class="theory-item"><p>2. Деление степеней:</p><div class="math-block">$$a^n : a^m=a^{n-m}$$</div></div><div class="theory-item"><p>3. Возведение степени в степень:</p><div class="math-block">$$(a^n)^m=a^{n\cdot m}$$</div></div><div class="theory-item"><p>4. Степень произведения:</p><div class="math-block">$$(ab)^n=a^n\cdot b^n$$</div></div><div class="theory-item"><p>5. Степень дроби:</p><div class="math-block">$$(\frac{a}{b})^n=\frac{a^n}{b^n}$$</div></div><div class="theory-item"><p>6. Квадрат суммы:</p><div class="math-block">$$(a+b)^2=a^2+2ab+b^2$$</div></div><div class="theory-item"><p>7. Квадрат разности:</p><div class="math-block">$$(a-b)^2=a^2-2ab+b^2$$</div></div><div class="theory-item"><p>8. Разность квадратов:</p><div class="math-block">$$a^2-b^2=(a-b)(a+b)$$</div></div><div class="theory-item"><p>9. Куб суммы:</p><div class="math-block">$$(a+b)^3=a^3+3a^2 b+3ab^2+b^3$$</div></div><div class="theory-item"><p>10. Сумма кубов:</p><div class="math-block">$$a^3+b^3=(a+b)(a^2-ab+b^2)$$</div></div>
             </div></details>
@@ -244,7 +358,7 @@
             </div></details>
         </div>
 
-        <div id="theory-data-6" class="theory-class-container">
+        <div id="legacy-theory-data-6" class="theory-class-container">
             <details class="theory-section"><summary>Раздел 1: Обыкновенные дроби и делимость</summary><div class="theory-content">
                 <div class="theory-item"><p>1. Основное свойство дроби:</p><div class="math-block">$$\frac{a}{b}=\frac{a\cdot c}{b\cdot c}$$</div></div><div class="theory-item"><p>2. Сложение дробей:</p><div class="math-block">$$\frac{a}{c}+\frac{b}{c}=\frac{a+b}{c}$$</div></div><div class="theory-item"><p>3. Вычитание дробей:</p><div class="math-block">$$\frac{a}{c}-\frac{b}{c}=\frac{a-b}{c}$$</div></div><div class="theory-item"><p>4. Умножение дробей:</p><div class="math-block">$$\frac{a}{b}\cdot\frac{c}{d}=\frac{ac}{bd}$$</div></div><div class="theory-item"><p>5. Деление дробей:</p><div class="math-block">$$\frac{a}{b} : \frac{c}{d}=\frac{a\cdot d}{b\cdot c}$$</div></div><div class="theory-item"><p>6. Связь НОД и НОК:</p><div class="math-block">$$\text{НОД}(a; b)\cdot\text{НОК}(a; b)=a\cdot b$$</div></div><div class="theory-item"><p>7. Перевод в неправильную дробь:</p><div class="math-block">$$a\frac{b}{c}=\frac{a\cdot c+b}{c}$$</div></div><div class="theory-item"><p>8. Нахождение части от числа:</p><div class="math-block">$$b=a\cdot\frac{m}{n}$$</div></div><div class="theory-item"><p>9. Нахождение числа по части:</p><div class="math-block">$$a=b : \frac{m}{n}$$</div></div><div class="theory-item"><p>10. Взаимно обратные числа:</p><div class="math-block">$$\frac{a}{b}\cdot\frac{b}{a}=1$$</div></div>
             </div></details>
@@ -256,7 +370,7 @@
             </div></details>
         </div>
 
-        <div id="theory-data-5" class="theory-class-container">
+        <div id="legacy-theory-data-5" class="theory-class-container">
             <details class="theory-section"><summary>Раздел 1: Натуральные числа</summary><div class="theory-content">
                 <div class="theory-item"><p>1. Переместительное (сложение):</p><div class="math-block">$$a+b=b+a$$</div></div><div class="theory-item"><p>2. Сочетательное (сложение):</p><div class="math-block">$$(a+b)+c=a+(b+c)$$</div></div><div class="theory-item"><p>3. Свойство нуля:</p><div class="math-block">$$a+0=a$$</div></div><div class="theory-item"><p>4. Переместительное (умножение):</p><div class="math-block">$$a\cdot b=b\cdot a$$</div></div><div class="theory-item"><p>5. Сочетательное (умножение):</p><div class="math-block">$$(a\cdot b)\cdot c=a\cdot (b\cdot c)$$</div></div><div class="theory-item"><p>6. Распределительное (сложение):</p><div class="math-block">$$a(b+c)=ab+ac$$</div></div><div class="theory-item"><p>7. Распределительное (вычитание):</p><div class="math-block">$$a(b-c)=ab-ac$$</div></div><div class="theory-item"><p>8. Умножение на 1 и 0:</p><div class="math-block">$$a\cdot 1=a, \quad a\cdot 0=0$$</div></div><div class="theory-item"><p>9. Деление на 1 и на себя:</p><div class="math-block">$$a : 1=a, \quad a : a=1$$</div></div><div class="theory-item"><p>10. Деление с остатком:</p><div class="math-block">$$a=bq+r \quad (r<b)$$</div></div>
             </div></details>
@@ -268,40 +382,38 @@
             </div></details>
         </div>
 
-    <div id="theory-data-5" class="theory-class-container">
+    <div id="legacy-theory-data-placeholder" class="theory-class-container">
             </div>
 
         <button class="btn" onclick="showScreen('mainMenu')" style="background-color: #555; margin-top: 15px;">Назад в меню</button>
     </div>
     <div id="shopScreen" class="screen matrix-screen">
         <div class="shop-counter">
-            <img src="https://progressman.ru/wp-content/uploads/2009/05/neo300.jpg" class="character-3d" alt="Neo">
             <div>
-                <h2 style="margin: 0; text-shadow: 0 0 10px #00FF41; text-align: center;">МАГАЗИН<br>СИОНА</h2>
+                <h2 style="margin: 0; text-align: center;">МАГАЗИН НАГРАД</h2>
                 <p style="text-align: center; margin: 5px 0;">🪙 Баланс: <span id="shopCoins">0</span></p>
             </div>
-            <img src="https://i.ytimg.com/vi/v8IHMhrTzMM/maxresdefault.jpg" class="character-3d" alt="Architect">
         </div>
         
         <div class="shop-item matrix-shop">
             <h3 style="color: #fff; margin-bottom: 5px;">🎁 Мини-гайд по темам</h3>
             <p>30 🪙</p>
-            <button class="btn matrix-btn" onclick="buyItem(30)">Загрузить в мозг</button>
+            <button class="btn matrix-btn" onclick="buyItem(30)">Получить награду</button>
         </div>
 
         <div class="shop-item matrix-shop">
             <h3 style="color: #fff; margin-bottom: 5px;">📜 Шпаргалка (PDF)</h3>
             <p>50 🪙</p>
-            <button class="btn matrix-btn" onclick="buyItem(50)">Загрузить в мозг</button>
+            <button class="btn matrix-btn" onclick="buyItem(50)">Получить награду</button>
         </div>
 
         <div class="shop-item matrix-shop">
             <h3 style="color: #fff; margin-bottom: 5px;">💎 Секретный файл 80+</h3>
             <p>100 🪙</p>
-            <button class="btn matrix-btn" onclick="buyItem(100)">Загрузить в мозг</button>
+            <button class="btn matrix-btn" onclick="buyItem(100)">Получить награду</button>
         </div>
 
-        <button class="btn matrix-btn" onclick="showScreen('mainMenu')" style="margin-bottom: 10px;">Отключиться (Меню)</button>
+        <button class="btn matrix-btn" onclick="showScreen('mainMenu')" style="margin-bottom: 10px;">Вернуться в меню</button>
         <button class="btn matrix-btn" onclick="goToChat()" style="border-color: #ff4444 !important; color: #ff4444 !important; box-shadow: 0 0 10px #ff4444;">Обратная связь / Чат</button>
     </div>
 <script>
@@ -318,31 +430,54 @@ function openShop() {
 }
     // Стилистика
     const classThemes = {
-        5: { bg: '#E0F7FA', text: '#000', font: 'Nunito, sans-serif', accent: '#FF9800', chars: 'Кот-космонавт 🐱🚀' },
-        6: { bg: '#E0F2F1', text: '#333', font: 'Montserrat, sans-serif', accent: '#009688', chars: 'Робот-помощник 🤖' },
-        7: { bg: '#0D1117', text: '#39FF14', font: 'Orbitron, sans-serif', accent: '#8A2BE2', chars: 'Кибер-аватар 👤' },
-        8: { bg: '#FFFFFF', text: '#000000', font: 'Oswald, sans-serif', accent: '#FF00FF', chars: 'Саркастичный гений 🕶️' },
-        9: { bg: '#F5F5F5', text: '#333333', font: 'Roboto, sans-serif', accent: '#2196F3', chars: 'Тренер 📋' },
-        10: { bg: '#F4F1EA', text: '#5C5C5C', font: 'Open Sans, sans-serif', accent: '#8F9779', chars: 'СуперТьютор 🎓' },
-        11: { bg: '#121212', text: '#E0E0E0', font: 'system-ui', accent: '#424242', chars: 'График 📈' }
+        8: {
+            accent: '#55f0dd',
+            headline: 'Стартовая орбита',
+            description: 'Укрепляем базу и учимся видеть логику задачи.',
+            note: 'Ярко · понятно · без перегруза',
+            questionCount: 5
+        },
+        9: {
+            accent: '#a99cff',
+            headline: 'Курс на ОГЭ',
+            description: 'Системная практика, уверенность и движение к экзамену.',
+            note: 'Фокус · темп · подготовка к ОГЭ',
+            questionCount: 7
+        },
+        10: {
+            accent: '#65e0ae',
+            headline: 'Система роста',
+            description: 'Углубляем темы и собираем знания в цельную картину.',
+            note: 'Глубже · спокойнее · осознаннее',
+            questionCount: 8
+        },
+        11: {
+            accent: '#ffc96f',
+            headline: 'Финишная прямая',
+            description: 'Точная подготовка к ЕГЭ и работа на максимальный результат.',
+            note: 'ЕГЭ · результат · контроль прогресса',
+            questionCount: 10
+        }
     };
 
     // Навигация
     const classContainer = document.getElementById('classButtons');
-    for(let i = 5; i <= 11; i++) {
+    Object.entries(classThemes).forEach(([grade, theme]) => {
         let btn = document.createElement('button');
-        btn.className = 'btn'; btn.innerText = i + ' класс'; btn.onclick = () => selectClass(i);
+        btn.className = `grade-card grade-${grade}`;
+        btn.innerHTML = `<span class="grade-number">${grade}</span><span class="grade-label">класс</span><span class="grade-note">${theme.note}</span>`;
+        btn.onclick = () => selectClass(Number(grade));
         classContainer.appendChild(btn);
-    }
+    });
 
     function selectClass(grade) {
         currentClass = grade;
         const theme = classThemes[grade];
-        document.documentElement.style.setProperty('--bg-color', theme.bg);
-        document.documentElement.style.setProperty('--text-color', theme.text);
-        document.documentElement.style.setProperty('--font-family', theme.font);
+        document.body.dataset.grade = grade;
         document.documentElement.style.setProperty('--accent-color', theme.accent);
-        document.getElementById('classTitle').innerText = `${grade} класс | ${theme.chars}`;
+        document.getElementById('classTitle').innerText = `${grade} класс`;
+        document.getElementById('gradeHeadline').innerText = theme.headline;
+        document.getElementById('gradeDescription').innerText = theme.description;
         document.getElementById('coinsCount').innerText = coins;
         showScreen('mainMenu');
     }
@@ -510,7 +645,6 @@ function updateUI() {
 }
 
     // ЛОГИКА ТЕСТИРОВАНИЯ И ЭКОНОМИКИ
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSyYBIArwn-npZYPgPwIazi4HzVR4DzusAc1VvJ_eQklHkYBElS7r0pwZzx-Pe2tPnoop9sFBpFMZWj/pub?output=csv';
     // Настройки твоей Google Формы
 const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdSQdG5gJNtVtKgEDDkEmkio9y9HlowaswAhQhY2tmryOSQzg/formResponse";
 const FIELD_NAME = "entry.1090136716";   // Поле: имя
@@ -557,13 +691,18 @@ function sendToForm(grade, topic, status) {
     let isWorkOnErrors = false;
     let sessionCoinsEarned = 0;
     let currentQuestionData = null;
+    let sessionCorrectAnswers = 0;
+    let sessionAnswered = 0;
+    let currentAttemptKey = null;
 
-    function startPractice() { showScreen('consentScreen'); }
+    function startPractice() { window.diagnosticMode = false; showScreen('consentScreen'); }
 
    async function startQuizWithConsent(consent) {
     userConsent = consent; 
     lives = 5; 
     sessionCoinsEarned = 0;
+    sessionCorrectAnswers = 0;
+    sessionAnswered = 0;
     quizMistakes = [];
     isWorkOnErrors = false;
     
@@ -571,37 +710,24 @@ function sendToForm(grade, topic, status) {
     tg.MainButton.showProgress();
     
     try {
-        // Добавляем '&t=...' чтобы убить кэш на стороне серверов Google
-        const response = await fetch(CSV_URL + '&t=' + Date.now(), { cache: "no-store" });
-        const text = await response.text();
-        
-        // ЛОВУШКА ДЛЯ HTML: если Гугл отдал страницу вместо данных
-        if (text.trim().startsWith('<')) {
-            alert('🚨 СТОП! Google отдает веб-страницу вместо CSV-данных. Зайди в Таблицу -> Файл -> Поделиться -> Опубликовать в интернете -> Проверь, что выбран формат CSV!');
-            tg.MainButton.hide();
-            showScreen('mainMenu');
-            return;
-        }
+        const response = await fetch(`/api/questions?grade=${currentClass}`, { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить задания');
 
-        allQuestionsBase = parseCSV(text);
-        
-        let classQuestions = allQuestionsBase.filter(row => {
-            if (!row || row.length < 1 || !row[0]) return false;
-            let rowGrade = row[0].toString().replace(/\D/g, ""); 
-            return rowGrade === currentClass.toString();
-        });
+        allQuestionsBase = payload.questions;
+        const classQuestions = allQuestionsBase;
 
         if (classQuestions.length === 0) {
-            // Если заданий правда нет, давай посмотрим, что вообще есть в базе
-            alert(`Заданий не найдено!\nВ базе ${allQuestionsBase.length} строк.\nПервый класс в базе: [${allQuestionsBase[0] ? allQuestionsBase[0][0] : 'пусто'}]`);
+            alert(`Для ${currentClass} класса пока нет активных заданий в Google Таблице.`);
             tg.MainButton.hide();
             showScreen('mainMenu');
             return;
         }
 
         // Если нашли задания, запускаем тест
-        let questionsNeeded = (currentClass >= 5 && currentClass <= 8) ? 5 : 10;
-        currentQuizQuestions = classQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
+        const diagnosticCounts = {8: 12, 9: 14, 10: 14, 11: 16};
+        let questionsNeeded = window.diagnosticMode ? diagnosticCounts[currentClass] : classThemes[currentClass].questionCount;
+        currentQuizQuestions = selectQuizQuestions(classQuestions, questionsNeeded);
         
         currentQuestionIndex = 0;
         tg.MainButton.hide();
@@ -615,17 +741,40 @@ function sendToForm(grade, topic, status) {
     }
 }
 
+    function shuffled(items) {
+        const copy = [...items];
+        for (let index = copy.length - 1; index > 0; index--) {
+            const randomIndex = Math.floor(Math.random() * (index + 1));
+            [copy[index], copy[randomIndex]] = [copy[randomIndex], copy[index]];
+        }
+        return copy;
+    }
+
+    function selectQuizQuestions(pool, count) {
+        const imageQuestions = shuffled(pool.filter(question => question.imageUrl));
+        const textQuestions = shuffled(pool.filter(question => !question.imageUrl));
+        const wantedImages = Math.min(imageQuestions.length, count >= 7 ? 2 : 1);
+        const selected = imageQuestions.slice(0, wantedImages);
+        selected.push(...textQuestions.slice(0, Math.max(0, count - selected.length)));
+        if (selected.length < count) {
+            selected.push(...imageQuestions.slice(wantedImages, wantedImages + count - selected.length));
+        }
+        return shuffled(selected).slice(0, count);
+    }
+
     function renderCurrentQuestion() {
         document.getElementById('quizLives').innerText = lives;
         document.getElementById('quizCoins').innerText = coins;
         document.getElementById('quizFeedback').style.display = 'none';
         document.getElementById('quizOptions').style.display = 'block';
         
-        let row = currentQuizQuestions[currentQuestionIndex];
-        currentQuestionData = { topic: row[1], question: row[2], options: [row[3], row[4], row[5], row[6]], correctIndex: parseInt(row[7]) - 1, solution: row[8] };
+        currentQuestionData = currentQuizQuestions[currentQuestionIndex];
+        currentAttemptKey = `${currentQuestionData.id || currentQuestionIndex}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
         
         document.getElementById('quizTopic').innerText = `Тема: ${currentQuestionData.topic}`;
         document.getElementById('quizQuestionText').innerHTML = currentQuestionData.question;
+        setQuestionImage('quizQuestionImage', currentQuestionData.imageUrl);
+        setQuestionImage('quizSolutionImage', '');
         
         let optionsHtml = '';
         currentQuestionData.options.forEach((opt, idx) => {
@@ -636,12 +785,21 @@ function sendToForm(grade, topic, status) {
         renderMathInElement(document.getElementById('quizScreen'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     }
 
+    function setQuestionImage(elementId, imageUrl) {
+        const image = document.getElementById(elementId);
+        image.hidden = !imageUrl;
+        if (imageUrl) image.src = imageUrl;
+        else image.removeAttribute('src');
+    }
+
     function checkAnswer(selectedIndex) {
         document.getElementById('quizOptions').style.display = 'none';
         let feedbackDiv = document.getElementById('quizFeedback');
         feedbackDiv.style.display = 'block';
         
         let isCorrect = (selectedIndex === currentQuestionData.correctIndex);
+        sessionAnswered++;
+        if (isCorrect) sessionCorrectAnswers++;
         
         if (isCorrect) {
             document.getElementById('feedbackTitle').innerText = "✅ Верно!";
@@ -657,21 +815,30 @@ function sendToForm(grade, topic, status) {
         }
         
         document.getElementById('feedbackText').innerHTML = `<b>Решение:</b><br>${currentQuestionData.solution}`;
+        setQuestionImage('quizSolutionImage', currentQuestionData.solutionImageUrl);
         renderMathInElement(document.getElementById('quizFeedback'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
         
         if (userConsent) {
-    const username = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : "anonymous";
+    const telegramUser = tg.initDataUnsafe.user;
+    const username = telegramUser ? telegramUser.username : "anonymous";
     const resultData = {
+        user_id: telegramUser ? telegramUser.id : null,
         username: username,
+        questionId: currentQuestionData.id || '',
+        attemptKey: currentAttemptKey,
         class: currentClass,
+        grade: currentClass,
         topic: currentQuestionData.topic,
         isCorrect: isCorrect,
-        time: new Date().toLocaleString("ru-RU")
+        time: new Date().toISOString()
     };
 
     fetch('/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Telegram-Init-Data': tg.initData || ''
+        },
         body: JSON.stringify(resultData)
     }).catch(err => console.error("Ошибка сохранения:", err));
 }
@@ -689,6 +856,22 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
     function finishQuiz(isWin) {
         document.getElementById('resultLives').innerText = lives;
         document.getElementById('resultCoins').innerText = sessionCoinsEarned;
+        const diagnosticSummary = document.getElementById('diagnosticSummary');
+        if (window.diagnosticMode) {
+            const percent = sessionAnswered ? Math.round(sessionCorrectAnswers / sessionAnswered * 100) : 0;
+            window.lastDiagnosticScore = percent;
+            const recommendation = percent < 40
+                ? 'Начните с восстановления базовых тем.'
+                : percent < 70
+                    ? 'Основа есть: стоит точечно закрыть пробелы.'
+                    : percent < 85
+                        ? 'Уверенный уровень: переходите к смешанным и более сложным задачам.'
+                        : 'Высокий уровень: работайте над скоростью и задачами повышенной сложности.';
+            diagnosticSummary.innerHTML = `<strong>Диагностика: ${percent}%</strong><p>${recommendation}</p><button class="btn" onclick="openEnrollment()">Записаться на первый урок</button>`;
+            diagnosticSummary.hidden = false;
+        } else {
+            diagnosticSummary.hidden = true;
+        }
         let actionsHtml = '';
         if (quizMistakes.length > 0) actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="startWorkOnErrors()">Пройти тест повторно (Работа над ошибками)</button>`;
         else actionsHtml += `<button class="btn" style="background-color: var(--accent-color);" onclick="startPractice()">Пройти еще один тест</button>`;
@@ -717,10 +900,7 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
 
     function startWorkOnErrors() {
         lives = 5; sessionCoinsEarned = 0; isWorkOnErrors = true;
-        let errorQuestions = allQuestionsBase.filter(row => {
-    if (!row || !row[0]) return false;
-    return row[0].toString().trim() === currentClass.toString().trim() && quizMistakes.includes(row[1]);
-});
+        let errorQuestions = allQuestionsBase.filter(question => quizMistakes.includes(question.topic));
         let questionsNeeded = quizMistakes.length * 3;
         currentQuizQuestions = errorQuestions.sort(() => 0.5 - Math.random()).slice(0, questionsNeeded);
         
@@ -730,52 +910,11 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
         showScreen('quizScreen'); renderCurrentQuestion();
     }
 
-    function parseCSV(str) {
-    const arr = [];
-    let row = [];
-    let col = '';
-    let insideQuotes = false;
-
-    // Авто-определение разделителя (запятая или точка с запятой)
-    const delimiter = ','; // Жестко задаем запятую!
-
-    for (let i = 0; i < str.length; i++) {
-        let char = str[i];
-        let nextChar = str[i + 1];
-
-        if (char === '"') {
-            if (insideQuotes && nextChar === '"') {
-                col += '"'; i++;
-            } else {
-                insideQuotes = !insideQuotes;
-            }
-        } else if (char === delimiter && !insideQuotes) {
-            row.push(col.trim());
-            col = '';
-        } else if ((char === '\n' || char === '\r') && !insideQuotes) {
-            if (col !== '' || row.length > 0) {
-                row.push(col.trim());
-                arr.push(row);
-            }
-            col = '';
-            row = [];
-            if (char === '\r' && nextChar === '\n') i++;
-        } else {
-            col += char;
-        }
-    }
-    if (col !== '' || row.length > 0) {
-        row.push(col.trim());
-        arr.push(row);
-    }
-    // Отрезаем заголовок (Класс, Тема...)
-    return arr.slice(1);
-}
-
     // Рендер при первой загрузке
     document.addEventListener("DOMContentLoaded", function() {
         renderMathInElement(document.body, { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     });
 </script>
+<script src="/community.js?v=2"></script>
 </body>
 </html>
