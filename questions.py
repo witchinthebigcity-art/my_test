@@ -112,6 +112,39 @@ def _is_active(value: str) -> bool:
     return value.strip().casefold() not in {"0", "нет", "false", "off", "неактивно"}
 
 
+def normalise_math_source(value: str) -> str:
+    """Repair common spreadsheet notation glitches before sending text to the client."""
+    value = str(value or "").strip()
+    value = value.replace("≥q", "≥").replace("≤q", "≤")
+    value = value.replace("> =", "≥").replace("< =", "≤")
+    value = re.sub(r"(?i)(?<![A-Za-zА-Яа-яЁё])pi(?![A-Za-zА-Яа-яЁё])", "π", value)
+    value = re.sub(r"(?i)\binfty\b", "∞", value)
+    value = re.sub(r"=\s*>", "⇒", value)
+    value = re.sub(r"(\d+)\s+-\s+й\b", r"\1-й", value)
+
+    # Google Sheets occasionally moves the decimal part outside sqrt parentheses.
+    value = re.sub(r"√\((\d+)\),\s*(\d+)", r"√(\1,\2)", value)
+    # Repair legacy exports such as √(6^)2 and an unmatched opening parenthesis.
+    value = re.sub(
+        r"√\(([^()]*)\^\)\s*([23])\s*([+-])\s*([^=]+?)(?=\s*=)",
+        lambda match: f"√({match.group(1)}{'²' if match.group(2) == '2' else '³'} {match.group(3)} {match.group(4)})",
+        value,
+    )
+    value = re.sub(
+        r"√\(([^()]*)\^\)\s*([23])",
+        lambda match: f"√({match.group(1)}{'²' if match.group(2) == '2' else '³'})",
+        value,
+    )
+    value = re.sub(r"\(√\(([^()]*)\)([²³])$", r"(√(\1))\2", value)
+    value = re.sub(r"\((\d+)√\(([^()]*)\)([²³])$", r"(\1√(\2))\3", value)
+    value = re.sub(
+        r"√\(([^()]*)\)\s*([+-])\s*([^()=]+)\)(?=\s*(?:=|$))",
+        r"√(\1 \2 \3)",
+        value,
+    )
+    return value
+
+
 def _normalise_image_url(value: str, row_number: int) -> str:
     value = value.strip()
     if not value:
@@ -211,10 +244,13 @@ def parse_questions_csv(csv_text: str) -> list[Question]:
                 f"Строка {row_number}: правильный ответ должен быть числом от 1 до 4"
             )
 
-        options = tuple(row[header_map[f"option_{number}"]].strip() for number in range(1, 5))
-        topic = row[header_map["topic"]].strip()
-        question_text = row[header_map["question"]].strip()
-        solution = row[header_map["solution"]].strip()
+        options = tuple(
+            normalise_math_source(row[header_map[f"option_{number}"]])
+            for number in range(1, 5)
+        )
+        topic = normalise_math_source(row[header_map["topic"]])
+        question_text = normalise_math_source(row[header_map["question"]])
+        solution = normalise_math_source(row[header_map["solution"]])
         image_url = ""
         if "image_url" in header_map and header_map["image_url"] < len(row):
             image_url = _normalise_image_url(row[header_map["image_url"]], row_number)
@@ -225,6 +261,12 @@ def parse_questions_csv(csv_text: str) -> list[Question]:
             )
         if not topic or not question_text or not all(options):
             raise QuestionFormatError(f"Строка {row_number}: заполнены не все обязательные ячейки")
+
+        # Two known duplicate distractors in the current published sheet.
+        if question_text.startswith("Найдите корень уравнения: |x - 5| = 2") and options == ("10", "7", "3", "10"):
+            options = ("10", "7", "3", "5")
+        elif question_text == "Найдите корень уравнения: √(2x + 1) = 3" and options == ("4", "1", "5", "4"):
+            options = ("4", "1", "5", "8")
 
         questions.append(
             Question(

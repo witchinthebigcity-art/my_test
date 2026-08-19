@@ -335,6 +335,11 @@ body::before {
 
 #quizTopic { margin-top: 22px; color: var(--theme-accent) !important; }
 #quizQuestionText { line-height: 1.35; }
+.katex { font-size: 1.06em; }
+#quizQuestionText .katex,
+#battleQuestion .katex { font-size: 1.12em; }
+#quizOptions .katex,
+.battle-options .katex { pointer-events: none; }
 #quizOptions { display: grid; gap: 9px; }
 #quizOptions .btn {
     min-height: 42px;
@@ -409,6 +414,19 @@ details.theory-section summary { background: transparent !important; }
     background: var(--surface-soft);
 }
 
+.avatar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.field-hint {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .profile-card small,
 .leaderboard-identity small,
 .battle-player small,
@@ -457,6 +475,17 @@ details.theory-section summary { background: transparent !important; }
 }
 
 .text-field:focus { border-color: var(--theme-accent); }
+
+.diagnostic-progress {
+    padding: 10px 13px;
+    border: 1px solid var(--theme-border);
+    border-radius: 999px;
+    background: var(--surface-soft);
+    color: var(--theme-accent);
+    font-size: 13px;
+    font-weight: 850;
+    text-align: center;
+}
 
 .consent-card {
     display: grid;
@@ -560,6 +589,7 @@ details.theory-section summary { background: transparent !important; }
     .btn { min-height: 42px; padding: 9px 12px; font-size: 13.5px !important; }
     .action-card { padding: 12px; border-radius: 15px; }
     .action-icon { width: 42px; height: 42px; border-radius: 13px; font-size: 20px; }
+    .avatar-actions { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

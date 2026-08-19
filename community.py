@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -23,6 +25,15 @@ MONTHLY_AWARDS = {
     1: ("Чемпион месяца", "🏆"),
     2: ("Серебряный призёр месяца", "🥈"),
     3: ("Бронзовый призёр месяца", "🥉"),
+}
+MAX_AVATAR_BYTES = 600 * 1024
+BOT_WAIT_SECONDS = int(os.getenv("BATTLE_BOT_WAIT_SECONDS", "20"))
+BOT_PLAYER_ID = "__math_bot__"
+BOT_ANSWER_SECONDS = 5
+AVATAR_TYPES = {
+    "image/jpeg": ("jpg", (b"\xff\xd8\xff",)),
+    "image/png": ("png", (b"\x89PNG\r\n\x1a\n",)),
+    "image/webp": ("webp", (b"RIFF",)),
 }
 
 
@@ -89,6 +100,29 @@ def validate_nickname(value):
     return nickname
 
 
+def decode_avatar_data_url(value):
+    match = re.fullmatch(
+        r"data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=\r\n]+)",
+        str(value or ""),
+    )
+    if not match:
+        raise CommunityError("Аватарка должна быть изображением JPG, PNG или WebP")
+    mime_type, encoded = match.groups()
+    try:
+        payload = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise CommunityError("Не удалось прочитать изображение") from error
+    if not payload or len(payload) > MAX_AVATAR_BYTES:
+        raise CommunityError("Размер готовой аватарки должен быть не больше 600 КБ")
+    extension, signatures = AVATAR_TYPES[mime_type]
+    valid_signature = any(payload.startswith(signature) for signature in signatures)
+    if mime_type == "image/webp":
+        valid_signature = valid_signature and len(payload) >= 12 and payload[8:12] == b"WEBP"
+    if not valid_signature:
+        raise CommunityError("Содержимое файла не соответствует формату изображения")
+    return extension, payload
+
+
 def _now_iso():
     return datetime.now(MOSCOW).isoformat()
 
@@ -107,6 +141,7 @@ def _default_data():
 class CommunityStore:
     def __init__(self, path):
         self.path = path
+        self.avatar_directory = os.path.join(os.path.dirname(path) or ".", "avatars")
         self.lock = asyncio.Lock()
 
     def _load(self):
@@ -142,13 +177,40 @@ class CommunityStore:
         profile = data["profiles"].setdefault(user_id, {
             "nickname": self._default_nickname(user),
             "avatar_url": user.get("photo_url", ""),
+            "avatar_source": "telegram",
+            "telegram_avatar_url": user.get("photo_url", ""),
             "leaderboard_consent": False,
             "grade": None,
             "updated_at": _now_iso(),
         })
-        if user.get("photo_url"):
+        profile.setdefault("avatar_source", "telegram")
+        profile["telegram_avatar_url"] = user.get("photo_url", profile.get("telegram_avatar_url", ""))
+        if user.get("photo_url") and profile.get("avatar_source") != "custom":
             profile["avatar_url"] = user["photo_url"]
         return profile
+
+    def _delete_custom_avatar(self, profile):
+        if profile.get("avatar_source") != "custom":
+            return
+        filename = os.path.basename(str(profile.get("avatar_url") or ""))
+        if re.fullmatch(r"[a-f0-9]{32}\.(?:jpg|png|webp)", filename):
+            try:
+                os.remove(os.path.join(self.avatar_directory, filename))
+            except FileNotFoundError:
+                pass
+
+    def _store_custom_avatar(self, profile, data_url):
+        extension, payload = decode_avatar_data_url(data_url)
+        os.makedirs(self.avatar_directory, exist_ok=True)
+        filename = f"{uuid.uuid4().hex}.{extension}"
+        final_path = os.path.join(self.avatar_directory, filename)
+        temporary_path = f"{final_path}.tmp"
+        with open(temporary_path, "wb") as target:
+            target.write(payload)
+        os.replace(temporary_path, final_path)
+        self._delete_custom_avatar(profile)
+        profile["avatar_url"] = f"/avatars/{filename}"
+        profile["avatar_source"] = "custom"
 
     async def get_profile(self, user):
         async with self.lock:
@@ -174,9 +236,21 @@ class CommunityStore:
                 if grade not in {8, 9, 10, 11}:
                     raise CommunityError("Выберите класс от 8 до 11")
                 profile["grade"] = grade
+            if payload.get("avatarDataUrl"):
+                self._store_custom_avatar(profile, payload["avatarDataUrl"])
+            elif payload.get("useTelegramAvatar"):
+                self._delete_custom_avatar(profile)
+                profile["avatar_source"] = "telegram"
+                profile["avatar_url"] = user.get("photo_url", "")
             profile["updated_at"] = _now_iso()
             self._save(data)
             return {**profile, "awards": [a for a in data["awards"] if a["user_id"] == self._user_id(user)]}
+
+    def avatar_path(self, filename):
+        if not re.fullmatch(r"[a-f0-9]{32}\.(?:jpg|png|webp)", str(filename or "")):
+            return None
+        path = os.path.join(self.avatar_directory, filename)
+        return path if os.path.isfile(path) else None
 
     async def record_attempt(self, user, payload, points=10, source="practice"):
         async with self.lock:
@@ -336,7 +410,8 @@ class CommunityStore:
             if not profile.get("leaderboard_consent"):
                 raise CommunityError("Для баттла включите участие в рейтинге в личном кабинете")
             profile["grade"] = grade
-            self._expire_battles(data)
+            question_map = {question.question_id: question for question in questions}
+            self._expire_battles(data, question_map)
             for battle in data["battles"].values():
                 if user_id in battle["players"] and battle["status"] in {"waiting", "active"}:
                     self._save(data)
@@ -369,16 +444,73 @@ class CommunityStore:
             self._save(data)
             return battle_id
 
-    def _expire_battles(self, data):
+    @staticmethod
+    def _is_bot(user_id):
+        return user_id == BOT_PLAYER_ID
+
+    def _start_bot_battle(self, battle):
+        if BOT_PLAYER_ID in battle["players"]:
+            return
+        battle["players"][BOT_PLAYER_ID] = {
+            "score": 0,
+            "answers": {},
+            "finished_at": None,
+            "is_bot": True,
+        }
+        battle["status"] = "active"
+        battle["started_at"] = _now_iso()
+
+    def _advance_bot(self, battle, question_map, now):
+        bot_player = battle["players"].get(BOT_PLAYER_ID)
+        if not bot_player or bot_player.get("finished_at"):
+            return
+        started = datetime.fromisoformat(battle["started_at"]).astimezone(MOSCOW)
+        human_finished = any(
+            player.get("finished_at")
+            for user_id, player in battle["players"].items()
+            if not self._is_bot(user_id)
+        )
+        answer_count = len(battle["question_ids"]) if human_finished else min(
+            len(battle["question_ids"]),
+            int((now - started).total_seconds() // BOT_ANSWER_SECONDS),
+        )
+        for question_id in battle["question_ids"][:answer_count]:
+            if question_id in bot_player["answers"] or question_id not in question_map:
+                continue
+            question = question_map[question_id]
+            digest = int(hashlib.sha256(f"{battle['id']}:{question_id}".encode()).hexdigest()[:8], 16)
+            is_correct = digest % 100 < 68
+            selected_index = question.correct_index if is_correct else (question.correct_index + 1 + digest % 3) % 4
+            bot_player["answers"][question_id] = selected_index
+            if is_correct:
+                bot_player["score"] += 1
+        if len(bot_player["answers"]) >= len(battle["question_ids"]):
+            bot_player["finished_at"] = _now_iso()
+
+    def _expire_battles(self, data, question_map=None):
         now = datetime.now(MOSCOW)
+        question_map = question_map or {}
         for battle in data["battles"].values():
             created = datetime.fromisoformat(battle["created_at"])
             age = now - created.astimezone(MOSCOW)
-            if battle["status"] == "waiting" and age > timedelta(minutes=10):
+            if battle["status"] == "waiting" and age >= timedelta(seconds=BOT_WAIT_SECONDS) and question_map:
+                self._start_bot_battle(battle)
+            elif battle["status"] == "waiting" and age > timedelta(minutes=10):
                 battle["status"] = "cancelled"
-            elif battle["status"] == "active" and age > timedelta(minutes=25):
-                battle["status"] = "complete"
-                self._award_battle_bonus(data, battle)
+            if battle["status"] == "active":
+                self._advance_bot(battle, question_map, now)
+                if len(battle["players"]) == 2 and all(
+                    player.get("finished_at") for player in battle["players"].values()
+                ):
+                    battle["status"] = "complete"
+                    self._award_battle_bonus(data, battle)
+                else:
+                    started = datetime.fromisoformat(battle["started_at"] or battle["created_at"])
+                    active_age = now - started.astimezone(MOSCOW)
+                    if active_age <= timedelta(minutes=25):
+                        continue
+                    battle["status"] = "complete"
+                    self._award_battle_bonus(data, battle)
 
     def _award_battle_bonus(self, data, battle):
         if battle.get("bonus_awarded") or len(battle["players"]) < 2:
@@ -386,6 +518,9 @@ class CommunityStore:
         best = max(player["score"] for player in battle["players"].values())
         winners = [uid for uid, player in battle["players"].items() if player["score"] == best]
         if len(winners) == 1:
+            if self._is_bot(winners[0]):
+                battle["bonus_awarded"] = True
+                return
             data["attempts"].append({
                 "attempt_key": f"battle-win:{battle['id']}",
                 "user_id": winners[0],
@@ -405,14 +540,24 @@ class CommunityStore:
         def public_player(uid):
             if not uid:
                 return None
-            profile = data["profiles"].get(uid, {})
             player = battle["players"][uid]
+            if self._is_bot(uid):
+                return {
+                    "nickname": "Матан-Бот",
+                    "avatarUrl": "",
+                    "score": player["score"],
+                    "answered": len(player["answers"]),
+                    "finished": bool(player.get("finished_at")),
+                    "isBot": True,
+                }
+            profile = data["profiles"].get(uid, {})
             return {
                 "nickname": profile.get("nickname", "Участник"),
                 "avatarUrl": profile.get("avatar_url", ""),
                 "score": player["score"],
                 "answered": len(player["answers"]),
                 "finished": bool(player.get("finished_at")),
+                "isBot": False,
             }
 
         questions = [question_map[qid].as_public_dict() for qid in battle["question_ids"] if qid in question_map]
@@ -430,7 +575,7 @@ class CommunityStore:
         user_id = self._user_id(user)
         async with self.lock:
             data = self._load()
-            self._expire_battles(data)
+            self._expire_battles(data, question_map)
             battle = data["battles"].get(battle_id)
             if not battle or user_id not in battle["players"]:
                 raise CommunityError("Баттл не найден")
@@ -441,7 +586,7 @@ class CommunityStore:
         user_id = self._user_id(user)
         async with self.lock:
             data = self._load()
-            self._expire_battles(data)
+            self._expire_battles(data, question_map)
             battle = data["battles"].get(battle_id)
             if not battle or user_id not in battle["players"] or battle["status"] != "active":
                 raise CommunityError("Активный баттл не найден")

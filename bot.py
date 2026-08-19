@@ -190,6 +190,10 @@ async def handle_community_script(request):
     return web.FileResponse('community.js')
 
 
+async def handle_math_script(request):
+    return web.FileResponse('math-format.js')
+
+
 def _authenticated_user(request):
     init_data = request.headers.get("X-Telegram-Init-Data", "")
     return validate_telegram_init_data(init_data, TOKEN)
@@ -286,6 +290,16 @@ async def update_profile(request):
         return web.json_response(await community_store.update_profile(user, payload))
     except CommunityError as error:
         return _community_error(error, status=422)
+
+
+async def get_avatar(request):
+    avatar_path = community_store.avatar_path(request.match_info.get("filename"))
+    if not avatar_path:
+        raise web.HTTPNotFound()
+    return web.FileResponse(
+        avatar_path,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 async def get_leaderboard(request):
@@ -406,15 +420,17 @@ async def get_stats(request):
                 
     return web.json_response(stats)
 def create_app():
-    application = web.Application()
+    application = web.Application(client_max_size=2 * 1024 * 1024)
     application.router.add_get('/', handle_index)
     application.router.add_get('/app.css', handle_styles)
     application.router.add_get('/community.js', handle_community_script)
+    application.router.add_get('/math-format.js', handle_math_script)
     application.router.add_get('/api/questions', get_questions)
     application.router.add_post('/save', save_progress)
     application.router.add_get('/stats', get_stats)
     application.router.add_get('/api/profile', get_profile)
     application.router.add_post('/api/profile', update_profile)
+    application.router.add_get('/avatars/{filename}', get_avatar)
     application.router.add_get('/api/leaderboard', get_leaderboard)
     application.router.add_post('/api/enrollments', create_enrollment)
     application.router.add_post('/api/battles/join', join_battle)

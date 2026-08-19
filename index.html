@@ -9,6 +9,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="/math-format.js?v=4"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -61,7 +62,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=3">
+    <link rel="stylesheet" href="/app.css?v=4">
 </head>
 <body data-grade="8">
 
@@ -140,8 +141,14 @@
         <div class="profile-card">
             <img id="profileAvatar" class="profile-avatar" alt="Аватар участника" hidden>
             <div class="avatar-placeholder" id="profileAvatarPlaceholder">∑</div>
-            <div><strong id="profilePreviewName">Участник</strong><small>Фото берётся из Telegram</small></div>
+            <div><strong id="profilePreviewName">Участник</strong><small>Фото из Telegram или с вашего устройства</small></div>
         </div>
+        <input id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+        <div class="avatar-actions">
+            <button class="btn btn-secondary" type="button" onclick="chooseProfileAvatar()">Загрузить аватарку</button>
+            <button class="btn btn-secondary" type="button" onclick="restoreTelegramAvatar()">Вернуть фото Telegram</button>
+        </div>
+        <p class="field-hint">Изображение автоматически обрежется до квадрата. Допустимы JPG, PNG и WebP.</p>
         <label class="field-label" for="profileNickname">Публичный никнейм</label>
         <input id="profileNickname" class="text-field" maxlength="24" placeholder="Например, Геометр_11">
         <label class="consent-card">
@@ -233,7 +240,8 @@
 </div>
 
     <div id="quizScreen" class="screen">
-        <div class="stats"><span>❤️ Жизни: <span id="quizLives">5</span></span><span>🪙 Монеты: <span id="quizCoins">0</span></span></div>
+        <div id="quizGameStats" class="stats"><span>❤️ Жизни: <span id="quizLives">5</span></span><span>🪙 Монеты: <span id="quizCoins">0</span></span></div>
+        <div id="diagnosticProgress" class="diagnostic-progress" hidden></div>
         <h3 id="quizTopic" style="color: var(--accent-color); font-size: 14px;"></h3>
         <h2 id="quizQuestionText">Загрузка...</h2>
         <img id="quizQuestionImage" class="question-media" alt="Иллюстрация к заданию" hidden>
@@ -249,12 +257,12 @@
 
     <div id="resultScreen" class="screen">
         <h2>Результаты</h2>
-        <p>Осталось жизней: <span id="resultLives"></span> ❤️</p>
-        <p>Заработано монет: <span id="resultCoins"></span> 🪙</p>
+        <p id="resultLivesRow">Осталось жизней: <span id="resultLives"></span> ❤️</p>
+        <p id="resultCoinsRow">Заработано монет: <span id="resultCoins"></span> 🪙</p>
         <p id="limitWarning" style="color: #ff4444; font-size: 12px; display: none;">Достигнут лимит монет (100/100). Приходи через <span id="timeToReset"></span> за новыми!</p>
         <div id="diagnosticSummary" class="diagnostic-summary" hidden></div>
         <div id="resultActions"></div>
-        <button class="btn" onclick="openShop()">Перейти в магазин</button>
+        <button id="resultShopButton" class="btn" onclick="openShop()">Перейти в магазин</button>
         <button class="btn btn-secondary" onclick="showScreen('classSelection')">Поменять класс</button>
         <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
     </div>
@@ -694,15 +702,17 @@ function sendToForm(grade, topic, status) {
     let sessionCorrectAnswers = 0;
     let sessionAnswered = 0;
     let currentAttemptKey = null;
+    let diagnosticTopicStats = {};
 
     function startPractice() { window.diagnosticMode = false; showScreen('consentScreen'); }
 
    async function startQuizWithConsent(consent) {
-    userConsent = consent; 
+    userConsent = window.diagnosticMode ? false : consent;
     lives = 5; 
     sessionCoinsEarned = 0;
     sessionCorrectAnswers = 0;
     sessionAnswered = 0;
+    diagnosticTopicStats = {};
     quizMistakes = [];
     isWorkOnErrors = false;
     
@@ -765,24 +775,32 @@ function sendToForm(grade, topic, status) {
     function renderCurrentQuestion() {
         document.getElementById('quizLives').innerText = lives;
         document.getElementById('quizCoins').innerText = coins;
+        document.getElementById('quizGameStats').hidden = Boolean(window.diagnosticMode);
+        const diagnosticProgress = document.getElementById('diagnosticProgress');
+        diagnosticProgress.hidden = !window.diagnosticMode;
+        if (window.diagnosticMode) {
+            diagnosticProgress.textContent = `Проверка знаний · задание ${currentQuestionIndex + 1} из ${currentQuizQuestions.length}`;
+        }
         document.getElementById('quizFeedback').style.display = 'none';
-        document.getElementById('quizOptions').style.display = 'block';
+        document.getElementById('quizOptions').style.display = 'grid';
         
         currentQuestionData = currentQuizQuestions[currentQuestionIndex];
         currentAttemptKey = `${currentQuestionData.id || currentQuestionIndex}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
         
-        document.getElementById('quizTopic').innerText = `Тема: ${currentQuestionData.topic}`;
-        document.getElementById('quizQuestionText').innerHTML = currentQuestionData.question;
+        setMathContent(document.getElementById('quizTopic'), `Тема: ${currentQuestionData.topic}`);
+        setMathContent(document.getElementById('quizQuestionText'), currentQuestionData.question);
         setQuestionImage('quizQuestionImage', currentQuestionData.imageUrl);
         setQuestionImage('quizSolutionImage', '');
         
-        let optionsHtml = '';
+        const optionsContainer = document.getElementById('quizOptions');
+        optionsContainer.replaceChildren();
         currentQuestionData.options.forEach((opt, idx) => {
-            optionsHtml += `<button class="btn" onclick="checkAnswer(${idx})">${opt}</button>`;
+            const button = document.createElement('button');
+            button.className = 'btn';
+            button.addEventListener('click', () => checkAnswer(idx));
+            setMathContent(button, opt);
+            optionsContainer.appendChild(button);
         });
-        document.getElementById('quizOptions').innerHTML = optionsHtml;
-
-        renderMathInElement(document.getElementById('quizScreen'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     }
 
     function setQuestionImage(elementId, imageUrl) {
@@ -800,25 +818,32 @@ function sendToForm(grade, topic, status) {
         let isCorrect = (selectedIndex === currentQuestionData.correctIndex);
         sessionAnswered++;
         if (isCorrect) sessionCorrectAnswers++;
+        const topicStats = diagnosticTopicStats[currentQuestionData.topic] || {correct: 0, total: 0};
+        topicStats.total++;
+        if (isCorrect) topicStats.correct++;
+        diagnosticTopicStats[currentQuestionData.topic] = topicStats;
         
         if (isCorrect) {
             document.getElementById('feedbackTitle').innerText = "✅ Верно!";
             document.getElementById('feedbackTitle').style.color = "green";
-            processCoins(10);
-            sessionCoinsEarned += 10;
+            if (!window.diagnosticMode) {
+                processCoins(10);
+                sessionCoinsEarned += 10;
+            }
         } else {
             document.getElementById('feedbackTitle').innerText = "❌ Ошибка!";
             document.getElementById('feedbackTitle').style.color = "red";
-            lives--;
-            document.getElementById('quizLives').innerText = lives;
+            if (!window.diagnosticMode) {
+                lives--;
+                document.getElementById('quizLives').innerText = lives;
+            }
             if (!quizMistakes.includes(currentQuestionData.topic)) quizMistakes.push(currentQuestionData.topic);
         }
         
-        document.getElementById('feedbackText').innerHTML = `<b>Решение:</b><br>${currentQuestionData.solution}`;
+        setMathContent(document.getElementById('feedbackText'), `Решение: ${currentQuestionData.solution}`);
         setQuestionImage('quizSolutionImage', currentQuestionData.solutionImageUrl);
-        renderMathInElement(document.getElementById('quizFeedback'), { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
         
-        if (userConsent) {
+        if (!window.diagnosticMode && userConsent) {
     const telegramUser = tg.initDataUnsafe.user;
     const username = telegramUser ? telegramUser.username : "anonymous";
     const resultData = {
@@ -842,12 +867,14 @@ function sendToForm(grade, topic, status) {
         body: JSON.stringify(resultData)
     }).catch(err => console.error("Ошибка сохранения:", err));
 }
-        // Отправка данных в твою Google Таблицу
-sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "Ошибка");
+        // Диагностика не влияет на игровую статистику и рейтинг.
+        if (!window.diagnosticMode) {
+            sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "Ошибка");
+        }
     }
 
     function nextQuestion() {
-        if (lives <= 0) { finishQuiz(false); return; }
+        if (!window.diagnosticMode && lives <= 0) { finishQuiz(false); return; }
         currentQuestionIndex++;
         if (currentQuestionIndex >= currentQuizQuestions.length) finishQuiz(true);
         else renderCurrentQuestion();
@@ -856,26 +883,55 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
     function finishQuiz(isWin) {
         document.getElementById('resultLives').innerText = lives;
         document.getElementById('resultCoins').innerText = sessionCoinsEarned;
+        document.getElementById('resultLivesRow').hidden = Boolean(window.diagnosticMode);
+        document.getElementById('resultCoinsRow').hidden = Boolean(window.diagnosticMode);
+        document.getElementById('resultShopButton').hidden = Boolean(window.diagnosticMode);
         const diagnosticSummary = document.getElementById('diagnosticSummary');
         if (window.diagnosticMode) {
             const percent = sessionAnswered ? Math.round(sessionCorrectAnswers / sessionAnswered * 100) : 0;
             window.lastDiagnosticScore = percent;
-            const recommendation = percent < 40
+            let recommendation = percent < 40
                 ? 'Начните с восстановления базовых тем.'
                 : percent < 70
                     ? 'Основа есть: стоит точечно закрыть пробелы.'
                     : percent < 85
                         ? 'Уверенный уровень: переходите к смешанным и более сложным задачам.'
                         : 'Высокий уровень: работайте над скоростью и задачами повышенной сложности.';
-            diagnosticSummary.innerHTML = `<strong>Диагностика: ${percent}%</strong><p>${recommendation}</p><button class="btn" onclick="openEnrollment()">Записаться на первый урок</button>`;
+            const weakTopics = Object.entries(diagnosticTopicStats)
+                .filter(([, result]) => result.correct < result.total)
+                .sort((left, right) => (left[1].correct / left[1].total) - (right[1].correct / right[1].total))
+                .slice(0, 3)
+                .map(([topic]) => topic);
+            if (weakTopics.length) recommendation += ` Обратите внимание на темы: ${weakTopics.join(', ')}.`;
+            diagnosticSummary.replaceChildren();
+            const score = document.createElement('strong');
+            score.textContent = `Диагностика: ${percent}%`;
+            const advice = document.createElement('p');
+            advice.textContent = recommendation;
+            const enrollButton = document.createElement('button');
+            enrollButton.className = 'btn';
+            enrollButton.textContent = 'Записаться на первый урок';
+            enrollButton.addEventListener('click', openEnrollment);
+            diagnosticSummary.append(score, advice, enrollButton);
             diagnosticSummary.hidden = false;
         } else {
             diagnosticSummary.hidden = true;
         }
-        let actionsHtml = '';
-        if (quizMistakes.length > 0) actionsHtml += `<button class="btn" onclick="startWorkOnErrors()">Пройти тест повторно (Работа над ошибками)</button>`;
-        else actionsHtml += `<button class="btn" onclick="startPractice()">Пройти еще один тест</button>`;
-        document.getElementById('resultActions').innerHTML = actionsHtml;
+        const resultActions = document.getElementById('resultActions');
+        resultActions.replaceChildren();
+        const retryButton = document.createElement('button');
+        retryButton.className = 'btn';
+        if (window.diagnosticMode) {
+            retryButton.textContent = 'Пройти диагностику ещё раз';
+            retryButton.addEventListener('click', startDiagnostic);
+        } else if (quizMistakes.length > 0) {
+            retryButton.textContent = 'Пройти тест повторно (работа над ошибками)';
+            retryButton.addEventListener('click', startWorkOnErrors);
+        } else {
+            retryButton.textContent = 'Пройти ещё один тест';
+            retryButton.addEventListener('click', startPractice);
+        }
+        resultActions.appendChild(retryButton);
         showScreen('resultScreen');
     }
 
@@ -915,6 +971,6 @@ sendToForm(currentClass, currentQuestionData.topic, isCorrect ? "Верно" : "
         renderMathInElement(document.body, { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     });
 </script>
-<script src="/community.js?v=2"></script>
+<script src="/community.js?v=4"></script>
 </body>
 </html>

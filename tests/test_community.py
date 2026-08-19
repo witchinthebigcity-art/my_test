@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 import json
@@ -7,7 +8,7 @@ import time
 import unittest
 from urllib.parse import urlencode
 
-from community import CommunityError, CommunityStore, validate_nickname, validate_telegram_init_data
+from community import CommunityError, CommunityStore, decode_avatar_data_url, validate_nickname, validate_telegram_init_data
 from questions import Question
 
 
@@ -45,6 +46,17 @@ class NicknameTests(unittest.TestCase):
         for value in ("f.u.c.k", "a-d-m-i-n", "пиздец"):
             with self.subTest(value=value), self.assertRaises(CommunityError):
                 validate_nickname(value)
+
+
+class AvatarTests(unittest.TestCase):
+    def test_accepts_real_image_signature_and_rejects_fake_payload(self):
+        encoded = base64.b64encode(b"\xff\xd8\xfftest-jpeg").decode()
+        extension, payload = decode_avatar_data_url(f"data:image/jpeg;base64,{encoded}")
+        self.assertEqual(extension, "jpg")
+        self.assertTrue(payload.startswith(b"\xff\xd8\xff"))
+        fake = base64.b64encode(b"not-an-image").decode()
+        with self.assertRaises(CommunityError):
+            decode_avatar_data_url(f"data:image/png;base64,{fake}")
 
 
 class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
@@ -97,6 +109,39 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(final["battle"]["status"], "complete")
         self.assertEqual(final["battle"]["me"]["score"], 0)
         self.assertEqual(final["battle"]["opponent"]["score"], 5)
+
+    async def test_starts_server_bot_when_human_opponent_is_not_found(self):
+        await self.store.update_profile(self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8})
+        battle_id = await self.store.join_battle(self.user_a, 8, self.questions)
+        with open(self.store.path, "r", encoding="utf-8") as source:
+            data = json.load(source)
+        data["battles"][battle_id]["created_at"] = "2020-01-01T00:00:00+03:00"
+        with open(self.store.path, "w", encoding="utf-8") as target:
+            json.dump(data, target)
+
+        question_map = {question.question_id: question for question in self.questions}
+        state = await self.store.battle_state(self.user_a, battle_id, question_map)
+
+        self.assertEqual(state["status"], "active")
+        self.assertEqual(state["opponent"]["nickname"], "Матан-Бот")
+        self.assertTrue(state["opponent"]["isBot"])
+
+    async def test_stores_custom_avatar_under_random_public_name(self):
+        encoded = base64.b64encode(b"\xff\xd8\xffavatar-bytes").decode()
+        profile = await self.store.update_profile(
+            self.user_a,
+            {"avatarDataUrl": f"data:image/jpeg;base64,{encoded}"},
+        )
+        self.assertEqual(profile["avatar_source"], "custom")
+        self.assertTrue(profile["avatar_url"].startswith("/avatars/"))
+        filename = profile["avatar_url"].rsplit("/", 1)[-1]
+        self.assertNotEqual(filename.split(".", 1)[0], str(self.user_a["id"]))
+        stored_path = self.store.avatar_path(filename)
+        self.assertTrue(os.path.isfile(stored_path))
+
+        restored = await self.store.update_profile(self.user_a, {"useTelegramAvatar": True})
+        self.assertEqual(restored["avatar_url"], self.user_a["photo_url"])
+        self.assertFalse(os.path.exists(stored_path))
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ const communityState = {
     battleQuestionIndex: 0,
     battlePoll: null,
 };
+let pendingAvatarDataUrl = null;
 
 function telegramHeaders(json = false) {
     const headers = { 'X-Telegram-Init-Data': tg.initData || '' };
@@ -34,7 +35,74 @@ function setAvatar(image, placeholder, url) {
 
 function startDiagnostic() {
     window.diagnosticMode = true;
-    showScreen('consentScreen');
+    startQuizWithConsent(false);
+}
+
+function chooseProfileAvatar() {
+    document.getElementById('profileAvatarInput').click();
+}
+
+async function compressAvatar(file) {
+    if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        throw new Error('Выберите изображение JPG, PNG или WebP');
+    }
+    if (file.size > 8 * 1024 * 1024) throw new Error('Исходный файл должен быть меньше 8 МБ');
+    const objectUrl = URL.createObjectURL(file);
+    try {
+        const image = new Image();
+        image.src = objectUrl;
+        await image.decode();
+        const side = Math.min(image.naturalWidth, image.naturalHeight);
+        if (!side) throw new Error('Не удалось прочитать изображение');
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 320;
+        const context = canvas.getContext('2d');
+        const sourceX = (image.naturalWidth - side) / 2;
+        const sourceY = (image.naturalHeight - side) / 2;
+        context.drawImage(image, sourceX, sourceY, side, side, 0, 0, 320, 320);
+        return canvas.toDataURL('image/jpeg', 0.86);
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
+async function handleProfileAvatarFile(event) {
+    setInlineMessage('profileMessage', 'Обрабатываем изображение…');
+    try {
+        pendingAvatarDataUrl = await compressAvatar(event.target.files?.[0]);
+        setAvatar(
+            document.getElementById('profileAvatar'),
+            document.getElementById('profileAvatarPlaceholder'),
+            pendingAvatarDataUrl
+        );
+        setInlineMessage('profileMessage', 'Аватарка готова. Нажмите «Сохранить профиль».', 'success');
+    } catch (error) {
+        pendingAvatarDataUrl = null;
+        setInlineMessage('profileMessage', error.message, 'error');
+    } finally {
+        event.target.value = '';
+    }
+}
+
+async function restoreTelegramAvatar() {
+    setInlineMessage('profileMessage', 'Восстанавливаем фото Telegram…');
+    try {
+        const profile = await communityRequest('/api/profile', {
+            method: 'POST',
+            headers: telegramHeaders(true),
+            body: JSON.stringify({ useTelegramAvatar: true }),
+        });
+        pendingAvatarDataUrl = null;
+        setAvatar(
+            document.getElementById('profileAvatar'),
+            document.getElementById('profileAvatarPlaceholder'),
+            profile.avatar_url
+        );
+        setInlineMessage('profileMessage', 'Фото Telegram восстановлено', 'success');
+    } catch (error) {
+        setInlineMessage('profileMessage', error.message, 'error');
+    }
 }
 
 async function openProfile() {
@@ -67,9 +135,16 @@ async function saveProfile() {
                 nickname: document.getElementById('profileNickname').value,
                 leaderboardConsent: document.getElementById('leaderboardConsent').checked,
                 grade: currentClass,
+                avatarDataUrl: pendingAvatarDataUrl,
             }),
         });
+        pendingAvatarDataUrl = null;
         document.getElementById('profilePreviewName').textContent = payload.nickname;
+        setAvatar(
+            document.getElementById('profileAvatar'),
+            document.getElementById('profileAvatarPlaceholder'),
+            payload.avatar_url
+        );
         renderAwards(payload.awards || []);
         setInlineMessage('profileMessage', 'Профиль сохранён', 'success');
     } catch (error) {
@@ -213,7 +288,7 @@ function handleBattleState(battle) {
     if (battle.status === 'waiting') {
         document.getElementById('battleLobby').hidden = false;
         document.getElementById('battleGame').hidden = true;
-        setInlineMessage('battleStatus', 'Заявка создана. Ожидаем ученика вашего класса — поиск длится до 10 минут.');
+        setInlineMessage('battleStatus', 'Ищем ученика вашего класса. Если за 20 секунд пара не найдётся, начнётся баттл с Матан-Ботом.');
         return;
     }
     if (battle.status === 'cancelled') {
@@ -242,7 +317,7 @@ function renderBattlePlayers(battle) {
         const card = document.createElement('div');
         card.className = 'battle-player';
         const name = document.createElement('strong');
-        name.textContent = player?.nickname || (index ? 'Ожидание…' : 'Вы');
+        name.textContent = player ? `${player.isBot ? '🤖 ' : ''}${player.nickname}` : (index ? 'Ожидание…' : 'Вы');
         const result = document.createElement('small');
         result.textContent = player ? `${player.score} баллов · ${player.answered}/5` : '—';
         card.append(name, result);
@@ -254,8 +329,8 @@ function renderBattleQuestion() {
     const battle = communityState.battle;
     const question = battle.questions[communityState.battleQuestionIndex];
     document.getElementById('battleProgress').textContent = `Задание ${communityState.battleQuestionIndex + 1} из ${battle.questions.length}`;
-    document.getElementById('battleTopic').textContent = question.topic;
-    document.getElementById('battleQuestion').textContent = question.question;
+    setMathContent(document.getElementById('battleTopic'), question.topic);
+    setMathContent(document.getElementById('battleQuestion'), question.question);
     setQuestionImage('battleQuestionImage', question.imageUrl);
     document.getElementById('battleFeedback').hidden = true;
     document.getElementById('battleNextButton').hidden = true;
@@ -264,13 +339,9 @@ function renderBattleQuestion() {
     question.options.forEach((option, selectedIndex) => {
         const button = document.createElement('button');
         button.className = 'btn btn-secondary';
-        button.textContent = option;
+        setMathContent(button, option);
         button.addEventListener('click', () => answerBattle(question.id, selectedIndex));
         options.appendChild(button);
-    });
-    renderMathInElement(document.getElementById('battleGame'), {
-        delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
-        throwOnError: false,
     });
 }
 
@@ -285,7 +356,7 @@ async function answerBattle(questionId, selectedIndex) {
         communityState.battle = result.battle;
         renderBattlePlayers(result.battle);
         const feedback = document.getElementById('battleFeedback');
-        feedback.textContent = result.correct ? 'Верно!' : `Ответ неверный. ${result.solution}`;
+        setMathContent(feedback, result.correct ? 'Верно!' : `Ответ неверный. ${result.solution}`);
         feedback.dataset.kind = result.correct ? 'success' : 'error';
         feedback.hidden = false;
         document.getElementById('battleNextButton').hidden = false;
@@ -315,6 +386,8 @@ function renderBattleFinish(battle) {
     }
     if (battle.status === 'complete') clearInterval(communityState.battlePoll);
 }
+
+document.getElementById('profileAvatarInput')?.addEventListener('change', handleProfileAvatarFile);
 
 function leaveBattleScreen() {
     clearInterval(communityState.battlePoll);

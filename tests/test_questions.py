@@ -1,6 +1,6 @@
 import unittest
 
-from questions import QuestionFormatError, parse_questions_csv
+from questions import QuestionFormatError, normalise_math_source, parse_questions_csv
 
 
 class ParseQuestionsCsvTests(unittest.TestCase):
@@ -43,6 +43,15 @@ class ParseQuestionsCsvTests(unittest.TestCase):
             question.image_url,
             "https://drive.google.com/thumbnail?id=example-file-id&sz=w1600",
         )
+
+    def test_repairs_common_spreadsheet_math_artifacts(self):
+        self.assertEqual(normalise_math_source("x ≥q 2; S = 2pi R"), "x ≥ 2; S = 2π R")
+        self.assertEqual(normalise_math_source("√(0),49"), "√(0,49)")
+        self.assertEqual(normalise_math_source("√(6^)2 + 8² = 10"), "√(6² + 8²) = 10")
+        self.assertEqual(normalise_math_source("10 - й член; x = 2 = > y = 4"), "10-й член; x = 2 ⇒ y = 4")
+        self.assertEqual(normalise_math_source("y = √(x) - 5)"), "y = √(x - 5)")
+        self.assertEqual(normalise_math_source("(2√(3)²"), "(2√(3))²")
+        self.assertEqual(normalise_math_source("[3; + infty)"), "[3; + ∞)")
 
 
 if __name__ == "__main__":
