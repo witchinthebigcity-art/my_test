@@ -10,8 +10,21 @@ from aiohttp import web
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import (
+    BotCommand,
+    BotCommandScopeChat,
+    FSInputFile,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    WebAppInfo,
+)
+from aiogram.exceptions import (
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramNetworkError,
+    TelegramRetryAfter,
+    TelegramServerError,
+)
 
 from community import CommunityError, CommunityStore, validate_telegram_init_data
 from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
@@ -55,6 +68,60 @@ def save_user(user_id):
     with open(USERS_FILE, "w") as f:
         json.dump(list(users), f)
 
+
+def load_user_ids(path=None):
+    source_path = path or USERS_FILE
+    if not os.path.exists(source_path):
+        return []
+    with open(source_path, "r", encoding="utf-8") as source:
+        payload = json.load(source)
+    values = payload.keys() if isinstance(payload, dict) else payload
+    result = []
+    for value in values:
+        try:
+            result.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    return list(dict.fromkeys(result))
+
+
+async def send_broadcast(source_message=None, text=None, user_ids=None, bot_client=None, delay=0.06):
+    """Copy one Telegram message (including media) or send text to all known users."""
+    bot_client = bot_client or bot
+    user_ids = list(user_ids if user_ids is not None else load_user_ids())
+    report = {"sent": [], "blocked": 0, "failed": 0, "total": len(user_ids)}
+
+    for user_id in user_ids:
+        for attempt in range(2):
+            try:
+                if source_message is not None:
+                    sent = await bot_client.copy_message(
+                        chat_id=user_id,
+                        from_chat_id=source_message.chat.id,
+                        message_id=source_message.message_id,
+                    )
+                else:
+                    sent = await bot_client.send_message(chat_id=user_id, text=text)
+                report["sent"].append({"chat_id": user_id, "message_id": sent.message_id})
+                break
+            except TelegramRetryAfter as error:
+                if attempt == 0:
+                    await asyncio.sleep(float(error.retry_after) + 0.2)
+                    continue
+                report["failed"] += 1
+            except TelegramForbiddenError:
+                report["blocked"] += 1
+                break
+            except (TelegramBadRequest, TelegramNetworkError, TelegramServerError):
+                report["failed"] += 1
+                break
+            except Exception:
+                report["failed"] += 1
+                break
+        if delay:
+            await asyncio.sleep(delay)
+    return report
+
 # === БЛОК 1: КОМАНДЫ БОТА ===
 
 @dp.message(Command("start"))
@@ -71,7 +138,57 @@ async def start(message: types.Message):
 @dp.message(Command("admin"))
 async def admin_panel(message: types.Message):
     if str(message.from_user.id) == str(ADMIN_ID):
-        await message.answer("🛠 Панель админа:\nОтправь любой текст/фото для массовой рассылки.\nОтправь /delete_last чтобы удалить последнюю рассылку.")
+        await message.answer(
+            "🛠 Панель администратора\n\n"
+            "1. Отправьте боту готовое сообщение: текст, фото, видео, аудио или голосовое.\n"
+            "2. Ответьте на это сообщение командой /sendall или /all.\n\n"
+            "Также можно отправить: /sendall текст сообщения\n"
+            "/users — количество и список пользователей\n"
+            "/delete_last — удалить последнюю рассылку у получателей"
+        )
+
+
+@dp.message(Command("sendall", "all"))
+async def broadcast_command(message: types.Message):
+    if str(message.from_user.id) != str(ADMIN_ID):
+        await message.answer("Эта команда доступна только администратору.")
+        return
+
+    source_message = message.reply_to_message
+    command_parts = (message.text or "").split(maxsplit=1)
+    direct_text = command_parts[1].strip() if len(command_parts) > 1 else ""
+    if source_message is None and not direct_text:
+        await message.answer(
+            "Сначала отправьте текст, фото, видео, аудио или голосовое, "
+            "а затем ответьте на него командой /sendall."
+        )
+        return
+
+    try:
+        users = load_user_ids()
+    except (OSError, json.JSONDecodeError):
+        await message.answer("⚠ Не удалось прочитать базу пользователей.")
+        return
+    if not users:
+        await message.answer("⚠ База пользователей пуста. Пока никто не нажал /start.")
+        return
+
+    status = await message.answer(f"⏳ Начинаю рассылку для {len(users)} пользователей…")
+    report = await send_broadcast(
+        source_message=source_message,
+        text=direct_text or None,
+        user_ids=users,
+    )
+    with open(BROADCAST_FILE, "w", encoding="utf-8") as target:
+        json.dump(report["sent"], target, ensure_ascii=False)
+
+    await status.edit_text(
+        "✅ Рассылка завершена\n"
+        f"Доставлено: {len(report['sent'])}\n"
+        f"Бот заблокирован: {report['blocked']}\n"
+        f"Другие ошибки: {report['failed']}\n\n"
+        "Удалить доставленные сообщения: /delete_last"
+    )
 
 @dp.message(Command("delete_last"))
 async def delete_last_broadcast(message: types.Message):
@@ -140,41 +257,6 @@ async def get_all_users(message: types.Message):
     # Отправляем файл пользователю
     doc = FSInputFile(report_path)
     await message.answer_document(doc, caption="👥 База твоих учеников")
-
-# === БЛОК 2: РАССЫЛКА (Должна быть строго ПОСЛЕ всех команд!) ===
-
-@dp.message()
-async def broadcast(message: types.Message):
-    # Если пишет не админ, или это команда (начинается с /) — игнорируем
-    if str(message.from_user.id) != str(ADMIN_ID) or (message.text and message.text.startswith('/')): 
-        return
-        
-    if not os.path.exists(USERS_FILE):
-        await message.answer("⚠ Ошибка: База пользователей пуста. Никто еще не нажимал /start.")
-        return
-
-    try:
-        with open(USERS_FILE, "r") as f:
-            users = json.load(f)
-    except:
-        await message.answer("⚠ Ошибка чтения базы пользователей.")
-        return
-
-    sent_messages = [] 
-    
-    for user_id in users:
-        try:
-            msg_obj = await bot.copy_message(chat_id=user_id, from_chat_id=message.chat.id, message_id=message.message_id)
-            sent_messages.append({"chat_id": user_id, "message_id": msg_obj.message_id})
-            await asyncio.sleep(0.05) 
-        except Exception: 
-            pass 
-
-    with open(BROADCAST_FILE, "w") as f:
-        json.dump(sent_messages, f)
-        
-    await message.answer(f"✅ Рассылка завершена! Отправлено: {len(sent_messages)} людям.\nДля отмены жми /delete_last")
-
 
 # === БЛОК 3: ВЕБ-СЕРВЕР (Для работы мини-приложения) ===
 
@@ -445,6 +527,25 @@ app = create_app()
 # === ЗАПУСК ===
 
 async def main():
+    if ADMIN_ID:
+        try:
+            await bot.set_my_commands(
+                [
+                    BotCommand(command="admin", description="Панель администратора"),
+                    BotCommand(command="sendall", description="Разослать сообщение всем"),
+                    BotCommand(command="users", description="Список пользователей"),
+                    BotCommand(command="delete_last", description="Удалить последнюю рассылку"),
+                ],
+                scope=BotCommandScopeChat(chat_id=int(ADMIN_ID)),
+            )
+        except (
+            ValueError,
+            TelegramBadRequest,
+            TelegramNetworkError,
+            TelegramServerError,
+            TelegramForbiddenError,
+        ):
+            print("Не удалось настроить команды администратора")
     asyncio.create_task(dp.start_polling(bot))
     runner = web.AppRunner(app)
     await runner.setup()
