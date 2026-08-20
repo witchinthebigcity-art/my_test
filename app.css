@@ -281,6 +281,14 @@ body::before {
 .btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .btn:disabled { cursor: not-allowed; opacity: .55; }
 
+.link-button {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
 .btn-secondary {
     border-color: color-mix(in srgb, var(--theme-border) 78%, white 12%) !important;
     background: color-mix(in srgb, var(--surface-strong) 48%, transparent) !important;
@@ -604,8 +612,6 @@ details.theory-section summary { background: transparent !important; }
     object-position: center 18%;
 }
 
-.author-heading { text-align: center; }
-.author-heading h2 { margin: 14px auto 20px; max-width: 560px; line-height: 1.18; }
 .author-facts { display: grid; gap: 10px; margin: 20px 0 24px; }
 
 .author-fact {

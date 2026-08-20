@@ -16,6 +16,7 @@ from aiogram.types import (
     FSInputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    MenuButtonWebApp,
     WebAppInfo,
 )
 from aiogram.exceptions import (
@@ -261,19 +262,19 @@ async def get_all_users(message: types.Message):
 # === БЛОК 3: ВЕБ-СЕРВЕР (Для работы мини-приложения) ===
 
 async def handle_index(request):
-    return web.FileResponse('index.html')
+    return web.FileResponse('index.html', headers={"Cache-Control": "no-store, max-age=0"})
 
 
 async def handle_styles(request):
-    return web.FileResponse('app.css')
+    return web.FileResponse('app.css', headers={"Cache-Control": "no-store, max-age=0"})
 
 
 async def handle_community_script(request):
-    return web.FileResponse('community.js')
+    return web.FileResponse('community.js', headers={"Cache-Control": "no-store, max-age=0"})
 
 
 async def handle_math_script(request):
-    return web.FileResponse('math-format.js')
+    return web.FileResponse('math-format.js', headers={"Cache-Control": "no-store, max-age=0"})
 
 
 def _authenticated_user(request):
@@ -531,6 +532,20 @@ async def main():
     # Бот получает обновления через polling. Удаляем webhook, который мог
     # остаться от прежнего хостинга, не отбрасывая уже ожидающие сообщения.
     await bot.delete_webhook(drop_pending_updates=False)
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Прокачать матан",
+                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v=6"),
+            )
+        )
+    except (
+        TelegramBadRequest,
+        TelegramNetworkError,
+        TelegramServerError,
+        TelegramForbiddenError,
+    ):
+        print("Не удалось обновить кнопку мини-приложения")
     if ADMIN_ID:
         try:
             await bot.set_my_commands(

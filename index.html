@@ -9,7 +9,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/math-format.js?v=4"></script>
+    <script defer src="/math-format.js?v=6"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -62,7 +62,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=4">
+    <link rel="stylesheet" href="/app.css?v=6">
 </head>
 <body data-grade="8">
 
@@ -136,20 +136,15 @@
     </div>
 
     <div id="authorScreen" class="screen author-screen">
-        <p class="eyebrow">Ваш преподаватель</p>
         <div class="author-portrait-wrap">
             <img class="author-portrait" src="/assets/author.jpg" alt="Преподаватель математики" loading="lazy">
-        </div>
-        <div class="author-heading">
-            <span class="soft-pill">Математика без хаоса</span>
-            <h2>Помогаю понять логику задачи и сохранить баллы на экзамене</h2>
         </div>
         <div class="author-facts">
             <article class="author-fact"><span>🎓</span><strong>Бауманка — магистратура ✅</strong></article>
             <article class="author-fact"><span>🔥</span><strong>5+ лет подготовки к экзаменам</strong></article>
             <article class="author-fact"><span>🎯</span><strong>Эксперт по профильному ЕГЭ — знаю, где чаще всего теряют баллы</strong></article>
         </div>
-        <button class="btn author-primary" onclick="openManagerChat()">Узнать подробности</button>
+        <a class="btn author-primary link-button" href="https://t.me/m/IWsDa8-JNDFi" target="_blank" rel="noopener">Узнать подробности</a>
         <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
     </div>
 
@@ -223,29 +218,30 @@
         <p class="eyebrow">Первый шаг</p>
         <h2>Записаться на урок</h2>
         <p class="supporting-text">Ответьте на три коротких вопроса. После отправки преподаватель получит заявку.</p>
-        <label class="field-label" for="enrollmentGrade">Класс</label>
-        <select id="enrollmentGrade" class="text-field"><option>8</option><option>9</option><option>10</option><option>11</option></select>
-        <label class="field-label" for="enrollmentGoal">Цель</label>
-        <select id="enrollmentGoal" class="text-field">
-            <option value="Повысить школьную оценку">Повысить школьную оценку</option>
-            <option value="Закрыть пробелы">Закрыть пробелы</option>
-            <option value="Подготовиться к ОГЭ">Подготовиться к ОГЭ</option>
-            <option value="Подготовиться к ЕГЭ">Подготовиться к ЕГЭ</option>
-            <option value="Углублённая математика">Углублённая математика</option>
-        </select>
-        <label class="field-label" for="enrollmentFrequency">Частота занятий</label>
-        <select id="enrollmentFrequency" class="text-field"><option value="1">Раз в неделю</option><option value="2">Два раза в неделю</option><option value="3">Три раза в неделю</option></select>
-        <label class="consent-card">
-            <input id="enrollmentConsent" type="checkbox">
-            <span><strong>Согласие на обработку заявки</strong><small>Данные используются только для связи и организации занятий.</small></span>
-        </label>
-        <div id="enrollmentMessage" class="inline-message" hidden></div>
-        <button class="btn" onclick="submitEnrollment()">Отправить заявку</button>
-        <div id="enrollmentSuccessActions" class="success-actions" hidden>
-            <button class="btn" onclick="openTeacherChat()">Связаться с преподавателем</button>
-            <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
+        <div id="enrollmentFormContent">
+            <label class="field-label" for="enrollmentGrade">Класс</label>
+            <select id="enrollmentGrade" class="text-field"><option>8</option><option>9</option><option>10</option><option>11</option></select>
+            <label class="field-label" for="enrollmentGoal">Цель</label>
+            <select id="enrollmentGoal" class="text-field">
+                <option value="Повысить школьную оценку">Повысить школьную оценку</option>
+                <option value="Закрыть пробелы">Закрыть пробелы</option>
+                <option value="Подготовиться к ОГЭ">Подготовиться к ОГЭ</option>
+                <option value="Подготовиться к ЕГЭ">Подготовиться к ЕГЭ</option>
+                <option value="Углублённая математика">Углублённая математика</option>
+            </select>
+            <label class="field-label" for="enrollmentFrequency">Частота занятий</label>
+            <select id="enrollmentFrequency" class="text-field"><option value="1">Раз в неделю</option><option value="2">Два раза в неделю</option><option value="3">Три раза в неделю</option></select>
+            <label class="consent-card">
+                <input id="enrollmentConsent" type="checkbox">
+                <span><strong>Согласие на обработку заявки</strong><small>Данные используются только для связи и организации занятий.</small></span>
+            </label>
+            <button class="btn" onclick="submitEnrollment()">Отправить заявку</button>
+            <button class="btn btn-secondary" onclick="startDiagnostic()">Сначала пройти диагностику</button>
         </div>
-        <button class="btn btn-secondary" onclick="startDiagnostic()">Сначала пройти диагностику</button>
+        <div id="enrollmentMessage" class="inline-message" hidden></div>
+        <div id="enrollmentSuccessActions" class="success-actions" hidden>
+            <a class="btn link-button" href="https://t.me/supertutor15" target="_blank" rel="noopener">Связаться с преподавателем</a>
+        </div>
         <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
     </div>
 
@@ -993,6 +989,6 @@ function sendToForm(grade, topic, status) {
         renderMathInElement(document.body, { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     });
 </script>
-<script src="/community.js?v=4"></script>
+<script src="/community.js?v=6"></script>
 </body>
 </html>

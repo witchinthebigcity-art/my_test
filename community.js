@@ -5,8 +5,6 @@ const communityState = {
     battlePoll: null,
 };
 let pendingAvatarDataUrl = null;
-const MANAGER_CHAT_URL = 'https://t.me/m/IWsDa8-JNDFi';
-const TEACHER_CHAT_URL = 'https://t.me/supertutor15';
 
 function telegramHeaders(json = false) {
     const headers = { 'X-Telegram-Init-Data': tg.initData || '' };
@@ -398,6 +396,7 @@ function leaveBattleScreen() {
 
 function openEnrollment() {
     document.getElementById('enrollmentGrade').value = String(currentClass || 8);
+    document.getElementById('enrollmentFormContent').hidden = false;
     document.getElementById('enrollmentSuccessActions').hidden = true;
     setInlineMessage('enrollmentMessage', '');
     showScreen('enrollmentScreen');
@@ -405,14 +404,6 @@ function openEnrollment() {
 
 function openAuthor() {
     showScreen('authorScreen');
-}
-
-function openManagerChat() {
-    tg.openTelegramLink(MANAGER_CHAT_URL);
-}
-
-function openTeacherChat() {
-    tg.openTelegramLink(TEACHER_CHAT_URL);
 }
 
 async function submitEnrollment() {
@@ -430,6 +421,7 @@ async function submitEnrollment() {
             }),
         });
         setInlineMessage('enrollmentMessage', `Заявка ${result.leadId} отправлена. Можно написать преподавателю сейчас или вернуться в главное меню.`, 'success');
+        document.getElementById('enrollmentFormContent').hidden = true;
         document.getElementById('enrollmentSuccessActions').hidden = false;
     } catch (error) {
         setInlineMessage('enrollmentMessage', error.message, 'error');
