@@ -576,6 +576,65 @@ details.theory-section summary { background: transparent !important; }
 .battle-options { display: grid; gap: 9px; }
 .battle-options .btn { min-height: 42px; padding: 9px 13px; text-align: left; }
 
+.author-screen {
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 84% 12%, color-mix(in srgb, var(--theme-accent) 22%, transparent), transparent 18rem),
+        var(--surface) !important;
+}
+
+.author-portrait-wrap {
+    position: relative;
+    width: 170px;
+    height: 170px;
+    margin: 14px auto 22px;
+    padding: 6px;
+    border: 1px solid color-mix(in srgb, var(--theme-accent) 65%, transparent);
+    border-radius: 50%;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--theme-accent) 30%, transparent), var(--surface-soft));
+    box-shadow: 0 0 32px color-mix(in srgb, var(--theme-accent) 24%, transparent);
+}
+
+.author-portrait {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 18%;
+}
+
+.author-heading { text-align: center; }
+.author-heading h2 { margin: 14px auto 20px; max-width: 560px; line-height: 1.18; }
+.author-facts { display: grid; gap: 10px; margin: 20px 0 24px; }
+
+.author-fact {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 13px;
+    border: 1px solid color-mix(in srgb, var(--theme-accent) 42%, var(--theme-border));
+    border-radius: 17px;
+    background: linear-gradient(100deg, color-mix(in srgb, var(--theme-accent) 11%, transparent), var(--surface-soft));
+    box-shadow: inset 0 0 18px color-mix(in srgb, var(--theme-accent) 5%, transparent);
+}
+
+.author-fact > span {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--theme-accent) 55%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--theme-accent) 14%, transparent);
+    font-size: 21px;
+}
+
+.author-fact strong { line-height: 1.38; }
+.author-primary { box-shadow: 0 10px 24px color-mix(in srgb, var(--theme-accent) 22%, transparent); }
+.success-actions { display: grid; gap: 2px; margin: 14px 0; }
+
 @media (max-width: 520px) {
     .leaderboard-row { grid-template-columns: 30px 42px minmax(0, 1fr); }
     .leaderboard-score { grid-column: 3; }

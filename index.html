@@ -126,13 +126,31 @@
             <button class="action-card" onclick="openTheory()"><span class="action-icon">📚</span><span><strong>Открыть теорию</strong><small>Формулы и короткие объяснения</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openShop()"><span class="action-icon">🎁</span><span><strong>Магазин наград</strong><small>Использовать заработанные монеты</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openEnrollment()"><span class="action-icon">📅</span><span><strong>Записаться на урок</strong><small>Оставить цель и выбрать частоту занятий</small></span><span class="action-arrow">›</span></button>
-            <button class="action-card action-card-disabled" disabled aria-disabled="true"><span class="action-icon">👨‍🏫</span><span><strong>Об авторе</strong><small>Раздел скоро появится</small></span><span class="action-badge">Скоро</span></button>
+            <button class="action-card" onclick="openAuthor()"><span class="action-icon">👨‍🏫</span><span><strong>Об авторе</strong><small>Опыт и подход к подготовке</small></span><span class="action-arrow">›</span></button>
         </div>
         <div class="secondary-actions">
             <button class="btn btn-secondary" onclick="openProfile()">Личный кабинет</button>
             <button class="btn btn-secondary" onclick="loadMyStats()">Мой прогресс</button>
             <button class="btn btn-secondary" onclick="goToChat()">Обратная связь</button>
         </div>
+    </div>
+
+    <div id="authorScreen" class="screen author-screen">
+        <p class="eyebrow">Ваш преподаватель</p>
+        <div class="author-portrait-wrap">
+            <img class="author-portrait" src="/assets/author.jpg" alt="Преподаватель математики" loading="lazy">
+        </div>
+        <div class="author-heading">
+            <span class="soft-pill">Математика без хаоса</span>
+            <h2>Помогаю понять логику задачи и сохранить баллы на экзамене</h2>
+        </div>
+        <div class="author-facts">
+            <article class="author-fact"><span>🎓</span><strong>Бауманка — магистратура ✅</strong></article>
+            <article class="author-fact"><span>🔥</span><strong>5+ лет подготовки к экзаменам</strong></article>
+            <article class="author-fact"><span>🎯</span><strong>Эксперт по профильному ЕГЭ — знаю, где чаще всего теряют баллы</strong></article>
+        </div>
+        <button class="btn author-primary" onclick="openManagerChat()">Узнать подробности</button>
+        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
     </div>
 
     <div id="profileScreen" class="screen">
@@ -223,6 +241,10 @@
         </label>
         <div id="enrollmentMessage" class="inline-message" hidden></div>
         <button class="btn" onclick="submitEnrollment()">Отправить заявку</button>
+        <div id="enrollmentSuccessActions" class="success-actions" hidden>
+            <button class="btn" onclick="openTeacherChat()">Связаться с преподавателем</button>
+            <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
+        </div>
         <button class="btn btn-secondary" onclick="startDiagnostic()">Сначала пройти диагностику</button>
         <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
     </div>

@@ -5,6 +5,8 @@ const communityState = {
     battlePoll: null,
 };
 let pendingAvatarDataUrl = null;
+const MANAGER_CHAT_URL = 'https://t.me/m/IWsDa8-JNDFi';
+const TEACHER_CHAT_URL = 'https://t.me/supertutor15';
 
 function telegramHeaders(json = false) {
     const headers = { 'X-Telegram-Init-Data': tg.initData || '' };
@@ -396,8 +398,21 @@ function leaveBattleScreen() {
 
 function openEnrollment() {
     document.getElementById('enrollmentGrade').value = String(currentClass || 8);
+    document.getElementById('enrollmentSuccessActions').hidden = true;
     setInlineMessage('enrollmentMessage', '');
     showScreen('enrollmentScreen');
+}
+
+function openAuthor() {
+    showScreen('authorScreen');
+}
+
+function openManagerChat() {
+    tg.openTelegramLink(MANAGER_CHAT_URL);
+}
+
+function openTeacherChat() {
+    tg.openTelegramLink(TEACHER_CHAT_URL);
 }
 
 async function submitEnrollment() {
@@ -414,8 +429,8 @@ async function submitEnrollment() {
                 diagnosticScore: window.lastDiagnosticScore ?? null,
             }),
         });
-        setInlineMessage('enrollmentMessage', `Заявка ${result.leadId} отправлена. Открываем чат преподавателя…`, 'success');
-        setTimeout(() => tg.openTelegramLink(ADMIN_LS), 900);
+        setInlineMessage('enrollmentMessage', `Заявка ${result.leadId} отправлена. Можно написать преподавателю сейчас или вернуться в главное меню.`, 'success');
+        document.getElementById('enrollmentSuccessActions').hidden = false;
     } catch (error) {
         setInlineMessage('enrollmentMessage', error.message, 'error');
     }

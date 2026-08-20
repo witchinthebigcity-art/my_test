@@ -507,6 +507,7 @@ def create_app():
     application.router.add_get('/app.css', handle_styles)
     application.router.add_get('/community.js', handle_community_script)
     application.router.add_get('/math-format.js', handle_math_script)
+    application.router.add_static('/assets/', 'assets', show_index=False)
     application.router.add_get('/api/questions', get_questions)
     application.router.add_post('/save', save_progress)
     application.router.add_get('/stats', get_stats)
