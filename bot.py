@@ -527,6 +527,9 @@ app = create_app()
 # === ЗАПУСК ===
 
 async def main():
+    # Бот получает обновления через polling. Удаляем webhook, который мог
+    # остаться от прежнего хостинга, не отбрасывая уже ожидающие сообщения.
+    await bot.delete_webhook(drop_pending_updates=False)
     if ADMIN_ID:
         try:
             await bot.set_my_commands(
