@@ -27,18 +27,26 @@ MONTHLY_AWARDS = {
     3: ("Бронзовый призёр месяца", "🥉"),
 }
 LOGIN_REWARDS = {1: 10, 2: 15, 3: 20, 4: 25, 5: 30, 6: 10, 7: 20}
-PREMIUM_CHARACTER_PRICES = (30, 40, 50, 100)
-CHARACTER_CATALOG = {
-    8: (
-        {"id": "g8-neon-runner", "name": "Неоновый спринтер", "base_price": 0, "style": "neon"},
-        {"id": "g8-basket-star", "name": "Баскет-звезда", "base_price": 0, "style": "basket"},
-        {"id": "g8-pixel-gamer", "name": "Пиксельная геймерша", "base_price": 0, "style": "pixel"},
-        {"id": "g8-pink-wave", "name": "Розовая волна", "base_price": None, "style": "pink-wave"},
-        {"id": "g8-white-street", "name": "Белый стрит", "base_price": None, "style": "white-street"},
-        {"id": "g8-aqua-pop", "name": "Аква-поп", "base_price": None, "style": "aqua-pop"},
-        {"id": "g8-turbo-bomber", "name": "Турбо-бомбер", "base_price": None, "style": "turbo"},
-    ),
-}
+GLOBAL_CHARACTER_KEY = "global"
+CHARACTER_CATALOG = (
+    {"id": "g8-neon-runner", "name": "Неоновый спринтер", "base_price": 0, "style": "neon"},
+    {"id": "g8-basket-star", "name": "Баскет-звезда", "base_price": 0, "style": "basket"},
+    {"id": "g8-pixel-gamer", "name": "Пиксельная геймерша", "base_price": 0, "style": "pixel"},
+    {"id": "free-cozy-plaid", "name": "Тихий уют", "base_price": 0, "style": "cozy-plaid"},
+    {"id": "free-pinterest", "name": "Небесный Pinterest", "base_price": 0, "style": "soft-blue"},
+    {"id": "free-bronze-gent", "name": "Бронзовый джентльмен", "base_price": 0, "style": "bronze-gent"},
+    {"id": "free-gym-hero", "name": "Герой зала", "base_price": 0, "style": "gym-hero"},
+    {"id": "free-capy-cozy", "name": "Капибара-уют", "base_price": 0, "style": "capy-cozy"},
+    {"id": "g8-pink-wave", "name": "Розовая волна", "base_price": 45, "style": "pink-wave"},
+    {"id": "g8-white-street", "name": "Белый стрит", "base_price": 60, "style": "white-street"},
+    {"id": "g8-aqua-pop", "name": "Аква-поп", "base_price": 75, "style": "aqua-pop"},
+    {"id": "g8-turbo-bomber", "name": "Турбо-бомбер", "base_price": 120, "style": "turbo"},
+    {"id": "premium-city-white", "name": "Белый мегаполис", "base_price": 40, "style": "city-white"},
+    {"id": "premium-dog-varsity", "name": "Городская прогулка", "base_price": 65, "style": "dog-varsity"},
+    {"id": "premium-snow-dream", "name": "Снежная мечта", "base_price": 80, "style": "snow-dream"},
+    {"id": "premium-festive-forge", "name": "Праздничный кузнец", "base_price": 110, "style": "festive-forge"},
+    {"id": "premium-cardboard-bot", "name": "Картонный робот", "base_price": 130, "style": "cardboard-bot"},
+)
 MAX_AVATAR_BYTES = 600 * 1024
 BOT_WAIT_SECONDS = int(os.getenv("BATTLE_BOT_WAIT_SECONDS", "20"))
 BOT_PLAYER_ID = "__math_bot__"
@@ -244,6 +252,7 @@ class CommunityStore:
         profile.setdefault("selected_characters", {})
         profile.setdefault("unlocked_characters", {})
         profile.setdefault("character_prices", {})
+        self._migrate_global_characters(profile)
         profile["telegram_avatar_url"] = user.get("photo_url", profile.get("telegram_avatar_url", ""))
         if user.get("photo_url") and profile.get("avatar_source") != "custom":
             profile["avatar_url"] = user["photo_url"]
@@ -307,34 +316,24 @@ class CommunityStore:
             return {**profile, "awards": [a for a in data["awards"] if a["user_id"] == self._user_id(user)]}
 
     @staticmethod
-    def _catalog_for_grade(grade):
-        grade = int(grade)
-        if grade not in {8, 9, 10, 11}:
-            raise CommunityError("Выберите класс от 8 до 11")
-        return grade, CHARACTER_CATALOG.get(grade, ())
+    def _migrate_global_characters(profile):
+        available_ids = {item["id"] for item in CHARACTER_CATALOG}
+        selected_map = profile["selected_characters"]
+        unlocked_map = profile["unlocked_characters"]
+        selected = selected_map.get(GLOBAL_CHARACTER_KEY)
+        if selected not in available_ids:
+            legacy_candidates = [selected_map.get("8"), selected_map.get(str(profile.get("grade")))]
+            selected = next((item for item in legacy_candidates if item in available_ids), None)
+            if selected:
+                selected_map[GLOBAL_CHARACTER_KEY] = selected
+        migrated_unlocks = set(unlocked_map.get(GLOBAL_CHARACTER_KEY, []))
+        for legacy_unlocks in unlocked_map.values():
+            if isinstance(legacy_unlocks, list):
+                migrated_unlocks.update(item for item in legacy_unlocks if item in available_ids)
+        unlocked_map[GLOBAL_CHARACTER_KEY] = sorted(migrated_unlocks)
 
-    @staticmethod
-    def _ensure_character_prices(profile, grade, catalog):
-        grade_key = str(grade)
-        premium_ids = [item["id"] for item in catalog if item["base_price"] is None]
-        stored = profile["character_prices"].get(grade_key, {})
-        valid = (
-            set(stored) == set(premium_ids)
-            and sorted(int(value) for value in stored.values()) == sorted(PREMIUM_CHARACTER_PRICES)
-        )
-        if not valid and premium_ids:
-            prices = list(PREMIUM_CHARACTER_PRICES)
-            random.SystemRandom().shuffle(prices)
-            stored = dict(zip(premium_ids, prices))
-            profile["character_prices"][grade_key] = stored
-        return stored
-
-    @staticmethod
-    def _character_price(character, price_map):
-        return int(character["base_price"] if character["base_price"] is not None else price_map[character["id"]])
-
-    def _ensure_character_selection(self, profile, grade, catalog):
-        grade_key = str(grade)
+    def _ensure_character_selection(self, profile, catalog):
+        grade_key = GLOBAL_CHARACTER_KEY
         available_ids = {item["id"] for item in catalog}
         selected = profile["selected_characters"].get(grade_key)
         if selected not in available_ids:
@@ -417,57 +416,55 @@ class CommunityStore:
             self._save(data)
             return {"awarded": reward, "coins": int(profile.get("coins") or 0)}
 
-    async def character_catalog(self, user, grade):
-        grade, catalog = self._catalog_for_grade(grade)
+    async def character_catalog(self, user):
+        catalog = CHARACTER_CATALOG
         async with self.lock:
             data = self._load()
             profile = self._ensure_profile(data, user)
-            price_map = self._ensure_character_prices(profile, grade, catalog)
-            selected = self._ensure_character_selection(profile, grade, catalog)
-            unlocked = set(profile["unlocked_characters"].get(str(grade), []))
+            selected = self._ensure_character_selection(profile, catalog)
+            unlocked = set(profile["unlocked_characters"].get(GLOBAL_CHARACTER_KEY, []))
             self._save(data)
             return {
-                "grade": grade,
                 "coins": int(profile.get("coins") or 0),
                 "selectedId": selected,
                 "characters": [{
                     "id": item["id"],
                     "name": item["name"],
                     "style": item["style"],
-                    "price": self._character_price(item, price_map),
+                    "price": int(item["base_price"]),
+                    "category": "free" if item["base_price"] == 0 else "premium",
                     "owned": item["base_price"] == 0 or item["id"] in unlocked,
                     "selected": item["id"] == selected,
                 } for item in catalog],
             }
 
-    async def select_character(self, user, grade, character_id):
-        grade, catalog = self._catalog_for_grade(grade)
+    async def select_character(self, user, character_id):
+        catalog = CHARACTER_CATALOG
         character = next((item for item in catalog if item["id"] == character_id), None)
         if not character:
             raise CommunityError("Персонаж не найден")
         async with self.lock:
             data = self._load()
             profile = self._ensure_profile(data, user)
-            unlocked = set(profile["unlocked_characters"].get(str(grade), []))
-            if character["base_price"] is None and character_id not in unlocked:
+            unlocked = set(profile["unlocked_characters"].get(GLOBAL_CHARACTER_KEY, []))
+            if character["base_price"] > 0 and character_id not in unlocked:
                 raise CommunityError("Сначала откройте этого персонажа")
-            profile["selected_characters"][str(grade)] = character_id
+            profile["selected_characters"][GLOBAL_CHARACTER_KEY] = character_id
             profile["updated_at"] = _now_iso()
             self._save(data)
             return {"selectedId": character_id, "coins": int(profile.get("coins") or 0)}
 
-    async def purchase_character(self, user, grade, character_id):
-        grade, catalog = self._catalog_for_grade(grade)
+    async def purchase_character(self, user, character_id):
+        catalog = CHARACTER_CATALOG
         character = next((item for item in catalog if item["id"] == character_id), None)
-        if not character or character["base_price"] is not None:
+        if not character or character["base_price"] == 0:
             raise CommunityError("Этот персонаж доступен бесплатно")
         async with self.lock:
             data = self._load()
             user_id = self._user_id(user)
             profile = self._ensure_profile(data, user)
-            grade_key = str(grade)
-            price_map = self._ensure_character_prices(profile, grade, catalog)
-            price = self._character_price(character, price_map)
+            grade_key = GLOBAL_CHARACTER_KEY
+            price = int(character["base_price"])
             unlocked = set(profile["unlocked_characters"].get(grade_key, []))
             if character_id in unlocked:
                 profile["selected_characters"][grade_key] = character_id
@@ -487,7 +484,7 @@ class CommunityStore:
                 "amount": -price,
                 "kind": "character_purchase",
                 "character_id": character_id,
-                "grade": grade,
+                "catalog": GLOBAL_CHARACTER_KEY,
                 "created_at": _now_iso(),
             })
             self._save(data)
@@ -507,6 +504,7 @@ class CommunityStore:
             grade = int(payload.get("grade") or profile.get("grade") or 0)
             if grade not in {8, 9, 10, 11}:
                 raise CommunityError("Некорректный класс")
+            profile["grade"] = grade
             is_correct = bool(payload.get("isCorrect"))
             attempt_key = str(payload.get("attemptKey") or uuid.uuid4().hex)
             if any(item.get("attempt_key") == attempt_key for item in data["attempts"]):
@@ -648,9 +646,10 @@ class CommunityStore:
     def _public_profile(self, data, target_id, viewer_id=None):
         profile = data["profiles"].get(target_id, {})
         grade = profile.get("grade")
-        character_id = profile.get("selected_characters", {}).get(str(grade))
+        selected_characters = profile.get("selected_characters", {})
+        character_id = selected_characters.get(GLOBAL_CHARACTER_KEY) or selected_characters.get(str(grade))
         character = next(
-            (item for item in CHARACTER_CATALOG.get(grade, ()) if item["id"] == character_id),
+            (item for item in CHARACTER_CATALOG if item["id"] == character_id),
             None,
         )
         public = {

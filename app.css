@@ -465,7 +465,21 @@ details.theory-section summary { background: transparent !important; }
 }
 .character-stage canvas { display: block; width: 100% !important; height: 100% !important; }
 .participant-character-stage { min-height: 270px; margin-bottom: 16px; }
-.character-catalog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.character-catalog { display: grid; gap: 18px; }
+.character-group {
+    padding: 14px;
+    border: 1px solid var(--theme-border);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--surface-soft) 88%, transparent);
+}
+.character-group-premium {
+    border-color: color-mix(in srgb, #f0bf58 54%, var(--theme-border));
+    background: linear-gradient(145deg, color-mix(in srgb, #f0bf58 8%, transparent), var(--surface-soft));
+}
+.character-group-heading { margin-bottom: 12px; }
+.character-group-heading h4 { margin: 0 0 4px; font-size: 17px; }
+.character-group-heading small { color: var(--text-muted); }
+.character-group-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .character-option {
     display: grid;
     gap: 6px;
@@ -488,7 +502,7 @@ details.theory-section summary { background: transparent !important; }
 
 @media (max-width: 390px) {
     .start-account-actions,
-    .character-catalog { grid-template-columns: 1fr; }
+    .character-group-list { grid-template-columns: 1fr; }
 }
 
 .avatar-actions {

@@ -35,6 +35,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
+WEBAPP_VERSION = "14"
 ADMIN_ID = os.getenv("ADMIN_ID")
 PORT = int(os.getenv("PORT", 8080))
 QUESTIONS_CSV_URL = os.getenv(
@@ -515,9 +516,9 @@ async def award_training_coins(request):
 async def get_characters(request):
     try:
         return web.json_response(await community_store.character_catalog(
-            _authenticated_user(request), int(request.query.get("grade") or 0)
+            _authenticated_user(request)
         ))
-    except (CommunityError, TypeError, ValueError) as error:
+    except CommunityError as error:
         return _community_error(error, status=422)
 
 
@@ -525,9 +526,9 @@ async def select_character(request):
     try:
         payload = await request.json()
         return web.json_response(await community_store.select_character(
-            _authenticated_user(request), payload.get("grade"), payload.get("characterId")
+            _authenticated_user(request), payload.get("characterId")
         ))
-    except (CommunityError, TypeError, ValueError) as error:
+    except CommunityError as error:
         return _community_error(error, status=422)
 
 
@@ -535,9 +536,9 @@ async def purchase_character(request):
     try:
         payload = await request.json()
         return web.json_response(await community_store.purchase_character(
-            _authenticated_user(request), payload.get("grade"), payload.get("characterId")
+            _authenticated_user(request), payload.get("characterId")
         ))
-    except (CommunityError, TypeError, ValueError) as error:
+    except CommunityError as error:
         return _community_error(error, status=422)
 
 
@@ -563,7 +564,7 @@ async def get_leaderboard(request):
 
 
 def _social_webapp_url(route_params=None):
-    params = {"v": "13"}
+    params = {"v": WEBAPP_VERSION}
     params.update({
         str(key): str(value)
         for key, value in (route_params or {}).items()
@@ -938,7 +939,7 @@ async def main():
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(
                 text="Прокачать матан",
-                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v=12"),
+                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v={WEBAPP_VERSION}"),
             )
         )
     except (

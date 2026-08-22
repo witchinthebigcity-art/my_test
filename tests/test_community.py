@@ -234,28 +234,47 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(second_day["streak"], 2)
         self.assertEqual(second_day["reward"], 15)
 
-    async def test_premium_character_prices_are_random_once_and_purchases_persist(self):
-        catalog = await self.store.character_catalog(self.user_a, 8)
-        self.assertEqual(len(catalog["characters"]), 7)
-        self.assertEqual(sum(item["owned"] for item in catalog["characters"]), 3)
-        premium = catalog["characters"][3:]
-        self.assertEqual(sorted(item["price"] for item in premium), [30, 40, 50, 100])
-        first_prices = {item["id"]: item["price"] for item in premium}
-        again = await self.store.character_catalog(self.user_a, 8)
-        self.assertEqual(first_prices, {item["id"]: item["price"] for item in again["characters"][3:]})
+    async def test_global_character_catalog_and_purchases_persist(self):
+        catalog = await self.store.character_catalog(self.user_a)
+        self.assertEqual(len(catalog["characters"]), 17)
+        free = [item for item in catalog["characters"] if item["category"] == "free"]
+        premium = [item for item in catalog["characters"] if item["category"] == "premium"]
+        self.assertEqual(len(free), 8)
+        self.assertEqual(len(premium), 9)
+        self.assertTrue(all(item["owned"] and item["price"] == 0 for item in free))
+        self.assertEqual(
+            sorted(item["price"] for item in premium),
+            [40, 45, 60, 65, 75, 80, 110, 120, 130],
+        )
 
         with open(self.store.path, "r", encoding="utf-8") as source:
             data = json.load(source)
-        data["profiles"]["1"]["coins"] = 100
+        data["profiles"]["1"]["coins"] = 200
         with open(self.store.path, "w", encoding="utf-8") as target:
             json.dump(data, target)
         cheapest = min(premium, key=lambda item: item["price"])
-        purchased = await self.store.purchase_character(self.user_a, 8, cheapest["id"])
+        purchased = await self.store.purchase_character(self.user_a, cheapest["id"])
         self.assertTrue(purchased["purchased"])
-        self.assertEqual(purchased["coins"], 100 - cheapest["price"])
-        repeat = await self.store.purchase_character(self.user_a, 8, cheapest["id"])
+        self.assertEqual(purchased["coins"], 200 - cheapest["price"])
+        repeat = await self.store.purchase_character(self.user_a, cheapest["id"])
         self.assertFalse(repeat["purchased"])
         self.assertEqual(repeat["coins"], purchased["coins"])
+
+    async def test_migrates_owned_grade_eight_character_to_global_catalog(self):
+        await self.store.get_profile(self.user_a)
+        with open(self.store.path, "r", encoding="utf-8") as source:
+            data = json.load(source)
+        profile = data["profiles"]["1"]
+        profile["selected_characters"] = {"8": "g8-turbo-bomber"}
+        profile["unlocked_characters"] = {"8": ["g8-turbo-bomber"]}
+        with open(self.store.path, "w", encoding="utf-8") as target:
+            json.dump(data, target)
+
+        catalog = await self.store.character_catalog(self.user_a)
+        turbo = next(item for item in catalog["characters"] if item["id"] == "g8-turbo-bomber")
+
+        self.assertTrue(turbo["owned"])
+        self.assertTrue(turbo["selected"])
 
     async def test_training_coins_are_idempotent_and_capped_at_fifty_per_day(self):
         rewards = []

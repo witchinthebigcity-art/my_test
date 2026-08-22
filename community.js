@@ -9,7 +9,6 @@ const communityState = {
     leaderboardPeriod: 'day',
     profileReturnScreen: 'mainMenu',
     friendsReturnScreen: 'mainMenu',
-    characterGrade: 8,
     characterCatalog: [],
     battleInvitePublicId: null,
     battleInviteReturnScreen: 'friendsScreen',
@@ -166,9 +165,6 @@ async function openProfile(returnScreen = null) {
     setInlineMessage('profileMessage', 'Загружаем профиль…');
     try {
         const profile = await communityRequest('/api/profile', { headers: telegramHeaders() });
-        const profileGrade = Number(profile.grade || currentClass || 8);
-        communityState.characterGrade = profileGrade;
-        document.getElementById('profileGrade').value = String(profileGrade);
         document.getElementById('profileNickname').value = profile.nickname || '';
         document.getElementById('profilePreviewName').textContent = profile.nickname || 'Участник';
         document.getElementById('leaderboardConsent').checked = Boolean(profile.leaderboard_consent);
@@ -178,7 +174,7 @@ async function openProfile(returnScreen = null) {
             profile.avatar_url
         );
         renderAwards(profile.awards || []);
-        await loadCharacterCatalog(profileGrade);
+        await loadCharacterCatalog();
         await loadProfileBattleInvites();
         setInlineMessage('profileMessage', '');
     } catch (error) {
@@ -191,13 +187,7 @@ function returnFromProfile() {
     showScreen(communityState.profileReturnScreen || (currentClass ? 'mainMenu' : 'classSelection'));
 }
 
-async function handleProfileGradeChange() {
-    const grade = Number(document.getElementById('profileGrade').value);
-    communityState.characterGrade = grade;
-    await loadCharacterCatalog(grade);
-}
-
-async function loadCharacterCatalog(grade) {
+async function loadCharacterCatalog() {
     const catalog = document.getElementById('characterCatalog');
     catalog.replaceChildren();
     const loading = document.createElement('p');
@@ -206,10 +196,9 @@ async function loadCharacterCatalog(grade) {
     catalog.appendChild(loading);
     setInlineMessage('characterCatalogMessage', '');
     try {
-        const payload = await communityRequest(`/api/characters?grade=${grade}`, {
+        const payload = await communityRequest('/api/characters', {
             headers: telegramHeaders(),
         });
-        communityState.characterGrade = Number(payload.grade);
         communityState.characterCatalog = payload.characters || [];
         renderCharacterCatalog(payload);
     } catch (error) {
@@ -232,7 +221,7 @@ function renderCharacterCatalog(payload) {
     if (!payload.characters?.length) {
         window.characterViewer?.dispose();
         document.getElementById('characterStage').replaceChildren();
-        renderEmpty(catalog, `Персонажи для ${payload.grade} класса появятся в следующем обновлении.`);
+        renderEmpty(catalog, 'Коллекция персонажей появится в следующем обновлении.');
         return;
     }
 
@@ -241,37 +230,60 @@ function renderCharacterCatalog(payload) {
         || payload.characters[0];
     window.characterViewer?.mount(document.getElementById('characterStage'), selected.style);
 
-    payload.characters.forEach((character, index) => {
-        const card = document.createElement('article');
-        card.className = `character-option${character.selected ? ' selected' : ''}${character.owned ? ' owned' : ''}`;
-        const order = document.createElement('span');
-        order.className = 'character-number';
-        order.textContent = String(index + 1);
-        const copy = document.createElement('div');
-        const name = document.createElement('strong');
-        name.textContent = character.name;
-        const status = document.createElement('small');
-        status.textContent = character.selected
-            ? 'Выбран сейчас'
-            : character.owned
-                ? 'Доступен'
-                : `🪙 ${character.price}`;
-        copy.append(name, status);
-        const button = document.createElement('button');
-        button.className = character.selected ? 'btn btn-secondary' : 'btn';
-        button.type = 'button';
-        button.textContent = character.selected ? 'Выбран' : character.owned ? 'Выбрать' : 'Купить';
-        button.disabled = Boolean(character.selected);
-        button.addEventListener('click', () => {
-            if (character.owned) selectCharacter(character.id);
-            else confirmCharacterPurchase(character);
-        });
-        card.addEventListener('click', (event) => {
-            if (event.target !== button) window.characterViewer?.mount(document.getElementById('characterStage'), character.style);
-        });
-        card.append(order, copy, button);
-        catalog.appendChild(card);
+    const groups = [
+        {key: 'free', title: 'Бесплатные персонажи', note: 'Можно менять без ограничений'},
+        {key: 'premium', title: 'Премиум-коллекция', note: 'Открываются за монеты навсегда'},
+    ];
+    groups.forEach((group) => {
+        const characters = payload.characters.filter((character) => character.category === group.key);
+        if (!characters.length) return;
+        const section = document.createElement('section');
+        section.className = `character-group character-group-${group.key}`;
+        const heading = document.createElement('div');
+        heading.className = 'character-group-heading';
+        const title = document.createElement('h4');
+        title.textContent = group.title;
+        const note = document.createElement('small');
+        note.textContent = group.note;
+        heading.append(title, note);
+        const list = document.createElement('div');
+        list.className = 'character-group-list';
+        characters.forEach((character, index) => list.appendChild(createCharacterCard(character, index + 1)));
+        section.append(heading, list);
+        catalog.appendChild(section);
     });
+}
+
+function createCharacterCard(character, position) {
+    const card = document.createElement('article');
+    card.className = `character-option${character.selected ? ' selected' : ''}${character.owned ? ' owned' : ''}`;
+    const order = document.createElement('span');
+    order.className = 'character-number';
+    order.textContent = String(position);
+    const copy = document.createElement('div');
+    const name = document.createElement('strong');
+    name.textContent = character.name;
+    const status = document.createElement('small');
+    status.textContent = character.selected
+        ? 'Выбран сейчас'
+        : character.owned
+            ? 'Доступен'
+            : `🪙 ${character.price}`;
+    copy.append(name, status);
+    const button = document.createElement('button');
+    button.className = character.selected ? 'btn btn-secondary' : 'btn';
+    button.type = 'button';
+    button.textContent = character.selected ? 'Выбран' : character.owned ? 'Выбрать' : 'Купить';
+    button.disabled = Boolean(character.selected);
+    button.addEventListener('click', () => {
+        if (character.owned) selectCharacter(character.id);
+        else confirmCharacterPurchase(character);
+    });
+    card.addEventListener('click', (event) => {
+        if (event.target !== button) window.characterViewer?.mount(document.getElementById('characterStage'), character.style);
+    });
+    card.append(order, copy, button);
+    return card;
 }
 
 async function selectCharacter(characterId) {
@@ -280,9 +292,9 @@ async function selectCharacter(characterId) {
         await communityRequest('/api/characters/select', {
             method: 'POST',
             headers: telegramHeaders(true),
-            body: JSON.stringify({grade: communityState.characterGrade, characterId}),
+            body: JSON.stringify({characterId}),
         });
-        await loadCharacterCatalog(communityState.characterGrade);
+        await loadCharacterCatalog();
         setInlineMessage('characterCatalogMessage', 'Персонаж выбран', 'success');
     } catch (error) {
         setInlineMessage('characterCatalogMessage', error.message, 'error');
@@ -302,11 +314,11 @@ async function purchaseCharacter(characterId) {
         const result = await communityRequest('/api/characters/purchase', {
             method: 'POST',
             headers: telegramHeaders(true),
-            body: JSON.stringify({grade: communityState.characterGrade, characterId}),
+            body: JSON.stringify({characterId}),
         });
         coins = Number(result.coins || 0);
         localStorage.setItem('mathCoins', coins);
-        await loadCharacterCatalog(communityState.characterGrade);
+        await loadCharacterCatalog();
         setInlineMessage('characterCatalogMessage', result.purchased === false ? 'Персонаж уже был открыт' : 'Персонаж открыт навсегда!', 'success');
     } catch (error) {
         setInlineMessage('characterCatalogMessage', error.message, 'error');
@@ -322,7 +334,6 @@ async function saveProfile() {
             body: JSON.stringify({
                 nickname: document.getElementById('profileNickname').value,
                 leaderboardConsent: document.getElementById('leaderboardConsent').checked,
-                grade: Number(document.getElementById('profileGrade').value),
                 avatarDataUrl: pendingAvatarDataUrl,
             }),
         });
@@ -334,7 +345,7 @@ async function saveProfile() {
             payload.avatar_url
         );
         renderAwards(payload.awards || []);
-        await loadCharacterCatalog(Number(payload.grade || 8));
+        await loadCharacterCatalog();
         setInlineMessage('profileMessage', 'Профиль сохранён', 'success');
     } catch (error) {
         setInlineMessage('profileMessage', error.message, 'error');

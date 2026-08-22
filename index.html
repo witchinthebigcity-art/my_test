@@ -62,7 +62,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=11">
+    <link rel="stylesheet" href="/app.css?v=12">
 </head>
 <body data-grade="8">
 
@@ -172,10 +172,6 @@
             <button class="btn btn-secondary" type="button" onclick="restoreTelegramAvatar()">Вернуть фото Telegram</button>
         </div>
         <p class="field-hint">Изображение автоматически обрежется до квадрата. Допустимы JPG, PNG и WebP.</p>
-        <label class="field-label" for="profileGrade">Класс участника</label>
-        <select id="profileGrade" class="text-field" onchange="handleProfileGradeChange()">
-            <option value="8">8 класс</option><option value="9">9 класс</option><option value="10">10 класс</option><option value="11">11 класс</option>
-        </select>
         <label class="field-label" for="profileNickname">Публичный никнейм</label>
         <input id="profileNickname" class="text-field" maxlength="24" placeholder="Например, Геометр_11">
         <label class="consent-card">
@@ -186,7 +182,7 @@
         <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
         <section class="character-section">
             <div class="section-heading"><h3>Мой персонаж</h3><strong class="character-balance">🪙 <span id="characterCoins">0</span></strong></div>
-            <p class="supporting-text">Проведите пальцем по модели, чтобы повернуть её. Бесплатные образы можно менять без ограничений.</p>
+            <p class="supporting-text">Общая коллекция для всех классов. Проведите пальцем по 3D-модели, чтобы повернуть её.</p>
             <div id="characterStage" class="character-stage"><p class="empty-state">Загружаем 3D-модель…</p></div>
             <div id="characterCatalogMessage" class="inline-message" hidden></div>
             <div id="characterCatalog" class="character-catalog"></div>
@@ -1081,7 +1077,7 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=3"></script>
-<script src="/community.js?v=12"></script>
+<script src="/characters.js?v=4"></script>
+<script src="/community.js?v=13"></script>
 </body>
 </html>
