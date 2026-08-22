@@ -62,7 +62,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=12">
+    <link rel="stylesheet" href="/app.css?v=13">
 </head>
 <body data-grade="8">
 
@@ -182,7 +182,7 @@
         <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
         <section class="character-section">
             <div class="section-heading"><h3>Мой персонаж</h3><strong class="character-balance">🪙 <span id="characterCoins">0</span></strong></div>
-            <p class="supporting-text">Общая коллекция для всех классов. Проведите пальцем по 3D-модели, чтобы повернуть её.</p>
+            <p class="supporting-text">Общая коллекция для всех классов. Модель вращается пальцем, а персонажи переключаются стрелками или свайпом по тумблеру.</p>
             <div id="characterStage" class="character-stage"><p class="empty-state">Загружаем 3D-модель…</p></div>
             <div id="characterCatalogMessage" class="inline-message" hidden></div>
             <div id="characterCatalog" class="character-catalog"></div>
@@ -1077,7 +1077,7 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=4"></script>
-<script src="/community.js?v=13"></script>
+<script src="/characters.js?v=6"></script>
+<script src="/community.js?v=14"></script>
 </body>
 </html>

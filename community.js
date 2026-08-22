@@ -10,6 +10,7 @@ const communityState = {
     profileReturnScreen: 'mainMenu',
     friendsReturnScreen: 'mainMenu',
     characterCatalog: [],
+    characterIndex: 0,
     battleInvitePublicId: null,
     battleInviteReturnScreen: 'friendsScreen',
     highlightedFriendRequestId: null,
@@ -225,65 +226,98 @@ function renderCharacterCatalog(payload) {
         return;
     }
 
-    const selected = payload.characters.find((character) => character.selected)
-        || payload.characters.find((character) => character.id === payload.selectedId)
-        || payload.characters[0];
-    window.characterViewer?.mount(document.getElementById('characterStage'), selected.style);
-
-    const groups = [
-        {key: 'free', title: 'Бесплатные персонажи', note: 'Можно менять без ограничений'},
-        {key: 'premium', title: 'Премиум-коллекция', note: 'Открываются за монеты навсегда'},
-    ];
-    groups.forEach((group) => {
-        const characters = payload.characters.filter((character) => character.category === group.key);
-        if (!characters.length) return;
-        const section = document.createElement('section');
-        section.className = `character-group character-group-${group.key}`;
-        const heading = document.createElement('div');
-        heading.className = 'character-group-heading';
-        const title = document.createElement('h4');
-        title.textContent = group.title;
-        const note = document.createElement('small');
-        note.textContent = group.note;
-        heading.append(title, note);
-        const list = document.createElement('div');
-        list.className = 'character-group-list';
-        characters.forEach((character, index) => list.appendChild(createCharacterCard(character, index + 1)));
-        section.append(heading, list);
-        catalog.appendChild(section);
-    });
+    const selectedIndex = payload.characters.findIndex((character) => character.selected || character.id === payload.selectedId);
+    communityState.characterIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    renderCharacterTumbler();
 }
 
-function createCharacterCard(character, position) {
-    const card = document.createElement('article');
-    card.className = `character-option${character.selected ? ' selected' : ''}${character.owned ? ' owned' : ''}`;
-    const order = document.createElement('span');
-    order.className = 'character-number';
-    order.textContent = String(position);
-    const copy = document.createElement('div');
+function renderCharacterTumbler() {
+    const characters = communityState.characterCatalog;
+    if (!characters.length) return;
+    const index = ((communityState.characterIndex % characters.length) + characters.length) % characters.length;
+    communityState.characterIndex = index;
+    const character = characters[index];
+    window.characterViewer?.mount(document.getElementById('characterStage'), character.style);
+
+    const catalog = document.getElementById('characterCatalog');
+    catalog.replaceChildren();
+    const tumbler = document.createElement('section');
+    tumbler.className = `character-tumbler character-tumbler-${character.category}`;
+    tumbler.tabIndex = 0;
+    tumbler.setAttribute('aria-label', 'Выбор персонажа');
+
+    const previous = document.createElement('button');
+    previous.type = 'button';
+    previous.className = 'character-tumbler-arrow';
+    previous.setAttribute('aria-label', 'Предыдущий персонаж');
+    previous.textContent = '‹';
+    previous.addEventListener('click', () => shiftCharacter(-1));
+
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'character-tumbler-arrow';
+    next.setAttribute('aria-label', 'Следующий персонаж');
+    next.textContent = '›';
+    next.addEventListener('click', () => shiftCharacter(1));
+
+    const details = document.createElement('div');
+    details.className = 'character-tumbler-details';
+    const badge = document.createElement('span');
+    badge.className = 'character-category-badge';
+    badge.textContent = character.category === 'free' ? 'Бесплатный' : 'Премиум';
     const name = document.createElement('strong');
     name.textContent = character.name;
-    const status = document.createElement('small');
-    status.textContent = character.selected
-        ? 'Выбран сейчас'
+    const counter = document.createElement('small');
+    counter.textContent = `${index + 1} из ${characters.length}`;
+    details.append(badge, name, counter);
+
+    const price = document.createElement('p');
+    price.className = 'character-tumbler-price';
+    price.textContent = character.category === 'free'
+        ? 'Бесплатно'
         : character.owned
-            ? 'Доступен'
-            : `🪙 ${character.price}`;
-    copy.append(name, status);
-    const button = document.createElement('button');
-    button.className = character.selected ? 'btn btn-secondary' : 'btn';
-    button.type = 'button';
-    button.textContent = character.selected ? 'Выбран' : character.owned ? 'Выбрать' : 'Купить';
-    button.disabled = Boolean(character.selected);
-    button.addEventListener('click', () => {
-        if (character.owned) selectCharacter(character.id);
-        else confirmCharacterPurchase(character);
+            ? 'Уже куплен'
+            : `🪙 ${character.price} монет`;
+
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = character.selected ? 'btn btn-secondary' : 'btn';
+    action.textContent = character.selected ? 'Выбран сейчас' : character.owned ? 'Выбрать персонажа' : 'Купить персонажа';
+    action.disabled = Boolean(character.selected);
+    action.addEventListener('click', () => character.owned
+        ? selectCharacter(character.id)
+        : confirmCharacterPurchase(character));
+
+    const hint = document.createElement('small');
+    hint.className = 'character-tumbler-hint';
+    hint.textContent = 'Листайте стрелками или свайпом';
+
+    let pointerStart = null;
+    tumbler.addEventListener('pointerdown', (event) => { pointerStart = event.clientX; });
+    tumbler.addEventListener('pointerup', (event) => {
+        if (pointerStart === null) return;
+        const delta = event.clientX - pointerStart;
+        pointerStart = null;
+        if (Math.abs(delta) > 36) shiftCharacter(delta < 0 ? 1 : -1);
     });
-    card.addEventListener('click', (event) => {
-        if (event.target !== button) window.characterViewer?.mount(document.getElementById('characterStage'), character.style);
+    tumbler.addEventListener('pointercancel', () => { pointerStart = null; });
+    tumbler.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') shiftCharacter(-1);
+        if (event.key === 'ArrowRight') shiftCharacter(1);
     });
-    card.append(order, copy, button);
-    return card;
+
+    const controls = document.createElement('div');
+    controls.className = 'character-tumbler-controls';
+    controls.append(previous, details, next);
+    tumbler.append(controls, price, action, hint);
+    catalog.appendChild(tumbler);
+}
+
+function shiftCharacter(direction) {
+    const total = communityState.characterCatalog.length;
+    if (!total) return;
+    communityState.characterIndex = (communityState.characterIndex + direction + total) % total;
+    renderCharacterTumbler();
 }
 
 async function selectCharacter(characterId) {
