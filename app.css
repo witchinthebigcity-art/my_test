@@ -195,6 +195,15 @@ body::before {
     gap: 12px;
 }
 
+.start-account-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 16px;
+}
+
+.start-account-actions .btn { min-height: 46px; margin: 0 !important; padding: 10px 12px !important; }
+
 .grade-card {
     position: relative;
     min-height: 148px;

@@ -7,6 +7,8 @@ const communityState = {
     chatPoll: null,
     participantReturnScreen: 'friendsScreen',
     leaderboardPeriod: 'day',
+    profileReturnScreen: 'mainMenu',
+    friendsReturnScreen: 'mainMenu',
 };
 let pendingAvatarDataUrl = null;
 
@@ -109,7 +111,8 @@ async function restoreTelegramAvatar() {
     }
 }
 
-async function openProfile() {
+async function openProfile(returnScreen = null) {
+    communityState.profileReturnScreen = returnScreen || (currentClass ? 'mainMenu' : 'classSelection');
     showScreen('profileScreen');
     setInlineMessage('profileMessage', 'Загружаем профиль…');
     try {
@@ -127,6 +130,10 @@ async function openProfile() {
     } catch (error) {
         setInlineMessage('profileMessage', error.message, 'error');
     }
+}
+
+function returnFromProfile() {
+    showScreen(communityState.profileReturnScreen || (currentClass ? 'mainMenu' : 'classSelection'));
 }
 
 async function saveProfile() {
@@ -308,7 +315,9 @@ function renderEmpty(container, text) {
     container.replaceChildren(empty);
 }
 
-async function openFriends() {
+async function openFriends(returnScreen = null) {
+    if (returnScreen) communityState.friendsReturnScreen = returnScreen;
+    else if (!communityState.friendsReturnScreen) communityState.friendsReturnScreen = currentClass ? 'mainMenu' : 'classSelection';
     clearInterval(communityState.chatPoll);
     showScreen('friendsScreen');
     setInlineMessage('friendMessage', 'Загружаем друзей и приглашения…');
@@ -325,6 +334,10 @@ async function openFriends() {
         setInlineMessage('friendMessage', error.message, 'error');
         renderEmpty(document.getElementById('friendsList'), 'Не удалось загрузить список друзей.');
     }
+}
+
+function returnFromFriends() {
+    showScreen(communityState.friendsReturnScreen || (currentClass ? 'mainMenu' : 'classSelection'));
 }
 
 function renderFriends(payload) {
@@ -520,17 +533,20 @@ function returnFromParticipant() {
 }
 
 async function inviteToBattle(publicId) {
-    const grade = Number(currentClass || 8);
-    setInlineMessage(document.getElementById('participantScreen').classList.contains('active') ? 'participantMessage' : 'friendMessage', 'Отправляем вызов…');
+    const target = document.getElementById('participantScreen').classList.contains('active') ? 'participantMessage' : 'friendMessage';
+    if (!currentClass) {
+        setInlineMessage(target, 'Сначала вернитесь к выбору и укажите класс для заданий баттла.', 'error');
+        return;
+    }
+    const grade = Number(currentClass);
+    setInlineMessage(target, 'Отправляем вызов…');
     try {
         await communityRequest('/api/battle-invites', {
             method: 'POST', headers: telegramHeaders(true),
             body: JSON.stringify({ publicId, grade }),
         });
-        const target = document.getElementById('participantScreen').classList.contains('active') ? 'participantMessage' : 'friendMessage';
         setInlineMessage(target, `Вызов отправлен. Задания: ${grade} класс.`, 'success');
     } catch (error) {
-        const target = document.getElementById('participantScreen').classList.contains('active') ? 'participantMessage' : 'friendMessage';
         setInlineMessage(target, error.message, 'error');
     }
 }

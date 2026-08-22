@@ -62,7 +62,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=7">
+    <link rel="stylesheet" href="/app.css?v=8">
 </head>
 <body data-grade="8">
 
@@ -75,6 +75,10 @@
             <p class="eyebrow">Персональная тренировка</p>
             <h1 id="greetingText">Выбери свой класс</h1>
             <p>Задания, теория и прогресс — в одном понятном пространстве.</p>
+        </div>
+        <div class="start-account-actions">
+            <button class="btn btn-secondary" onclick="openProfile('classSelection')">👤 Личный кабинет</button>
+            <button class="btn btn-secondary" onclick="openFriends('classSelection')">👥 Мои друзья</button>
         </div>
         <div id="classButtons" class="grade-grid"></div>
         <div class="secondary-actions">
@@ -122,7 +126,7 @@
             <button class="action-card" onclick="startPractice()"><span class="action-icon">✏️</span><span><strong>Начать тренировку</strong><small>Новая подборка из таблицы</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startDiagnostic()"><span class="action-icon">🧭</span><span><strong>Пробное тестирование</strong><small>Определить уровень и получить рекомендации</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openBattle()"><span class="action-icon">⚔️</span><span><strong>Баттлы</strong><small>Пять одинаковых задач против ученика своего класса</small></span><span class="action-arrow">›</span></button>
-            <button class="action-card" onclick="openFriends()"><span class="action-icon">👥</span><span><strong>Мои друзья</strong><small>Сообщения и личные вызовы в баттл</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" onclick="openFriends('mainMenu')"><span class="action-icon">👥</span><span><strong>Мои друзья</strong><small>Сообщения и личные вызовы в баттл</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openLeaderboard('day')"><span class="action-icon">🏅</span><span><strong>Рейтинг</strong><small>Лучшие результаты дня и месяца</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openTheory()"><span class="action-icon">📚</span><span><strong>Открыть теорию</strong><small>Формулы и короткие объяснения</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openShop()"><span class="action-icon">🎁</span><span><strong>Магазин наград</strong><small>Использовать заработанные монеты</small></span><span class="action-arrow">›</span></button>
@@ -173,7 +177,7 @@
         <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
         <div class="section-heading"><h3>Мои награды</h3></div>
         <div id="awardShelf" class="award-grid"><p class="empty-state">Награды появятся после попадания в тройку лучших.</p></div>
-        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
+        <button class="btn btn-secondary" onclick="returnFromProfile()">Назад</button>
     </div>
 
     <div id="leaderboardScreen" class="screen">
@@ -216,7 +220,7 @@
             <div class="section-heading"><h3>Список друзей</h3></div>
             <div id="friendsList" class="social-list"><p class="empty-state">Загружаем…</p></div>
         </section>
-        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
+        <button class="btn btn-secondary" onclick="returnFromFriends()">Назад</button>
     </div>
 
     <div id="participantScreen" class="screen">
@@ -1039,6 +1043,6 @@ function sendToForm(grade, topic, status) {
         renderMathInElement(document.body, { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     });
 </script>
-<script src="/community.js?v=7"></script>
+<script src="/community.js?v=8"></script>
 </body>
 </html>
