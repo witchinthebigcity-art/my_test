@@ -932,7 +932,6 @@ class CommunityStore:
             self._require_friend(data, user_id, target_id)
             if not profile.get("leaderboard_consent") or not target.get("leaderboard_consent"):
                 raise CommunityError("Оба участника должны включить участие в баттлах")
-            profile["grade"] = grade
             self._expire_battle_invites(data)
             duplicate = next((
                 item for item in data["battle_invites"]

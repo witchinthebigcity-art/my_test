@@ -11,6 +11,8 @@ const communityState = {
     friendsReturnScreen: 'mainMenu',
     characterGrade: 8,
     characterCatalog: [],
+    battleInvitePublicId: null,
+    battleInviteReturnScreen: 'friendsScreen',
 };
 let pendingAvatarDataUrl = null;
 
@@ -175,6 +177,7 @@ async function openProfile(returnScreen = null) {
         );
         renderAwards(profile.awards || []);
         await loadCharacterCatalog(profileGrade);
+        await loadProfileBattleInvites();
         setInlineMessage('profileMessage', '');
     } catch (error) {
         setInlineMessage('profileMessage', error.message, 'error');
@@ -361,6 +364,25 @@ function renderAwards(awards) {
         card.append(icon, text);
         shelf.appendChild(card);
     });
+}
+
+async function loadProfileBattleInvites() {
+    const section = document.getElementById('profileBattleInvitesSection');
+    const list = document.getElementById('profileBattleInvitesList');
+    try {
+        const payload = await communityRequest('/api/battle-invites', {headers: telegramHeaders()});
+        const incoming = payload.incoming || [];
+        section.hidden = !incoming.length;
+        list.replaceChildren();
+        incoming.forEach((invite) => {
+            list.appendChild(createSocialCard(invite.participant, [
+                {label: `Принять · ${invite.grade} класс`, action: () => acceptBattleInvite(invite.id)},
+                {label: 'Отклонить', action: () => declineBattleInvite(invite.id), secondary: true},
+            ]));
+        });
+    } catch (error) {
+        section.hidden = true;
+    }
 }
 
 async function openLeaderboard(period = 'day') {
@@ -718,27 +740,40 @@ function returnFromParticipant() {
     else openFriends();
 }
 
-async function inviteToBattle(publicId) {
-    const target = document.getElementById('participantScreen').classList.contains('active') ? 'participantMessage' : 'friendMessage';
-    if (!currentClass) {
-        setInlineMessage(target, 'Сначала вернитесь к выбору и укажите класс для заданий баттла.', 'error');
-        return;
-    }
-    const grade = Number(currentClass);
-    setInlineMessage(target, 'Отправляем вызов…');
+function inviteToBattle(publicId) {
+    communityState.battleInvitePublicId = publicId;
+    communityState.battleInviteReturnScreen = document.getElementById('participantScreen').classList.contains('active')
+        ? 'participantScreen'
+        : 'friendsScreen';
+    document.getElementById('battleInviteGradeButtons').hidden = false;
+    setInlineMessage('battleInviteGradeMessage', '');
+    showScreen('battleInviteGradeScreen');
+}
+
+async function sendBattleInvite(grade) {
+    if (!communityState.battleInvitePublicId) return;
+    setInlineMessage('battleInviteGradeMessage', 'Отправляем вызов…');
     try {
         await communityRequest('/api/battle-invites', {
             method: 'POST', headers: telegramHeaders(true),
-            body: JSON.stringify({ publicId, grade }),
+            body: JSON.stringify({publicId: communityState.battleInvitePublicId, grade: Number(grade)}),
         });
-        setInlineMessage(target, `Вызов отправлен. Задания: ${grade} класс.`, 'success');
+        document.getElementById('battleInviteGradeButtons').hidden = true;
+        setInlineMessage('battleInviteGradeMessage', `Вызов отправлен. Друг получит уведомление: задания за ${grade} класс.`, 'success');
     } catch (error) {
-        setInlineMessage(target, error.message, 'error');
+        setInlineMessage('battleInviteGradeMessage', error.message, 'error');
     }
 }
 
+function returnFromBattleInviteGrade() {
+    communityState.battleInvitePublicId = null;
+    if (communityState.battleInviteReturnScreen === 'participantScreen') showScreen('participantScreen');
+    else openFriends();
+}
+
 async function acceptBattleInvite(inviteId) {
-    setInlineMessage('friendMessage', 'Готовим одинаковые задания…');
+    const messageTarget = document.getElementById('profileScreen').classList.contains('active') ? 'profileMessage' : 'friendMessage';
+    setInlineMessage(messageTarget, 'Готовим одинаковые задания…');
     try {
         const battle = await communityRequest(`/api/battle-invites/${inviteId}/accept`, {
             method: 'POST', headers: telegramHeaders(true), body: '{}',
@@ -748,7 +783,7 @@ async function acceptBattleInvite(inviteId) {
         handleBattleState(battle);
         startBattlePolling();
     } catch (error) {
-        setInlineMessage('friendMessage', error.message, 'error');
+        setInlineMessage(messageTarget, error.message, 'error');
     }
 }
 
@@ -757,9 +792,11 @@ async function declineBattleInvite(inviteId) {
         await communityRequest(`/api/battle-invites/${inviteId}/decline`, {
             method: 'POST', headers: telegramHeaders(true), body: '{}',
         });
-        await openFriends();
+        if (document.getElementById('profileScreen').classList.contains('active')) await loadProfileBattleInvites();
+        else await openFriends();
     } catch (error) {
-        setInlineMessage('friendMessage', error.message, 'error');
+        const target = document.getElementById('profileScreen').classList.contains('active') ? 'profileMessage' : 'friendMessage';
+        setInlineMessage(target, error.message, 'error');
     }
 }
 

@@ -6,7 +6,7 @@
         'pink-wave': {skin: 0xf2b69b, hair: 0xffd2ba, hair2: 0xff8fc1, top: 0xff86bb, accent: 0xffffff, bottom: 0x42a9db, shoes: 0xff8fbd, accessory: 'controller', hairKind: 'long', headShape: 'round'},
         'white-street': {skin: 0xdca078, hair: 0x33251f, top: 0xf0f1f1, accent: 0xe43b35, bottom: 0x151719, shoes: 0xf2f1ec, accessory: 'glasses', hairKind: 'short', hat: 0xf0f0ed, headShape: 'square'},
         'aqua-pop': {skin: 0xf0aa83, hair: 0x202332, hair2: 0xff79aa, top: 0xff68a3, accent: 0x31d3da, bottom: 0x29cad2, shoes: 0x35d0d4, accessory: 'bracelets', hairKind: 'long', cap: 0xff6fa9, headShape: 'square'},
-        turbo: {skin: 0xd69b72, hair: 0x472b24, top: 0x159e9c, accent: 0xf24c9e, bottom: 0x202224, shoes: 0xf1f1ed, accessory: 'chain', hairKind: 'swept', headShape: 'square'},
+        turbo: {skin: 0xe0ac82, hair: 0x38271f, top: 0x153f70, accent: 0xd9a83e, bottom: 0x202633, shoes: 0x8b5a2b, accessory: 'chain', hairKind: 'none', headShape: 'rounded', sleeve: 0xf2efe7, equipment: 'steampunk'},
     };
 
     let currentViewer = null;
@@ -42,6 +42,32 @@
         return addMesh(group, new THREE.TorusGeometry(radius, tube, 12, 36), color, position, rotation, null, {roughness: .4, metalness: .35});
     }
 
+    function roundedBox(group, size, radius, position, color) {
+        const [width, height, depth] = size;
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
+        const safeRadius = Math.min(radius, halfWidth, halfHeight);
+        const shape = new THREE.Shape();
+        shape.moveTo(-halfWidth + safeRadius, -halfHeight);
+        shape.lineTo(halfWidth - safeRadius, -halfHeight);
+        shape.quadraticCurveTo(halfWidth, -halfHeight, halfWidth, -halfHeight + safeRadius);
+        shape.lineTo(halfWidth, halfHeight - safeRadius);
+        shape.quadraticCurveTo(halfWidth, halfHeight, halfWidth - safeRadius, halfHeight);
+        shape.lineTo(-halfWidth + safeRadius, halfHeight);
+        shape.quadraticCurveTo(-halfWidth, halfHeight, -halfWidth, halfHeight - safeRadius);
+        shape.lineTo(-halfWidth, -halfHeight + safeRadius);
+        shape.quadraticCurveTo(-halfWidth, -halfHeight, -halfWidth + safeRadius, -halfHeight);
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+            depth,
+            bevelEnabled: true,
+            bevelSegments: 3,
+            bevelSize: .045,
+            bevelThickness: .045,
+        });
+        geometry.center();
+        return addMesh(group, geometry, color, position);
+    }
+
     function limbBetween(group, start, end, width, depth, color) {
         const dx = end[0] - start[0];
         const dy = end[1] - start[1];
@@ -52,6 +78,7 @@
 
     function buildHair(group, config) {
         const color = config.hair;
+        if (config.hairKind === 'none') return;
         if (config.headShape === 'round') {
             sphere(group, .82, [0, 2.2, -.2], color, [1.06, 1.08, .92]);
             if (config.hairKind === 'long') {
@@ -83,7 +110,7 @@
     }
 
     function buildFace(group, config) {
-        const faceZ = config.headShape === 'round' ? .76 : .67;
+        const faceZ = config.headShape === 'round' ? .76 : .69;
         sphere(group, .095, [-.27, 2.18, faceZ], 0x17222a, [.82, 1.28, .46]);
         sphere(group, .095, [.27, 2.18, faceZ], 0x17222a, [.82, 1.28, .46]);
         sphere(group, .14, [0, 1.92, faceZ + .01], 0x7c3440, [1.28, .45, .32]);
@@ -111,8 +138,8 @@
             leftHand = [-1.24, 1.12, .42];
         }
 
-        limbBetween(group, leftShoulder, leftElbow, .52, .6, config.top);
-        limbBetween(group, rightShoulder, rightElbow, .52, .6, config.top);
+        limbBetween(group, leftShoulder, leftElbow, .52, .6, config.sleeve || config.top);
+        limbBetween(group, rightShoulder, rightElbow, .52, .6, config.sleeve || config.top);
         limbBetween(group, leftElbow, leftHand, .39, .46, config.skin);
         limbBetween(group, rightElbow, rightHand, .39, .46, config.skin);
         sphere(group, .27, leftHand, config.skin, [.9, 1, .82]);
@@ -121,6 +148,35 @@
     }
 
     function buildAccessories(group, config, pose) {
+        if (config.equipment === 'steampunk') {
+            const gold = 0xd9a83e;
+            const bronze = 0x7d4b25;
+            const cyan = 0x55d9f0;
+            cylinder(group, .61, .72, .82, [0, 3.08, -.01], 0x2a211d);
+            cylinder(group, .98, .98, .1, [0, 2.66, .02], bronze);
+            box(group, [1.25, .16, .06], [0, 2.82, .53], gold);
+            [-.31, .31].forEach((x) => {
+                torus(group, .18, .055, [x, 2.98, .6], gold);
+                cylinder(group, .13, .13, .055, [x, 2.98, .61], cyan, [Math.PI / 2, 0, 0]);
+                sphere(group, .035, [x - .035, 3.015, .66], 0xffffff);
+            });
+
+            [-1, 1].forEach((side) => {
+                box(group, [.62, .58, .62], [side * 1.03, .03, .1], gold, [0, 0, side * -.05]);
+                box(group, [.68, .16, .66], [side * 1.03, .31, .1], bronze);
+                sphere(group, .09, [side * 1.03, .13, .43], cyan, [.72, .72, .34]);
+                box(group, [.66, .32, .71], [side * .42, -1.12, .05], bronze);
+                box(group, [.7, .17, .75], [side * .42, -1.34, .07], gold);
+                box(group, [.72, .2, .78], [side * .42, -1.58, .08], bronze);
+            });
+
+            box(group, [.32, .23, .06], [0, 1.13, .47], config.sleeve);
+            box(group, [.12, .48, .07], [0, .92, .49], 0x18202d);
+            sphere(group, .055, [0, .72, .5], gold, [1, 1, .45]);
+            sphere(group, .055, [0, .52, .5], gold, [1, 1, .45]);
+            box(group, [1.42, .2, .95], [0, -.23, 0], bronze);
+            box(group, [.27, .28, .07], [0, -.23, .5], gold);
+        }
         if (config.cap) {
             cylinder(group, .72, .76, .26, [0, 2.86, .01], config.cap);
             box(group, [.92, .1, .5], [0, 2.75, .52], config.cap, [-.08, 0, 0]);
@@ -145,7 +201,7 @@
             sphere(controller, .055, [-.19, .04, .12], 0x24d7df);
             sphere(controller, .055, [.19, .04, .12], 0xff5a9e);
         }
-        if (config.accessory === 'chain' || config.accessory === 'glasses') {
+        if ((config.accessory === 'chain' || config.accessory === 'glasses') && config.equipment !== 'steampunk') {
             limbBetween(group, [-.38, .96, .49], [0, .7, .5], .065, .065, 0xe2b34e);
             limbBetween(group, [0, .7, .5], [.38, .96, .49], .065, .065, 0xe2b34e);
         }
@@ -170,6 +226,8 @@
         cylinder(body, .27, .3, .34, [0, 1.38, 0], config.skin);
         if (config.headShape === 'round') {
             sphere(body, .78, [0, 2.14, .03], config.skin, [1, 1.02, .94]);
+        } else if (config.headShape === 'rounded') {
+            roundedBox(body, [1.43, 1.38, 1.3], .28, [0, 2.14, 0], config.skin);
         } else {
             box(body, [1.43, 1.38, 1.3], [0, 2.14, 0], config.skin);
         }

@@ -191,6 +191,11 @@
             <div id="characterCatalogMessage" class="inline-message" hidden></div>
             <div id="characterCatalog" class="character-catalog"></div>
         </section>
+        <section id="profileBattleInvitesSection" class="social-section" hidden>
+            <div class="section-heading"><h3>Вызовы в баттл</h3></div>
+            <p class="supporting-text">Друг выбрал класс заданий. Можно принять вызов или отклонить его.</p>
+            <div id="profileBattleInvitesList" class="social-list"></div>
+        </section>
         <div class="section-heading"><h3>Мои награды</h3></div>
         <div id="awardShelf" class="award-grid"><p class="empty-state">Награды появятся после попадания в тройку лучших.</p></div>
         <button class="btn btn-secondary" onclick="returnFromProfile()">Назад</button>
@@ -248,6 +253,20 @@
         <div id="participantActions" class="social-actions"></div>
         <div id="participantMessage" class="inline-message" hidden></div>
         <button class="btn btn-secondary" onclick="returnFromParticipant()">Назад</button>
+    </div>
+
+    <div id="battleInviteGradeScreen" class="screen">
+        <p class="eyebrow">Личный вызов другу</p>
+        <h2>Выберите класс заданий</h2>
+        <p class="supporting-text">Ваши классы могут отличаться. Оба участника получат одинаковые задания выбранного класса.</p>
+        <div id="battleInviteGradeButtons" class="grade-grid">
+            <button class="btn" type="button" onclick="sendBattleInvite(8)">8 класс</button>
+            <button class="btn" type="button" onclick="sendBattleInvite(9)">9 класс</button>
+            <button class="btn" type="button" onclick="sendBattleInvite(10)">10 класс</button>
+            <button class="btn" type="button" onclick="sendBattleInvite(11)">11 класс</button>
+        </div>
+        <div id="battleInviteGradeMessage" class="inline-message" hidden></div>
+        <button class="btn btn-secondary" type="button" onclick="returnFromBattleInviteGrade()">Назад</button>
     </div>
 
     <div id="chatScreen" class="screen chat-screen">
@@ -1062,7 +1081,7 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=2"></script>
-<script src="/community.js?v=10"></script>
+<script src="/characters.js?v=3"></script>
+<script src="/community.js?v=11"></script>
 </body>
 </html>

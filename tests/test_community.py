@@ -202,11 +202,16 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         request = await self.store.request_friend(self.user_a, profile_b["public_id"])
         await self.store.accept_friend(self.user_b, request["requestId"])
 
-        invite = await self.store.create_battle_invite(self.user_a, profile_b["public_id"], 8)
-        accepted = await self.store.accept_battle_invite(self.user_b, invite["inviteId"], self.questions)
-        question_map = {question.question_id: question for question in self.questions}
+        questions_10 = [
+            Question(grade=10, topic="Алгебра", question=f"Вопрос 10-{number}", options=("1", "2", "3", "4"), correct_index=0, solution="Решение")
+            for number in range(1, 7)
+        ]
+        invite = await self.store.create_battle_invite(self.user_a, profile_b["public_id"], 10)
+        self.assertEqual((await self.store.get_profile(self.user_a))["grade"], 8)
+        accepted = await self.store.accept_battle_invite(self.user_b, invite["inviteId"], questions_10)
+        question_map = {question.question_id: question for question in questions_10}
         state = await self.store.battle_state(self.user_b, accepted["battleId"], question_map)
-        self.assertEqual(state["grade"], 8)
+        self.assertEqual(state["grade"], 10)
         self.assertEqual(state["status"], "active")
         self.assertEqual((await self.store.get_profile(self.user_b))["grade"], 9)
 
