@@ -571,7 +571,7 @@ async def _notify_social_user(user_id, text, button_text="Открыть при�
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
                 text=button_text,
                 web_app=WebAppInfo(url=(
-                    f"{WEBAPP_URL}?v=10&battle={battle_id}" if battle_id else f"{WEBAPP_URL}?v=10"
+                    f"{WEBAPP_URL}?v=11&battle={battle_id}" if battle_id else f"{WEBAPP_URL}?v=11"
                 )),
             )]]),
         )
@@ -914,7 +914,7 @@ async def main():
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(
                 text="Прокачать матан",
-                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v=10"),
+                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v=11"),
             )
         )
     except (

@@ -1,12 +1,12 @@
 (function () {
     const STYLE_CONFIGS = {
-        neon: {skin: 0xf2b083, hair: 0x13bde1, hair2: 0x49f04d, top: 0xdfe7eb, accent: 0x39ed42, bottom: 0x151821, shoes: 0x35f04a, accessory: 'headphones', hairKind: 'spiky'},
-        basket: {skin: 0xd99362, hair: 0x5a2e20, top: 0x16191b, accent: 0xff7425, bottom: 0x26282b, shoes: 0xf1f1ef, accessory: 'basketball', hairKind: 'spiky'},
-        pixel: {skin: 0xf2af9b, hair: 0xff82c0, hair2: 0x35caef, top: 0xf7f8fa, accent: 0xff4aa6, bottom: 0x2c9ee8, shoes: 0xf7f8fa, accessory: 'controller', hairKind: 'long', cap: 0xf4f7fb},
-        'pink-wave': {skin: 0xf2b69b, hair: 0xffd2ba, hair2: 0xff8fc1, top: 0xff86bb, accent: 0xffffff, bottom: 0x42a9db, shoes: 0xff8fbd, accessory: 'controller', hairKind: 'long'},
-        'white-street': {skin: 0xdca078, hair: 0x33251f, top: 0xf0f1f1, accent: 0xe43b35, bottom: 0x151719, shoes: 0xf2f1ec, accessory: 'glasses', hairKind: 'short', hat: 0xf0f0ed},
-        'aqua-pop': {skin: 0xf0aa83, hair: 0x202332, hair2: 0xff79aa, top: 0xff68a3, accent: 0x31d3da, bottom: 0x29cad2, shoes: 0x35d0d4, accessory: 'bracelets', hairKind: 'long', cap: 0xff6fa9},
-        turbo: {skin: 0xd69b72, hair: 0x472b24, top: 0x159e9c, accent: 0xf24c9e, bottom: 0x202224, shoes: 0xf1f1ed, accessory: 'chain', hairKind: 'swept'},
+        neon: {skin: 0xf2b083, hair: 0x13bde1, hair2: 0x49f04d, top: 0xdfe7eb, accent: 0x39ed42, bottom: 0x151821, shoes: 0x35f04a, accessory: 'headphones', hairKind: 'spiky', headShape: 'square'},
+        basket: {skin: 0xd99362, hair: 0x5a2e20, top: 0x16191b, accent: 0xff7425, bottom: 0x26282b, shoes: 0xf1f1ef, accessory: 'basketball', hairKind: 'spiky', headShape: 'square'},
+        pixel: {skin: 0xf2af9b, hair: 0xff82c0, hair2: 0x35caef, top: 0xf7f8fa, accent: 0xff4aa6, bottom: 0x2c9ee8, shoes: 0xf7f8fa, accessory: 'controller', hairKind: 'long', cap: 0xf4f7fb, headShape: 'round'},
+        'pink-wave': {skin: 0xf2b69b, hair: 0xffd2ba, hair2: 0xff8fc1, top: 0xff86bb, accent: 0xffffff, bottom: 0x42a9db, shoes: 0xff8fbd, accessory: 'controller', hairKind: 'long', headShape: 'round'},
+        'white-street': {skin: 0xdca078, hair: 0x33251f, top: 0xf0f1f1, accent: 0xe43b35, bottom: 0x151719, shoes: 0xf2f1ec, accessory: 'glasses', hairKind: 'short', hat: 0xf0f0ed, headShape: 'square'},
+        'aqua-pop': {skin: 0xf0aa83, hair: 0x202332, hair2: 0xff79aa, top: 0xff68a3, accent: 0x31d3da, bottom: 0x29cad2, shoes: 0x35d0d4, accessory: 'bracelets', hairKind: 'long', cap: 0xff6fa9, headShape: 'square'},
+        turbo: {skin: 0xd69b72, hair: 0x472b24, top: 0x159e9c, accent: 0xf24c9e, bottom: 0x202224, shoes: 0xf1f1ed, accessory: 'chain', hairKind: 'swept', headShape: 'square'},
     };
 
     let currentViewer = null;
@@ -42,74 +42,115 @@
         return addMesh(group, new THREE.TorusGeometry(radius, tube, 12, 36), color, position, rotation, null, {roughness: .4, metalness: .35});
     }
 
+    function limbBetween(group, start, end, width, depth, color) {
+        const dx = end[0] - start[0];
+        const dy = end[1] - start[1];
+        const length = Math.hypot(dx, dy) + .08;
+        const center = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2, (start[2] + end[2]) / 2];
+        return box(group, [width, length, depth], center, color, [0, 0, -Math.atan2(dx, dy)]);
+    }
+
     function buildHair(group, config) {
         const color = config.hair;
-        if (config.hairKind === 'long') {
-            sphere(group, .76, [0, 2.18, -.28], color, [1.08, 1.17, .8]);
-            for (let index = 0; index < 7; index += 1) {
-                const angle = (index / 6 - .5) * 2.15;
-                const strandColor = index % 3 === 0 && config.hair2 ? config.hair2 : color;
-                sphere(group, .32, [Math.sin(angle) * .88, 1.38 - Math.abs(angle) * .08, -.2 + Math.cos(angle) * .12], strandColor, [.75, 2.2, .62]);
-            }
-        } else if (config.hairKind === 'spiky') {
-            for (let index = 0; index < 11; index += 1) {
-                const angle = (index / 11) * Math.PI * 2;
-                const strandColor = index % 3 === 0 && config.hair2 ? config.hair2 : color;
-                const spike = addMesh(group, new THREE.ConeGeometry(.24, .9, 10), strandColor, [Math.cos(angle) * .58, 2.78 + Math.sin(angle * 2) * .08, Math.sin(angle) * .42], [Math.sin(angle) * .55, 0, -Math.cos(angle) * .55]);
-                spike.rotation.y = -angle;
-            }
-            sphere(group, .69, [0, 2.3, -.05], color, [1, .72, .88]);
-        } else {
-            sphere(group, .74, [0, 2.3, -.1], color, [1.03, .72, .91]);
-            if (config.hairKind === 'swept') {
-                for (let index = 0; index < 5; index += 1) {
-                    box(group, [.65, .25, .45], [-.38 + index * .17, 2.72 + index * .06, .05], color, [0, 0, -.35]);
+        if (config.headShape === 'round') {
+            sphere(group, .82, [0, 2.2, -.2], color, [1.06, 1.08, .92]);
+            if (config.hairKind === 'long') {
+                for (let index = 0; index < 6; index += 1) {
+                    const side = index < 3 ? -1 : 1;
+                    const row = index % 3;
+                    const strandColor = row === 1 && config.hair2 ? config.hair2 : color;
+                    sphere(group, .3, [side * (.72 + row * .1), 1.75 - row * .38, -.12], strandColor, [.72, 1.65, .64]);
                 }
+            }
+            return;
+        }
+
+        box(group, [1.46, .3, 1.27], [0, 2.72, -.02], color);
+        if (config.hairKind === 'spiky') {
+            for (let index = 0; index < 7; index += 1) {
+                const x = -.62 + index * .21;
+                const strandColor = index % 3 === 0 && config.hair2 ? config.hair2 : color;
+                addMesh(group, new THREE.ConeGeometry(.18, .62, 8), strandColor, [x, 3.0 + (index % 2) * .08, -.02], [0, 0, (index - 3) * -.08]);
+            }
+        } else if (config.hairKind === 'long') {
+            box(group, [.25, 1.18, 1.08], [-.73, 1.92, -.08], color);
+            box(group, [.25, 1.18, 1.08], [.73, 1.92, -.08], config.hair2 || color);
+        } else if (config.hairKind === 'swept') {
+            for (let index = 0; index < 5; index += 1) {
+                box(group, [.5, .22, .48], [-.42 + index * .19, 2.78 + index * .06, .18], color, [0, 0, -.28]);
             }
         }
     }
 
     function buildFace(group, config) {
-        box(group, [.15, .28, .05], [-.27, 2.15, .66], 0x17222a);
-        box(group, [.15, .28, .05], [.27, 2.15, .66], 0x17222a);
-        const smile = torus(group, .22, .035, [0, 1.9, .68], 0x552522, [0, 0, Math.PI]);
-        smile.scale.y = .55;
+        const faceZ = config.headShape === 'round' ? .76 : .67;
+        sphere(group, .095, [-.27, 2.18, faceZ], 0x17222a, [.82, 1.28, .46]);
+        sphere(group, .095, [.27, 2.18, faceZ], 0x17222a, [.82, 1.28, .46]);
+        sphere(group, .14, [0, 1.92, faceZ + .01], 0x7c3440, [1.28, .45, .32]);
+        sphere(group, .06, [0, 1.95, faceZ + .045], 0xffffff, [1.25, .35, .22]);
         if (config.accessory === 'glasses') {
-            box(group, [.57, .3, .08], [-.32, 2.18, .72], 0x111417);
-            box(group, [.57, .3, .08], [.32, 2.18, .72], 0x111417);
-            box(group, [.14, .07, .08], [0, 2.18, .73], 0x111417);
+            box(group, [.55, .3, .07], [-.31, 2.2, faceZ + .05], 0x111417);
+            box(group, [.55, .3, .07], [.31, 2.2, faceZ + .05], 0x111417);
+            box(group, [.14, .07, .07], [0, 2.2, faceZ + .06], 0x111417);
         }
     }
 
-    function buildAccessories(group, config) {
+    function buildArms(group, config) {
+        const leftShoulder = [-.76, .98, 0];
+        const rightShoulder = [.76, .98, 0];
+        let leftElbow = [-1.04, .32, .06];
+        let rightElbow = [1.04, .32, .06];
+        let leftHand = [-1.04, -.3, .1];
+        let rightHand = [1.04, -.3, .1];
+
+        if (config.accessory === 'controller') {
+            leftHand = [-.58, -.22, .55];
+            rightHand = [.58, -.22, .55];
+        } else if (config.accessory === 'basketball') {
+            leftElbow = [-1.12, .82, .16];
+            leftHand = [-1.24, 1.12, .42];
+        }
+
+        limbBetween(group, leftShoulder, leftElbow, .52, .6, config.top);
+        limbBetween(group, rightShoulder, rightElbow, .52, .6, config.top);
+        limbBetween(group, leftElbow, leftHand, .39, .46, config.skin);
+        limbBetween(group, rightElbow, rightHand, .39, .46, config.skin);
+        sphere(group, .27, leftHand, config.skin, [.9, 1, .82]);
+        sphere(group, .27, rightHand, config.skin, [.9, 1, .82]);
+        return {leftHand, rightHand};
+    }
+
+    function buildAccessories(group, config, pose) {
         if (config.cap) {
-            cylinder(group, .72, .76, .28, [0, 2.73, .04], config.cap);
-            box(group, [.92, .11, .52], [0, 2.62, .52], config.cap, [-.08, 0, 0]);
+            cylinder(group, .72, .76, .26, [0, 2.86, .01], config.cap);
+            box(group, [.92, .1, .5], [0, 2.75, .52], config.cap, [-.08, 0, 0]);
         }
         if (config.hat) {
-            cylinder(group, .78, .83, .36, [0, 2.78, 0], config.hat);
-            cylinder(group, 1.05, 1.05, .1, [0, 2.58, .03], config.hat);
+            cylinder(group, .76, .8, .34, [0, 2.91, 0], config.hat);
+            cylinder(group, 1.02, 1.02, .09, [0, 2.72, .03], config.hat);
         }
         if (config.accessory === 'headphones') {
-            torus(group, .78, .11, [0, 2.27, -.03], config.accent, [0, 0, 0]);
-            box(group, [.2, .54, .33], [-.77, 2.22, 0], config.accent);
-            box(group, [.2, .54, .33], [.77, 2.22, 0], config.accent);
+            addMesh(group, new THREE.TorusGeometry(.79, .09, 12, 32, Math.PI), config.accent, [0, 2.28, -.02]);
+            box(group, [.2, .54, .34], [-.78, 2.23, 0], config.accent);
+            box(group, [.2, .54, .34], [.78, 2.23, 0], config.accent);
         }
         if (config.accessory === 'basketball') {
-            const ball = sphere(group, .45, [-1.55, .7, .52], 0xe96b25);
-            torus(ball, .32, .018, [0, 0, 0], 0x291a15);
+            const ballPosition = [pose.leftHand[0], pose.leftHand[1] + .43, pose.leftHand[2] + .03];
+            sphere(group, .43, ballPosition, 0xe96b25);
+            torus(group, .32, .018, ballPosition, 0x291a15);
+            torus(group, .32, .018, ballPosition, 0x291a15, [0, Math.PI / 2, 0]);
         }
         if (config.accessory === 'controller') {
-            const controller = box(group, [.72, .32, .18], [1.45, .35, .65], 0x263244, [0, -.18, -.16]);
-            sphere(controller, .055, [-.18, .04, .11], 0x24d7df);
-            sphere(controller, .055, [.18, .04, .11], 0xff5a9e);
+            const controller = box(group, [1.08, .34, .2], [0, -.22, .66], 0x263244, [0, 0, 0]);
+            sphere(controller, .055, [-.19, .04, .12], 0x24d7df);
+            sphere(controller, .055, [.19, .04, .12], 0xff5a9e);
         }
         if (config.accessory === 'chain' || config.accessory === 'glasses') {
-            torus(group, .45, .045, [0, .78, .67], 0xe2b34e, [Math.PI / 2, 0, 0]);
+            limbBetween(group, [-.38, .96, .49], [0, .7, .5], .065, .065, 0xe2b34e);
+            limbBetween(group, [0, .7, .5], [.38, .96, .49], .065, .065, 0xe2b34e);
         }
         if (config.accessory === 'bracelets') {
-            torus(group, .18, .045, [-1.2, .08, .03], 0xffd24a, [Math.PI / 2, 0, 0]);
-            torus(group, .18, .045, [-1.2, -.02, .03], 0x29d4dc, [Math.PI / 2, 0, 0]);
+            torus(group, .18, .045, [pose.leftHand[0], pose.leftHand[1] + .2, pose.leftHand[2]], 0xffd24a, [Math.PI / 2, 0, 0]);
         }
     }
 
@@ -119,28 +160,27 @@
         const body = new THREE.Group();
         root.add(body);
 
-        box(body, [1.42, 1.38, .86], [0, .63, 0], config.top);
-        box(body, [1.44, .18, .9], [0, .02, 0], config.accent);
-        box(body, [.56, 1.35, .62], [-.43, -1.03, 0], config.bottom);
-        box(body, [.56, 1.35, .62], [.43, -1.03, 0], config.bottom);
-        box(body, [.72, .36, 1.03], [-.43, -1.78, .16], config.shoes);
-        box(body, [.72, .36, 1.03], [.43, -1.78, .16], config.shoes);
+        box(body, [1.42, 1.45, .86], [0, .55, 0], config.top);
+        box(body, [1.46, .34, .92], [0, -.25, 0], config.accent);
+        box(body, [.58, 1.55, .64], [-.42, -1.02, 0], config.bottom);
+        box(body, [.58, 1.55, .64], [.42, -1.02, 0], config.bottom);
+        box(body, [.74, .42, 1.04], [-.42, -1.82, .17], config.shoes);
+        box(body, [.74, .42, 1.04], [.42, -1.82, .17], config.shoes);
 
-        box(body, [.42, 1.38, .48], [-1.0, .58, 0], config.skin, [0, 0, -.18]);
-        box(body, [.42, 1.38, .48], [1.0, .58, 0], config.skin, [0, 0, .18]);
-        box(body, [.52, .72, .62], [-1.0, .86, 0], config.top, [0, 0, -.18]);
-        box(body, [.52, .72, .62], [1.0, .86, 0], config.top, [0, 0, .18]);
-        sphere(body, .29, [-1.15, -.08, .02], config.skin, [.86, 1, .78]);
-        sphere(body, .29, [1.15, -.08, .02], config.skin, [.86, 1, .78]);
-
-        box(body, [1.43, 1.32, 1.3], [0, 2.12, 0], config.skin);
+        cylinder(body, .27, .3, .34, [0, 1.38, 0], config.skin);
+        if (config.headShape === 'round') {
+            sphere(body, .78, [0, 2.14, .03], config.skin, [1, 1.02, .94]);
+        } else {
+            box(body, [1.43, 1.38, 1.3], [0, 2.14, 0], config.skin);
+        }
         buildHair(body, config);
         buildFace(body, config);
-        buildAccessories(body, config);
+        const pose = buildArms(body, config);
+        buildAccessories(body, config, pose);
 
-        const chestStripe = box(body, [.85, .18, .06], [0, .75, .46], config.accent);
+        const chestStripe = box(body, [.85, .18, .06], [0, .7, .46], config.accent);
         chestStripe.material.roughness = .5;
-        root.scale.set(.92, .92, .92);
+        root.scale.set(.9, .9, .9);
         return root;
     }
 
@@ -165,7 +205,7 @@
         container.replaceChildren();
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(34, 1, .1, 100);
-        camera.position.set(0, .45, 8.3);
+        camera.position.set(0, .45, 9.5);
         const renderer = new THREE.WebGLRenderer({antialias: true, alpha: true, powerPreference: 'low-power'});
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
