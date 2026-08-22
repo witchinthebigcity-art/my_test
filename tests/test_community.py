@@ -215,6 +215,29 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state["status"], "active")
         self.assertEqual((await self.store.get_profile(self.user_b))["grade"], 9)
 
+    async def test_accepting_friend_invite_cancels_pending_random_match(self):
+        profile_a = await self.store.update_profile(
+            self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8}
+        )
+        profile_b = await self.store.update_profile(
+            self.user_b, {"nickname": "Геометр9", "leaderboardConsent": True, "grade": 9}
+        )
+        request = await self.store.request_friend(self.user_a, profile_b["public_id"])
+        await self.store.accept_friend(self.user_b, request["requestId"])
+        questions = [
+            Question(grade=10, topic="Алгебра", question=f"Вопрос 10-{number}", options=("1", "2", "3", "4"), correct_index=0, solution="Решение")
+            for number in range(1, 7)
+        ]
+
+        waiting_id = await self.store.join_battle(self.user_a, 10, questions)
+        invite = await self.store.create_battle_invite(self.user_a, profile_b["public_id"], 10)
+        accepted = await self.store.accept_battle_invite(self.user_b, invite["inviteId"], questions)
+
+        self.assertNotEqual(accepted["battleId"], waiting_id)
+        data = self.store._load()
+        self.assertEqual(data["battles"][waiting_id]["status"], "cancelled")
+        self.assertEqual(data["battles"][accepted["battleId"]]["status"], "active")
+
     async def test_daily_login_rewards_once_and_advances_streak(self):
         first = await self.store.claim_daily_login(self.user_a)
         self.assertTrue(first["claimed"])

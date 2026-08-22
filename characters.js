@@ -6,7 +6,7 @@
         'pink-wave': {skin: 0xf2b69b, hair: 0xffd2ba, hair2: 0xff8fc1, top: 0xff86bb, accent: 0xffffff, bottom: 0x42a9db, shoes: 0xff8fbd, accessory: 'none', hairKind: 'long', headShape: 'round', fashion: 'phone'},
         'white-street': {skin: 0xdca078, hair: 0x33251f, top: 0xf0f1f1, accent: 0xe43b35, bottom: 0x151719, shoes: 0xf2f1ec, accessory: 'glasses', hairKind: 'short', hat: 0xf0f0ed, headShape: 'square', fashion: 'smartwatch'},
         'aqua-pop': {skin: 0xf0aa83, hair: 0xff8db8, hair2: 0x36d8df, top: 0xff68a3, accent: 0x31d3da, bottom: 0x29cad2, shoes: 0x35d0d4, accessory: 'none', hairKind: 'long', headShape: 'round', fashion: 'airpods-print'},
-        turbo: {skin: 0xe0ac82, hair: 0x38271f, top: 0x153f70, accent: 0xd9a83e, bottom: 0x202633, shoes: 0x8b5a2b, accessory: 'chain', hairKind: 'none', headShape: 'rounded', sleeve: 0xf2efe7, equipment: 'steampunk', fashion: 'smartwatch'},
+        turbo: {skin: 0xe0ac82, hair: 0x38271f, top: 0x153f70, accent: 0xd9a83e, bottom: 0x202633, shoes: 0x8b5a2b, accessory: 'chain', hairKind: 'none', headShape: 'rounded', sleeve: 0xf2efe7, equipment: 'steampunk'},
         'cozy-plaid': {skin: 0xa96f50, hair: 0x151318, top: 0xf2f2f0, accent: 0xa52d36, bottom: 0x3b2228, shoes: 0xf3f1ed, accessory: 'earmuffs', hairKind: 'long', headShape: 'round', outfit: 'plaid'},
         'soft-blue': {skin: 0xdba881, hair: 0xe8c7b0, top: 0xf7f5f3, accent: 0xe9eef4, bottom: 0x8495a8, shoes: 0xf3f2ed, accessory: 'bows', hairKind: 'long', headShape: 'round', outfit: 'wide-pants'},
         'bronze-gent': {skin: 0xd4a078, hair: 0x4b2d1b, top: 0x8b531f, accent: 0xd49a3c, bottom: 0x6e421f, shoes: 0x9b662b, accessory: 'chain', hairKind: 'none', headShape: 'rounded', sleeve: 0x8b531f, equipment: 'bronze-suit'},
@@ -16,7 +16,7 @@
         'dog-varsity': {skin: 0xa86f50, hair: 0x40251f, top: 0x43322b, accent: 0xe9e1d2, bottom: 0x7f8588, shoes: 0xf1efea, accessory: 'none', hairKind: 'long', headShape: 'round', equipment: 'dog-varsity', fashion: 'smartwatch'},
         'snow-dream': {skin: 0xd6a27f, hair: 0xe7c9b7, top: 0xf7f8f6, accent: 0xdce7ea, bottom: 0xf5f6f3, shoes: 0xf1f2ef, accessory: 'none', hairKind: 'long', headShape: 'round', equipment: 'snow-dress', fashion: 'airpods'},
         'festive-forge': {skin: 0xe0aa8e, hair: 0x7b2a22, top: 0xd72e28, accent: 0xf1b83d, bottom: 0xb92222, shoes: 0x3b241d, accessory: 'none', hairKind: 'none', headShape: 'rounded', equipment: 'festive', fashion: 'smartwatch'},
-        'cardboard-bot': {skin: 0xb8874f, hair: 0x6b4d2e, top: 0x9a6b36, accent: 0x4a674d, bottom: 0x6c6c68, shoes: 0xe9e3d5, accessory: 'none', hairKind: 'none', headShape: 'square', sleeve: 0x7e7a6d, equipment: 'cardboard-bot', fashion: 'phone'},
+        'cardboard-bot': {skin: 0xb8874f, hair: 0x6b4d2e, top: 0x9a6b36, accent: 0x4a674d, bottom: 0x6c6c68, shoes: 0xe9e3d5, accessory: 'none', hairKind: 'none', headShape: 'square', sleeve: 0x7e7a6d, equipment: 'cardboard-bot'},
     };
 
     let currentViewer = null;
@@ -154,12 +154,15 @@
         } else if (config.accessory === 'basketball') {
             leftElbow = [-1.12, .82, .16];
             leftHand = [-1.24, 1.12, .42];
+        } else if (config.equipment === 'dog-varsity') {
+            leftElbow = [-1.08, .3, .12];
+            leftHand = [-1.08, -.28, .34];
         } else if (config.fashion === 'phone') {
             rightElbow = [1.13, .88, .12];
             rightHand = [.83, 1.58, .53];
         } else if (config.equipment === 'festive') {
             rightElbow = [1.14, .55, .12];
-            rightHand = [1.28, .08, .34];
+            rightHand = [1.32, .08, .34];
         }
 
         limbBetween(group, leftShoulder, leftElbow, armWidth, strong ? .68 : .6, config.sleeve || config.top);
@@ -251,17 +254,19 @@
             sphere(group, .045, [-1.54, -1.42, .43], 0x171719, [1, 1.15, .5]);
             sphere(group, .045, [-1.36, -1.42, .43], 0x171719, [1, 1.15, .5]);
             sphere(group, .06, [-1.45, -1.53, .46], 0x34241f, [1.2, .8, .5]);
-            torus(group, .52, .025, [-.95, -.55, .2], 0xe8b5bd, [0, .5, -.65]);
+            limbBetween(group, pose.leftHand, [-1.18, -.78, .35], .035, .035, 0xe8b5bd);
+            limbBetween(group, [-1.18, -.78, .35], [-1.45, -1.26, .34], .035, .035, 0xe8b5bd);
+            box(group, [.4, .08, .3], [-1.45, -1.27, .22], 0xe8b5bd);
             sphere(group, .34, [-.42, 2.75, -.05], config.hair, [1, .7, .9]);
             sphere(group, .34, [.42, 2.75, -.05], config.hair, [1, .7, .9]);
         }
         if (config.equipment === 'snow-dress') {
-            addMesh(group, new THREE.ConeGeometry(1.02, .56, 32, 1, true), 0xf8f8f5, [0, -.38, 0], [0, 0, Math.PI]);
+            box(group, [1.0, .48, .78], [0, -.4, .02], 0xf8f8f5);
+            cylinder(group, .78, 1.02, .56, [0, -.38, 0], 0xf8f8f5);
             [-1, 1].forEach((side) => {
                 box(group, [.75, .64, .78], [side * .42, -1.63, .1], 0xf2f3f0);
                 box(group, [.82, .2, .84], [side * .42, -1.94, .14], 0xdfe7e7);
             });
-            torus(group, .42, .035, [0, 1.36, .36], 0xe7ecec, [Math.PI / 2, 0, 0]);
         }
         if (config.equipment === 'festive') {
             const red = 0xc62a25;
@@ -274,9 +279,23 @@
                 limbBetween(group, [side * .56, 3.72, .03], [side * .82, 3.8, .02], .07, .07, red);
                 limbBetween(group, [side * .65, 3.86, .03], [side * .82, 4.05, .02], .07, .07, red);
             });
-            const hammerHandle = cylinder(group, .08, .08, 2.45, [1.3, 1.02, .28], 0x332820);
-            hammerHandle.material.roughness = .45;
-            box(group, [1.05, .75, .68], [1.3, 2.19, .28], 0x6c3844);
+            const axeHandle = cylinder(group, .075, .09, 1.75, [1.32, .68, .3], 0x493126);
+            axeHandle.material.roughness = .45;
+            const bladeShape = new THREE.Shape();
+            bladeShape.moveTo(.04, -.25);
+            bladeShape.lineTo(-.48, -.46);
+            bladeShape.lineTo(-.58, .46);
+            bladeShape.lineTo(.04, .27);
+            bladeShape.closePath();
+            const bladeGeometry = new THREE.ExtrudeGeometry(bladeShape, {
+                depth: .18,
+                bevelEnabled: true,
+                bevelSegments: 2,
+                bevelSize: .025,
+                bevelThickness: .025,
+            });
+            addMesh(group, bladeGeometry, 0xb9c4ca, [1.32, 1.48, .22], null, null, {roughness: .28, metalness: .66});
+            box(group, [.18, .42, .34], [1.32, 1.48, .3], gold);
             const lightColors = [0xffd54a, 0x41d8cb, 0xf34f63];
             for (let index = 0; index < 7; index += 1) {
                 sphere(group, .055, [-.62 + index * .2, .58 + Math.sin(index) * .1, .5], lightColors[index % 3]);
@@ -344,10 +363,9 @@
             roundedBox(group, [.28, .24, .08], .05, [wrist[0], wrist[1], wrist[2] + .27], 0x58d7d1);
         }
         if (config.fashion === 'airpods' || config.fashion === 'airpods-print') {
-            const faceZ = config.headShape === 'round' ? .73 : .67;
             [-1, 1].forEach((side) => {
-                sphere(group, .075, [side * .67, 2.18, faceZ], 0xf8faf9, [.72, 1, .52]);
-                box(group, [.055, .2, .055], [side * .67, 2.07, faceZ], 0xf8faf9, [0, 0, side * .08]);
+                sphere(group, .075, [side * .76, 2.18, .22], 0xf8faf9, [.72, 1, .52]);
+                box(group, [.055, .2, .055], [side * .76, 2.07, .22], 0xf8faf9, [0, 0, side * .08]);
             });
         }
         if (config.fashion === 'airpods-print') {

@@ -970,9 +970,14 @@ class CommunityStore:
             grade = int(invite["grade"])
             if len(questions) < 5:
                 raise CommunityError("Для баттла нужно минимум 5 заданий этого класса")
+            question_map = {question.question_id: question for question in questions}
+            invite_players = {user_id, sender_id}
             for battle in data["battles"].values():
-                active_players = set(battle.get("players", {})) if battle.get("status") in {"waiting", "active"} else set()
-                if {user_id, sender_id} & active_players:
+                if battle.get("status") == "waiting" and invite_players & set(battle.get("players", {})):
+                    battle["status"] = "cancelled"
+            self._expire_battles(data, question_map)
+            for battle in data["battles"].values():
+                if battle.get("status") == "active" and invite_players & set(battle.get("players", {})):
                     raise CommunityError("Один из участников уже находится в активном баттле")
             selected = random.SystemRandom().sample(questions, 5)
             battle_id = uuid.uuid4().hex[:12]
