@@ -675,6 +675,18 @@ details.theory-section summary { background: transparent !important; }
     background: var(--surface-soft);
 }
 
+.social-card.deep-link-highlight {
+    border-color: var(--theme-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent) 24%, transparent),
+        0 12px 28px color-mix(in srgb, var(--theme-accent) 18%, transparent);
+    animation: deep-link-pulse 1.25s ease-in-out 2;
+}
+
+@keyframes deep-link-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.012); }
+}
+
 .social-card-head {
     display: flex;
     width: 100%;

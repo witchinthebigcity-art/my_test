@@ -13,6 +13,8 @@ const communityState = {
     characterCatalog: [],
     battleInvitePublicId: null,
     battleInviteReturnScreen: 'friendsScreen',
+    highlightedFriendRequestId: null,
+    highlightedBattleInviteId: null,
 };
 let pendingAvatarDataUrl = null;
 
@@ -525,6 +527,7 @@ async function openFriends(returnScreen = null) {
         renderFriends(friendData);
         renderBattleInvites(inviteData);
         setInlineMessage('friendMessage', '');
+        focusDeepLinkedSocialItem();
     } catch (error) {
         setInlineMessage('friendMessage', error.message, 'error');
         renderEmpty(document.getElementById('friendsList'), 'Не удалось загрузить список друзей.');
@@ -551,10 +554,13 @@ function renderFriends(payload) {
     section.hidden = !(payload.incoming || []).length;
     requestList.replaceChildren();
     (payload.incoming || []).forEach(({ id, participant }) => {
-        requestList.appendChild(createSocialCard(participant, [
+        const card = createSocialCard(participant, [
             { label: 'Принять', action: () => respondFriendRequest(id, true) },
             { label: 'Отклонить', action: () => respondFriendRequest(id, false), secondary: true },
-        ]));
+        ]);
+        card.id = `friend-request-${id}`;
+        if (id === communityState.highlightedFriendRequestId) card.classList.add('deep-link-highlight');
+        requestList.appendChild(card);
     });
 }
 
@@ -564,11 +570,31 @@ function renderBattleInvites(payload) {
     section.hidden = !(payload.incoming || []).length;
     list.replaceChildren();
     (payload.incoming || []).forEach((invite) => {
-        list.appendChild(createSocialCard(invite.participant, [
+        const card = createSocialCard(invite.participant, [
             { label: `Принять · ${invite.grade} класс`, action: () => acceptBattleInvite(invite.id) },
             { label: 'Отклонить', action: () => declineBattleInvite(invite.id), secondary: true },
-        ]));
+        ]);
+        card.id = `battle-invite-${invite.id}`;
+        if (invite.id === communityState.highlightedBattleInviteId) card.classList.add('deep-link-highlight');
+        list.appendChild(card);
     });
+}
+
+function focusDeepLinkedSocialItem() {
+    const targetId = communityState.highlightedBattleInviteId
+        ? `battle-invite-${communityState.highlightedBattleInviteId}`
+        : communityState.highlightedFriendRequestId
+            ? `friend-request-${communityState.highlightedFriendRequestId}`
+            : null;
+    if (!targetId) return;
+    const target = document.getElementById(targetId);
+    if (target) {
+        window.setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+    } else {
+        setInlineMessage('friendMessage', 'Эта заявка уже принята, отклонена или устарела.', 'info');
+    }
+    communityState.highlightedBattleInviteId = null;
+    communityState.highlightedFriendRequestId = null;
 }
 
 async function searchParticipants() {
@@ -1032,10 +1058,36 @@ document.getElementById('profileAvatarInput')?.addEventListener('change', handle
 
 document.addEventListener('DOMContentLoaded', claimDailyLogin);
 
-const deepLinkedBattleId = new URLSearchParams(window.location.search).get('battle');
-if (deepLinkedBattleId && /^[a-f0-9]{12}$/.test(deepLinkedBattleId)) {
-    window.setTimeout(() => openBattleById(deepLinkedBattleId), 0);
+async function openDeepLinkedView() {
+    if (!tg.initData) return;
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    const battleId = params.get('battle');
+    const publicId = params.get('publicId');
+    const requestId = params.get('request');
+    const inviteId = params.get('invite');
+    const validId = (value) => Boolean(value && /^[a-f0-9]{12}$/.test(value));
+
+    if ((!view || view === 'battle') && validId(battleId)) {
+        await openBattleById(battleId);
+        return;
+    }
+    if (view === 'chat' && validId(publicId)) {
+        await openChat(publicId);
+        return;
+    }
+    if (view === 'battle-invite' && validId(inviteId)) {
+        communityState.highlightedBattleInviteId = inviteId;
+        await openFriends('classSelection');
+        return;
+    }
+    if (view === 'friends') {
+        communityState.highlightedFriendRequestId = validId(requestId) ? requestId : null;
+        await openFriends('classSelection');
+    }
 }
+
+document.addEventListener('DOMContentLoaded', () => window.setTimeout(openDeepLinkedView, 0));
 
 function leaveBattleScreen() {
     clearInterval(communityState.battlePoll);

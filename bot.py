@@ -3,6 +3,7 @@ import json
 import asyncio
 import ssl
 import time
+from urllib.parse import urlencode
 
 import aiohttp
 import certifi
@@ -561,7 +562,23 @@ async def get_leaderboard(request):
         return _community_error(error)
 
 
-async def _notify_social_user(user_id, text, button_text="Открыть приложение", battle_id=None):
+def _social_webapp_url(route_params=None):
+    params = {"v": "13"}
+    params.update({
+        str(key): str(value)
+        for key, value in (route_params or {}).items()
+        if value is not None and str(value)
+    })
+    separator = "&" if "?" in WEBAPP_URL else "?"
+    return f"{WEBAPP_URL}{separator}{urlencode(params)}"
+
+
+async def _notify_social_user(
+    user_id,
+    text,
+    button_text="Открыть приложение",
+    route_params=None,
+):
     if not WEBAPP_URL:
         return
     try:
@@ -570,9 +587,7 @@ async def _notify_social_user(user_id, text, button_text="Открыть при�
             text,
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
                 text=button_text,
-                web_app=WebAppInfo(url=(
-                    f"{WEBAPP_URL}?v=12&battle={battle_id}" if battle_id else f"{WEBAPP_URL}?v=12"
-                )),
+                web_app=WebAppInfo(url=_social_webapp_url(route_params)),
             )]]),
         )
     except (
@@ -616,6 +631,7 @@ async def request_friend(request):
         user = _authenticated_user(request)
         result = await community_store.request_friend(user, request.match_info["public_id"])
         target_user_id = result.pop("targetUserId", None)
+        request_id = result.get("requestId")
         profile = await community_store.get_profile(user)
         if target_user_id:
             if result["status"] == "accepted":
@@ -624,7 +640,12 @@ async def request_friend(request):
             else:
                 text = f"👋 {profile.get('nickname', 'Участник')} хочет добавить вас в друзья."
                 button = "Посмотреть заявку"
-            await _notify_social_user(target_user_id, text, button)
+            await _notify_social_user(
+                target_user_id,
+                text,
+                button,
+                {"view": "friends", "request": request_id},
+            )
         return web.json_response(result)
     except CommunityError as error:
         return _community_error(error, status=422)
@@ -641,6 +662,7 @@ async def accept_friend(request):
                 target_user_id,
                 f"✅ {profile.get('nickname', 'Участник')} принял(а) вашу заявку в друзья.",
                 "Открыть друзей",
+                {"view": "friends"},
             )
         return web.json_response(result)
     except CommunityError as error:
@@ -679,6 +701,7 @@ async def send_message(request):
                 target_user_id,
                 f"💬 Новое сообщение от {profile.get('nickname', 'друга')}.",
                 "Открыть сообщения",
+                {"view": "chat", "publicId": profile.get("public_id")},
             )
         return web.json_response(result)
     except CommunityError as error:
@@ -706,6 +729,7 @@ async def create_battle_invite(request):
                 target_user_id,
                 f"⚔️ {profile.get('nickname', 'Друг')} приглашает вас в баттл за {int(payload.get('grade'))} класс.",
                 "Принять вызов",
+                {"view": "battle-invite", "invite": result.get("inviteId")},
             )
         return web.json_response(result)
     except (CommunityError, TypeError, ValueError) as error:
@@ -736,7 +760,7 @@ async def accept_battle_invite(request):
                 target_user_id,
                 f"🔥 {profile.get('nickname', 'Друг')} принял(а) вызов. Баттл начался!",
                 "Открыть баттл",
-                battle_id=result["battleId"],
+                {"view": "battle", "battle": result["battleId"]},
             )
         question_map = {question.question_id: question for question in questions}
         state = await community_store.battle_state(user, result["battleId"], question_map)
