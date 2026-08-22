@@ -279,23 +279,10 @@
                 limbBetween(group, [side * .56, 3.72, .03], [side * .82, 3.8, .02], .07, .07, red);
                 limbBetween(group, [side * .65, 3.86, .03], [side * .82, 4.05, .02], .07, .07, red);
             });
-            const axeHandle = cylinder(group, .075, .09, 1.75, [1.32, .68, .3], 0x493126);
-            axeHandle.material.roughness = .45;
-            const bladeShape = new THREE.Shape();
-            bladeShape.moveTo(.04, -.25);
-            bladeShape.lineTo(-.48, -.46);
-            bladeShape.lineTo(-.58, .46);
-            bladeShape.lineTo(.04, .27);
-            bladeShape.closePath();
-            const bladeGeometry = new THREE.ExtrudeGeometry(bladeShape, {
-                depth: .18,
-                bevelEnabled: true,
-                bevelSegments: 2,
-                bevelSize: .025,
-                bevelThickness: .025,
-            });
-            addMesh(group, bladeGeometry, 0xb9c4ca, [1.32, 1.48, .22], null, null, {roughness: .28, metalness: .66});
-            box(group, [.18, .42, .34], [1.32, 1.48, .3], gold);
+            const hammerEnd = [1.98, .74, .34];
+            limbBetween(group, pose.rightHand, hammerEnd, .075, .075, 0x493126);
+            box(group, [.62, .3, .34], [2.08, .84, .34], 0xb9c4ca, [0, 0, -.78], null, {roughness: .28, metalness: .66});
+            box(group, [.19, .34, .39], [1.98, .74, .34], gold, [0, 0, -.78]);
             const lightColors = [0xffd54a, 0x41d8cb, 0xf34f63];
             for (let index = 0; index < 7; index += 1) {
                 sphere(group, .055, [-.62 + index * .2, .58 + Math.sin(index) * .1, .5], lightColors[index % 3]);
@@ -376,8 +363,11 @@
         }
     }
 
-    function buildCharacter(style) {
-        const config = STYLE_CONFIGS[style] || STYLE_CONFIGS.neon;
+    function buildCharacter(style, equipped = []) {
+        const config = {...(STYLE_CONFIGS[style] || STYLE_CONFIGS.neon)};
+        if (equipped.includes('gadget-phone')) config.fashion = 'phone';
+        else if (equipped.includes('gadget-watch')) config.fashion = 'smartwatch';
+        else if (equipped.includes('gadget-airpods')) config.fashion = 'airpods';
         const root = new THREE.Group();
         const body = new THREE.Group();
         root.add(body);
@@ -403,6 +393,29 @@
         if (config.equipment !== 'cardboard-bot') buildFace(body, config);
         const pose = buildArms(body, config);
         buildAccessories(body, config, pose);
+
+        if (equipped.includes('outfit-viking')) {
+            box(body, [1.68, 1.55, .16], [0, .42, -.48], 0x37566b);
+            sphere(body, .12, [0, 1.14, .52], 0xc7a64a, [1.15, 1.15, .45]);
+        } else if (equipped.includes('outfit-renaissance')) {
+            box(body, [1.5, 1.18, .12], [0, .58, .48], 0x6c2440);
+            [-.42, 0, .42].forEach((x) => sphere(body, .045, [x, .62, .57], 0xe0b552));
+        } else if (equipped.includes('outfit-victorian')) {
+            box(body, [1.56, 1.48, .12], [0, .45, .48], 0x24313c);
+            box(body, [.12, 1.25, .05], [0, .48, .58], 0xb4a686);
+        } else if (equipped.includes('outfit-neon')) {
+            box(body, [1.58, 1.25, .12], [0, .55, .48], 0x162938);
+            box(body, [.12, 1.08, .05], [0, .55, .58], 0x45e3cf);
+        } else if (equipped.includes('daily-victor-armor')) {
+            box(body, [1.58, 1.28, .22], [0, .55, .48], 0x727f91);
+            sphere(body, .15, [0, .75, .68], 0xe3ba4c, [1.3, 1.3, .38]);
+        } else if (equipped.includes('daily-victor-cape')) {
+            box(body, [1.72, 1.75, .16], [0, .26, -.52], 0x7d2350);
+            sphere(body, .13, [0, 1.15, .54], 0xf0c44b, [1.3, 1.3, .38]);
+        }
+        if (equipped.includes('gadget-tablet')) {
+            roundedBox(body, [.82, 1.05, .09], .08, [pose.leftHand[0] + .25, pose.leftHand[1] + .36, .7], 0x20262f);
+        }
 
         if (config.outfit === 'plaid') {
             [-.42, .42].forEach((x) => {
@@ -436,7 +449,7 @@
         currentViewer = null;
     }
 
-    function mount(container, style) {
+    function mount(container, style, equipped = []) {
         disposeViewer();
         if (!window.THREE) {
             container.textContent = 'Не удалось загрузить модуль 3D. Откройте приложение заново.';
@@ -462,7 +475,7 @@
         rim.position.set(-5, 3, -3);
         scene.add(rim);
 
-        const root = buildCharacter(style);
+        const root = buildCharacter(style, equipped);
         root.position.y = -.15;
         scene.add(root);
         const base = cylinder(scene, 1.75, 2.05, .22, [0, -2.05, 0], 0x283245);

@@ -257,6 +257,59 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(second_day["streak"], 2)
         self.assertEqual(second_day["reward"], 15)
 
+    async def test_daily_login_waits_for_manual_claim(self):
+        status = await self.store.daily_login_status(self.user_a)
+        self.assertFalse(status["claimedToday"])
+        self.assertEqual(status["activeDay"], 1)
+        self.assertEqual(status["activeReward"], 10)
+        self.assertEqual(status["coins"], 0)
+
+    async def test_battle_win_coins_are_capped_and_daily_cosmetics_unlock(self):
+        await self.store.update_profile(self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8})
+        await self.store.update_profile(self.user_b, {"nickname": "Геометр8", "leaderboardConsent": True, "grade": 8})
+        data = self.store._load()
+        for number in range(1, 6):
+            battle_id = f"battle-{number}"
+            battle = {
+                "id": battle_id,
+                "grade": 8,
+                "status": "complete",
+                "created_at": datetime.now().astimezone().isoformat(),
+                "started_at": datetime.now().astimezone().isoformat(),
+                "question_ids": [],
+                "players": {
+                    "1": {"score": 5, "answers": {}, "finished_at": datetime.now().astimezone().isoformat()},
+                    "2": {"score": 2, "answers": {}, "finished_at": datetime.now().astimezone().isoformat()},
+                },
+            }
+            data["battles"][battle_id] = battle
+            self.store._award_battle_bonus(data, battle)
+        self.store._save(data)
+
+        profile = (await self.store.get_profile(self.user_a))
+        self.assertEqual(profile["coins"], 30)
+        stored = self.store._load()["profiles"]["1"]
+        self.assertIn("daily-victor-armor", stored["temporary_items"])
+        self.assertIn("daily-victor-cape", stored["temporary_items"])
+        stats = await self.store.battle_stats(self.user_a)
+        self.assertEqual(stats["wins"], 5)
+        self.assertEqual(stats["winPercent"], 100.0)
+        self.assertEqual(stats["coinsToday"], 30)
+
+    async def test_shop_purchase_last_thirty_days_and_can_be_equipped(self):
+        await self.store.get_profile(self.user_a)
+        data = self.store._load()
+        data["profiles"]["1"]["coins"] = 200
+        self.store._save(data)
+        purchased = await self.store.purchase_shop_item(self.user_a, "gadget-phone")
+        self.assertEqual(purchased["coins"], 110)
+        phone = next(item for item in purchased["items"] if item["id"] == "gadget-phone")
+        self.assertTrue(phone["owned"])
+        equipped = await self.store.equip_shop_item(self.user_a, "gadget-phone")
+        self.assertEqual(equipped["equippedItems"]["accessory"], "gadget-phone")
+        expires = datetime.fromisoformat(phone["ownedUntil"])
+        self.assertGreater(expires, datetime.now(expires.tzinfo) + timedelta(days=29))
+
     async def test_global_character_catalog_and_purchases_persist(self):
         catalog = await self.store.character_catalog(self.user_a)
         self.assertEqual(len(catalog["characters"]), 17)

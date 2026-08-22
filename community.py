@@ -27,6 +27,31 @@ MONTHLY_AWARDS = {
     3: ("Бронзовый призёр месяца", "🥉"),
 }
 LOGIN_REWARDS = {1: 10, 2: 15, 3: 20, 4: 25, 5: 30, 6: 10, 7: 20}
+SHOP_OWNERSHIP_DAYS = 30
+SHOP_ALLOW_PERMANENT = False
+BATTLE_WIN_REWARD = 10
+BATTLE_DAILY_COIN_LIMIT = 30
+SHOP_CATALOG = (
+    {"id": "guide-algebra", "name": "Карта алгебры", "description": "Короткие опорные схемы по алгебре.", "price": 30, "department": "book", "slot": "guide", "icon": "📘"},
+    {"id": "guide-geometry", "name": "Атлас геометрии", "description": "Формулы и чертежи в одной коллекции.", "price": 45, "department": "book", "slot": "guide", "icon": "📐"},
+    {"id": "guide-exam", "name": "Экзаменационный блокнот", "description": "Памятка по типичным ошибкам на экзамене.", "price": 60, "department": "book", "slot": "guide", "icon": "📝"},
+    {"id": "outfit-viking", "name": "Плащ викинга", "description": "Тёплый плащ с северной застёжкой.", "price": 80, "department": "magazine", "slot": "outfit", "icon": "🛡️"},
+    {"id": "outfit-renaissance", "name": "Дублет Возрождения", "description": "Парадный костюм мастера наук.", "price": 95, "department": "magazine", "slot": "outfit", "icon": "🧥"},
+    {"id": "outfit-victorian", "name": "Викторианское пальто", "description": "Строгий образ исследователя.", "price": 110, "department": "magazine", "slot": "outfit", "icon": "🎩"},
+    {"id": "outfit-neon", "name": "Неоновый бомбер", "description": "Современная куртка с яркими вставками.", "price": 75, "department": "magazine", "slot": "outfit", "icon": "🌈"},
+    {"id": "interior-lamp", "name": "Янтарная лампа", "description": "Уютный свет для кабинета.", "price": 50, "department": "magazine", "slot": "interior", "icon": "🏮"},
+    {"id": "interior-tea", "name": "Фарфоровый сервиз", "description": "Набор для спокойных перерывов.", "price": 65, "department": "magazine", "slot": "interior", "icon": "🫖"},
+    {"id": "daily-victor-armor", "name": "Доспех победителя", "description": "Та самая награда за четыре победы — на 30 дней.", "price": 140, "department": "magazine", "slot": "outfit", "icon": "⚔️"},
+    {"id": "daily-victor-cape", "name": "Плащ чемпиона", "description": "Редкий плащ за пять побед — на 30 дней.", "price": 170, "department": "magazine", "slot": "outfit", "icon": "🦸"},
+    {"id": "gadget-airpods", "name": "Беспроводные наушники", "description": "Миниатюрный аксессуар для персонажа.", "price": 70, "department": "laptop", "slot": "accessory", "icon": "🎧"},
+    {"id": "gadget-phone", "name": "Смартфон", "description": "Персонаж держит его как настоящий гаджет.", "price": 90, "department": "laptop", "slot": "accessory", "icon": "📱"},
+    {"id": "gadget-watch", "name": "Умные часы", "description": "Яркие часы на запястье.", "price": 80, "department": "laptop", "slot": "accessory", "icon": "⌚"},
+    {"id": "gadget-tablet", "name": "Планшет", "description": "Цифровая доска для новых идей.", "price": 100, "department": "laptop", "slot": "accessory", "icon": "💻"},
+)
+DAILY_BATTLE_ITEMS = {
+    4: {"id": "daily-victor-armor", "name": "Доспех победителя", "slot": "outfit", "icon": "⚔️"},
+    5: {"id": "daily-victor-cape", "name": "Плащ чемпиона", "slot": "outfit", "icon": "🦸"},
+}
 GLOBAL_CHARACTER_KEY = "global"
 CHARACTER_CATALOG = (
     {"id": "g8-neon-runner", "name": "Неоновый спринтер", "base_price": 0, "style": "neon"},
@@ -242,6 +267,9 @@ class CommunityStore:
             "selected_characters": {},
             "unlocked_characters": {},
             "character_prices": {},
+            "shop_purchases": {},
+            "equipped_items": {},
+            "temporary_items": {},
             "updated_at": _now_iso(),
         })
         profile.setdefault("public_id", uuid.uuid4().hex[:12])
@@ -252,11 +280,48 @@ class CommunityStore:
         profile.setdefault("selected_characters", {})
         profile.setdefault("unlocked_characters", {})
         profile.setdefault("character_prices", {})
+        profile.setdefault("shop_purchases", {})
+        profile.setdefault("equipped_items", {})
+        profile.setdefault("temporary_items", {})
+        self._cleanup_inventory(profile)
         self._migrate_global_characters(profile)
         profile["telegram_avatar_url"] = user.get("photo_url", profile.get("telegram_avatar_url", ""))
         if user.get("photo_url") and profile.get("avatar_source") != "custom":
             profile["avatar_url"] = user["photo_url"]
         return profile
+
+    @staticmethod
+    def _next_midnight_iso():
+        now = datetime.now(MOSCOW)
+        return datetime.combine(now.date() + timedelta(days=1), datetime.min.time(), tzinfo=MOSCOW).isoformat()
+
+    @staticmethod
+    def _is_active_until(value):
+        try:
+            return datetime.fromisoformat(str(value)).astimezone(MOSCOW) > datetime.now(MOSCOW)
+        except (TypeError, ValueError):
+            return False
+
+    def _cleanup_inventory(self, profile):
+        purchases = profile.setdefault("shop_purchases", {})
+        temporary = profile.setdefault("temporary_items", {})
+        equipped = profile.setdefault("equipped_items", {})
+        active_purchases = {item_id: value for item_id, value in purchases.items() if self._is_active_until(value)}
+        active_temporary = {item_id: value for item_id, value in temporary.items() if self._is_active_until(value)}
+        profile["shop_purchases"] = active_purchases
+        profile["temporary_items"] = active_temporary
+        active_ids = set(active_purchases) | set(active_temporary)
+        profile["equipped_items"] = {
+            slot: item_id for slot, item_id in equipped.items() if item_id in active_ids
+        }
+
+    @staticmethod
+    def _shop_expiry(ownership="monthly"):
+        if ownership == "permanent":
+            if not SHOP_ALLOW_PERMANENT:
+                raise CommunityError("Постоянные покупки пока недоступны")
+            return datetime(9999, 12, 31, tzinfo=MOSCOW).isoformat()
+        return (datetime.now(MOSCOW) + timedelta(days=SHOP_OWNERSHIP_DAYS)).isoformat()
 
     def _delete_custom_avatar(self, profile):
         if profile.get("avatar_source") != "custom":
@@ -343,6 +408,34 @@ class CommunityStore:
                 profile["selected_characters"][grade_key] = selected
         return selected
 
+    def _daily_login_payload(self, profile):
+        today_key = datetime.now(MOSCOW).date().isoformat()
+        claimed_today = profile.get("last_login_date") == today_key
+        current_streak = int(profile.get("login_streak") or 0)
+        next_day = current_streak if claimed_today else 1
+        if not claimed_today and profile.get("last_login_date"):
+            try:
+                last_date = datetime.fromisoformat(profile["last_login_date"]).date()
+                if last_date == datetime.now(MOSCOW).date() - timedelta(days=1):
+                    next_day = (current_streak % 7) + 1
+            except ValueError:
+                pass
+        return {
+            "claimedToday": claimed_today,
+            "streak": current_streak,
+            "activeDay": max(1, min(7, current_streak if claimed_today else next_day)),
+            "activeReward": LOGIN_REWARDS[max(1, min(7, current_streak if claimed_today else next_day))],
+            "schedule": [{"day": day, "reward": LOGIN_REWARDS[day]} for day in range(1, 8)],
+            "coins": int(profile.get("coins") or 0),
+        }
+
+    async def daily_login_status(self, user):
+        async with self.lock:
+            data = self._load()
+            profile = self._ensure_profile(data, user)
+            self._save(data)
+            return self._daily_login_payload(profile)
+
     async def claim_daily_login(self, user):
         async with self.lock:
             data = self._load()
@@ -352,12 +445,14 @@ class CommunityStore:
             today_key = today.isoformat()
             if profile.get("last_login_date") == today_key:
                 self._save(data)
-                return {
+                result = {
                     "claimed": False,
                     "reward": 0,
                     "streak": int(profile.get("login_streak") or 0),
                     "coins": int(profile.get("coins") or 0),
                 }
+                result.update(self._daily_login_payload(profile))
+                return result
 
             is_consecutive = False
             if profile.get("last_login_date"):
@@ -381,7 +476,100 @@ class CommunityStore:
                 "created_at": _now_iso(),
             })
             self._save(data)
-            return {"claimed": True, "reward": reward, "streak": streak, "coins": profile["coins"]}
+            result = {"claimed": True, "reward": reward, "streak": streak, "coins": profile["coins"]}
+            result.update(self._daily_login_payload(profile))
+            return result
+
+    def _shop_payload(self, profile):
+        self._cleanup_inventory(profile)
+        purchases = profile.get("shop_purchases", {})
+        temporary = profile.get("temporary_items", {})
+        equipped = profile.get("equipped_items", {})
+        catalog = []
+        for item in SHOP_CATALOG:
+            owned_until = purchases.get(item["id"])
+            catalog.append({
+                **item,
+                "owned": bool(owned_until),
+                "ownedUntil": owned_until,
+                "equipped": equipped.get(item["slot"]) == item["id"],
+            })
+        temporary_by_id = {item["id"]: item for item in DAILY_BATTLE_ITEMS.values()}
+        temporary_items = [{
+            **temporary_by_id[item_id],
+            "owned": True,
+            "ownedUntil": expires_at,
+            "equipped": equipped.get(temporary_by_id[item_id]["slot"]) == item_id,
+            "temporary": True,
+        } for item_id, expires_at in temporary.items() if item_id in temporary_by_id]
+        return {
+            "coins": int(profile.get("coins") or 0),
+            "ownershipDays": SHOP_OWNERSHIP_DAYS,
+            "items": catalog,
+            "temporaryItems": temporary_items,
+            "equippedItems": dict(equipped),
+        }
+
+    async def shop_catalog(self, user):
+        async with self.lock:
+            data = self._load()
+            profile = self._ensure_profile(data, user)
+            payload = self._shop_payload(profile)
+            self._save(data)
+            return payload
+
+    async def purchase_shop_item(self, user, item_id):
+        item = next((item for item in SHOP_CATALOG if item["id"] == item_id), None)
+        if not item:
+            raise CommunityError("Товар не найден")
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            profile = self._ensure_profile(data, user)
+            if item_id in profile["shop_purchases"]:
+                raise CommunityError("Этот предмет уже приобретён на 30 дней")
+            balance = int(profile.get("coins") or 0)
+            price = int(item["price"])
+            if balance < price:
+                raise CommunityError(f"Не хватает {price - balance} монет")
+            profile["coins"] = balance - price
+            expires_at = self._shop_expiry("monthly")
+            profile["shop_purchases"][item_id] = expires_at
+            profile["updated_at"] = _now_iso()
+            data["coin_transactions"].append({
+                "id": f"shop:{user_id}:{item_id}:{uuid.uuid4().hex[:8]}",
+                "user_id": user_id,
+                "amount": -price,
+                "kind": "shop_purchase",
+                "item_id": item_id,
+                "created_at": _now_iso(),
+            })
+            payload = self._shop_payload(profile)
+            payload.update({"purchased": True, "itemId": item_id})
+            self._save(data)
+            return payload
+
+    async def equip_shop_item(self, user, item_id, remove=False):
+        async with self.lock:
+            data = self._load()
+            profile = self._ensure_profile(data, user)
+            all_items = {item["id"]: item for item in SHOP_CATALOG}
+            all_items.update({item["id"]: item for item in DAILY_BATTLE_ITEMS.values()})
+            item = all_items.get(item_id)
+            if not item:
+                raise CommunityError("Предмет не найден")
+            owned = item_id in profile["shop_purchases"] or item_id in profile["temporary_items"]
+            if not owned:
+                raise CommunityError("Сначала приобретите этот предмет")
+            if remove:
+                if profile["equipped_items"].get(item["slot"]) == item_id:
+                    profile["equipped_items"].pop(item["slot"], None)
+            else:
+                profile["equipped_items"][item["slot"]] = item_id
+            profile["updated_at"] = _now_iso()
+            payload = self._shop_payload(profile)
+            self._save(data)
+            return payload
 
     async def award_training_coins(self, user, attempt_key):
         attempt_key = str(attempt_key or "").strip()
@@ -1161,13 +1349,15 @@ class CommunityStore:
             return
         best = max(player["score"] for player in battle["players"].values())
         winners = [uid for uid, player in battle["players"].items() if player["score"] == best]
+        battle["rewards"] = {}
         if len(winners) == 1:
             if self._is_bot(winners[0]):
                 battle["bonus_awarded"] = True
                 return
+            winner_id = winners[0]
             data["attempts"].append({
                 "attempt_key": f"battle-win:{battle['id']}",
-                "user_id": winners[0],
+                "user_id": winner_id,
                 "question_id": "battle-win",
                 "grade": battle["grade"],
                 "correct": True,
@@ -1175,7 +1365,56 @@ class CommunityStore:
                 "source": "battle_bonus",
                 "created_at": _now_iso(),
             })
+            profile = data["profiles"].get(winner_id)
+            if profile:
+                today_key = datetime.now(MOSCOW).date().isoformat()
+                earned_today = sum(
+                    int(item.get("amount") or 0)
+                    for item in data["coin_transactions"]
+                    if item.get("user_id") == winner_id
+                    and item.get("kind") == "battle_win"
+                    and self._period_key(item["created_at"], "day") == today_key
+                )
+                coin_reward = min(BATTLE_WIN_REWARD, max(0, BATTLE_DAILY_COIN_LIMIT - earned_today))
+                if coin_reward:
+                    profile["coins"] = int(profile.get("coins") or 0) + coin_reward
+                    data["coin_transactions"].append({
+                        "id": f"battle-win:{battle['id']}:{winner_id}",
+                        "user_id": winner_id,
+                        "amount": coin_reward,
+                        "kind": "battle_win",
+                        "battle_id": battle["id"],
+                        "created_at": _now_iso(),
+                    })
+
+                wins_today = 0
+                for candidate in data["battles"].values():
+                    if candidate.get("status") != "complete":
+                        continue
+                    completed_at = candidate.get("completed_at") or candidate.get("started_at") or candidate.get("created_at")
+                    if not completed_at or self._period_key(completed_at, "day") != today_key:
+                        continue
+                    scores = candidate.get("players", {})
+                    if len(scores) < 2:
+                        continue
+                    highest = max(player.get("score", 0) for player in scores.values())
+                    candidate_winners = [uid for uid, player in scores.items() if player.get("score", 0) == highest]
+                    if candidate_winners == [winner_id]:
+                        wins_today += 1
+
+                cosmetic = DAILY_BATTLE_ITEMS.get(wins_today)
+                if cosmetic:
+                    profile.setdefault("temporary_items", {})[cosmetic["id"]] = self._next_midnight_iso()
+                profile["updated_at"] = _now_iso()
+                battle["rewards"][winner_id] = {
+                    "coins": coin_reward,
+                    "dailyCoins": earned_today + coin_reward,
+                    "dailyLimit": BATTLE_DAILY_COIN_LIMIT,
+                    "winsToday": wins_today,
+                    "item": cosmetic,
+                }
         battle["bonus_awarded"] = True
+        battle["completed_at"] = battle.get("completed_at") or _now_iso()
 
     def _battle_view(self, data, battle, user_id, question_map):
         player_ids = list(battle["players"])
@@ -1213,7 +1452,56 @@ class CommunityStore:
             "opponent": public_player(opponent_id),
             "questions": questions if battle["status"] in {"active", "complete"} else [],
             "myAnswers": battle["players"][user_id]["answers"],
+            "reward": (battle.get("rewards") or {}).get(user_id, {"coins": 0}),
+            "coins": int((data["profiles"].get(user_id) or {}).get("coins") or 0),
         }
+
+    async def battle_stats(self, user):
+        user_id = self._user_id(user)
+        async with self.lock:
+            data = self._load()
+            profile = self._ensure_profile(data, user)
+            wins = draws = losses = 0
+            for battle in data["battles"].values():
+                if battle.get("status") != "complete" or user_id not in battle.get("players", {}):
+                    continue
+                players = battle["players"]
+                if len(players) < 2:
+                    continue
+                own_score = int(players[user_id].get("score") or 0)
+                other_scores = [int(player.get("score") or 0) for uid, player in players.items() if uid != user_id]
+                if not other_scores:
+                    continue
+                other_score = max(other_scores)
+                if own_score > other_score:
+                    wins += 1
+                elif own_score < other_score:
+                    losses += 1
+                else:
+                    draws += 1
+            total = wins + draws + losses
+            percent = lambda value: round((value * 100 / total), 1) if total else 0
+            today_key = datetime.now(MOSCOW).date().isoformat()
+            coins_today = sum(
+                int(item.get("amount") or 0)
+                for item in data["coin_transactions"]
+                if item.get("user_id") == user_id
+                and item.get("kind") == "battle_win"
+                and self._period_key(item["created_at"], "day") == today_key
+            )
+            self._save(data)
+            return {
+                "total": total,
+                "wins": wins,
+                "draws": draws,
+                "losses": losses,
+                "winPercent": percent(wins),
+                "drawPercent": percent(draws),
+                "lossPercent": percent(losses),
+                "coinsToday": coins_today,
+                "dailyCoinLimit": BATTLE_DAILY_COIN_LIMIT,
+                "coins": int(profile.get("coins") or 0),
+            }
 
     async def battle_state(self, user, battle_id, question_map):
         user_id = self._user_id(user)

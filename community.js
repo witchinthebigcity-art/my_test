@@ -15,6 +15,13 @@ const communityState = {
     battleInviteReturnScreen: 'friendsScreen',
     highlightedFriendRequestId: null,
     highlightedBattleInviteId: null,
+    shop: null,
+    shopDepartment: null,
+    shopPage: 0,
+    shopSwipeReady: false,
+    shopReturnScreen: 'mainMenu',
+    wardrobeTab: 'outfit',
+    equippedItems: {},
 };
 let pendingAvatarDataUrl = null;
 
@@ -34,28 +41,70 @@ async function communityRequest(url, options = {}) {
 function syncCoinBalance(balance) {
     coins = Number(balance || 0);
     localStorage.setItem('mathCoins', coins);
-    ['quizCoins', 'shopCoins', 'characterCoins'].forEach((id) => {
+    ['quizCoins', 'shopCoins', 'characterCoins', 'dailyCoins'].forEach((id) => {
         const element = document.getElementById(id);
         if (element) element.textContent = coins;
     });
 }
 
+function renderDailyLogin(payload) {
+    const banner = document.getElementById('dailyRewardBanner');
+    if (!banner) return;
+    banner.hidden = false;
+    syncCoinBalance(payload.coins);
+    const days = document.getElementById('dailyRewardDays');
+    days.replaceChildren();
+    (payload.schedule || []).forEach(({day, reward}) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'daily-day-button';
+        const isActive = day === payload.activeDay;
+        const isPast = payload.claimedToday ? day <= payload.activeDay : day < payload.activeDay;
+        button.classList.toggle('active', isActive && !payload.claimedToday);
+        button.classList.toggle('claimed', isPast || (isActive && payload.claimedToday));
+        button.disabled = !isActive || payload.claimedToday;
+        button.innerHTML = `<strong>День ${day}</strong><small>${isPast || (isActive && payload.claimedToday) ? '✓' : `+${reward}`}</small>`;
+        if (!button.disabled) button.addEventListener('click', claimDailyLogin);
+        days.appendChild(button);
+    });
+    document.getElementById('dailyRewardTitle').textContent = payload.claimedToday
+        ? `День ${payload.activeDay} уже получен`
+        : `День ${payload.activeDay} · +${payload.activeReward} монет`;
+    document.getElementById('dailyRewardText').textContent = payload.claimedToday
+        ? 'Следующая ячейка откроется завтра.'
+        : 'Нажмите на активный день, чтобы забрать награду.';
+}
+
+async function loadDailyLogin() {
+    if (!tg.initData) return;
+    try {
+        const payload = await communityRequest('/api/daily-login', {headers: telegramHeaders()});
+        renderDailyLogin(payload);
+    } catch (error) {
+        console.warn('Не удалось загрузить календарь входа:', error.message);
+    }
+}
+
 async function claimDailyLogin() {
     if (!tg.initData) return;
+    document.querySelectorAll('.daily-day-button').forEach((button) => { button.disabled = true; });
     try {
         const payload = await communityRequest('/api/daily-login', {
             method: 'POST',
             headers: telegramHeaders(true),
             body: '{}',
         });
-        syncCoinBalance(payload.coins);
+        renderDailyLogin(payload);
         if (payload.claimed) {
-            document.getElementById('dailyRewardTitle').textContent = `День ${payload.streak} · +${payload.reward} монет`;
-            document.getElementById('dailyRewardText').textContent = 'Награда за регулярный вход уже на балансе.';
-            document.getElementById('dailyRewardBanner').hidden = false;
+            const animation = document.getElementById('dailyRewardAnimation');
+            animation.textContent = `+${payload.reward} 🪙`;
+            animation.classList.remove('play');
+            void animation.offsetWidth;
+            animation.classList.add('play');
         }
     } catch (error) {
         console.warn('Не удалось начислить награду за вход:', error.message);
+        await loadDailyLogin();
     }
 }
 
@@ -175,6 +224,7 @@ async function openProfile(returnScreen = null) {
             profile.avatar_url
         );
         renderAwards(profile.awards || []);
+        await loadWardrobe();
         await loadCharacterCatalog();
         await loadProfileBattleInvites();
         setInlineMessage('profileMessage', '');
@@ -186,6 +236,68 @@ async function openProfile(returnScreen = null) {
 function returnFromProfile() {
     window.characterViewer?.dispose();
     showScreen(communityState.profileReturnScreen || (currentClass ? 'mainMenu' : 'classSelection'));
+}
+
+async function loadWardrobe() {
+    const list = document.getElementById('wardrobeList');
+    if (!list) return;
+    try {
+        const payload = await communityRequest('/api/shop', {headers: telegramHeaders()});
+        communityState.shop = payload;
+        communityState.equippedItems = payload.equippedItems || {};
+        syncCoinBalance(payload.coins);
+        renderWardrobe();
+    } catch (error) {
+        renderEmpty(list, error.message);
+    }
+}
+
+function setWardrobeTab(tab) {
+    communityState.wardrobeTab = tab;
+    document.querySelectorAll('[data-wardrobe]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.wardrobe === tab);
+    });
+    renderWardrobe();
+}
+
+function renderWardrobe() {
+    const list = document.getElementById('wardrobeList');
+    if (!list || !communityState.shop) return;
+    const allItems = [...(communityState.shop.items || []), ...(communityState.shop.temporaryItems || [])];
+    const items = allItems.filter((item) => item.owned && item.slot === communityState.wardrobeTab);
+    list.replaceChildren();
+    if (!items.length) {
+        renderEmpty(list, 'В этой категории пока ничего нет. Загляните в лавку.');
+        return;
+    }
+    items.forEach((item) => {
+        const card = document.createElement('article');
+        card.className = `wardrobe-item${item.equipped ? ' equipped' : ''}`;
+        const expires = item.ownedUntil ? new Date(item.ownedUntil).toLocaleDateString('ru-RU') : '';
+        card.innerHTML = `<span>${item.icon || '🎁'}</span><div><strong>${item.name}</strong><small>${item.temporary ? 'Награда до конца дня' : `Доступно до ${expires}`}</small></div>`;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'small-link-button';
+        button.textContent = item.equipped ? 'Снять' : item.slot === 'interior' ? 'Выбрать' : 'Надеть';
+        button.addEventListener('click', () => equipWardrobeItem(item));
+        card.appendChild(button);
+        list.appendChild(card);
+    });
+}
+
+async function equipWardrobeItem(item) {
+    try {
+        const payload = await communityRequest('/api/shop/equip', {
+            method: 'POST', headers: telegramHeaders(true),
+            body: JSON.stringify({itemId: item.id, remove: Boolean(item.equipped)}),
+        });
+        communityState.shop = payload;
+        communityState.equippedItems = payload.equippedItems || {};
+        renderWardrobe();
+        renderCharacterTumbler();
+    } catch (error) {
+        setInlineMessage('profileMessage', error.message, 'error');
+    }
 }
 
 async function loadCharacterCatalog() {
@@ -237,7 +349,11 @@ function renderCharacterTumbler() {
     const index = ((communityState.characterIndex % characters.length) + characters.length) % characters.length;
     communityState.characterIndex = index;
     const character = characters[index];
-    window.characterViewer?.mount(document.getElementById('characterStage'), character.style);
+    window.characterViewer?.mount(
+        document.getElementById('characterStage'),
+        character.style,
+        Object.values(communityState.equippedItems || {})
+    );
 
     const catalog = document.getElementById('characterCatalog');
     catalog.replaceChildren();
@@ -874,6 +990,8 @@ async function declineBattleInvite(inviteId) {
 async function openBattleById(battleId) {
     communityState.battleId = battleId;
     showScreen('battleScreen');
+    document.getElementById('battleFinishActions').hidden = true;
+    document.getElementById('battleBackButton').hidden = false;
     setInlineMessage('battleStatus', 'Открываем приглашённый баттл…');
     try {
         const battle = await communityRequest(`/api/battles/${battleId}`, {
@@ -954,10 +1072,134 @@ function closeChat() {
     openFriends();
 }
 
+async function openShop() {
+    const activeScreen = document.querySelector('.screen.active');
+    communityState.shopReturnScreen = activeScreen?.id === 'profileScreen'
+        ? 'profileScreen'
+        : (currentClass ? 'mainMenu' : 'classSelection');
+    showScreen('shopScreen');
+    closeShopDepartment();
+    setInlineMessage('shopMessage', 'Загружаем товары…');
+    try {
+        const payload = await communityRequest('/api/shop', {headers: telegramHeaders()});
+        communityState.shop = payload;
+        communityState.equippedItems = payload.equippedItems || {};
+        syncCoinBalance(payload.coins);
+        setInlineMessage('shopMessage', '');
+    } catch (error) {
+        setInlineMessage('shopMessage', error.message, 'error');
+    }
+}
+
+function returnFromShop() {
+    closeShopDepartment();
+    if (communityState.shopReturnScreen === 'profileScreen') openProfile(communityState.profileReturnScreen);
+    else showScreen(communityState.shopReturnScreen || (currentClass ? 'mainMenu' : 'classSelection'));
+}
+
+function closeShopDepartment() {
+    const panel = document.getElementById('shopDepartment');
+    if (panel) panel.hidden = true;
+    communityState.shopDepartment = null;
+}
+
+function openShopDepartment(department) {
+    if (!communityState.shop) {
+        setInlineMessage('shopMessage', 'Каталог ещё загружается…');
+        return;
+    }
+    communityState.shopDepartment = department;
+    communityState.shopPage = 0;
+    document.getElementById('shopDepartment').hidden = false;
+    const titles = {book: 'Книга с пособиями', magazine: 'Журнал одежды и интерьера', laptop: 'Интернет-магазин гаджетов'};
+    document.getElementById('shopDepartmentTitle').textContent = titles[department] || 'Каталог';
+    ensureShopSwipe();
+    renderShopPage();
+    document.getElementById('shopDepartment').scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+function ensureShopSwipe() {
+    if (communityState.shopSwipeReady) return;
+    const page = document.getElementById('shopDepartmentPages');
+    let pointerStart = null;
+    page.addEventListener('pointerdown', (event) => { pointerStart = event.clientX; });
+    page.addEventListener('pointerup', (event) => {
+        if (pointerStart === null) return;
+        const delta = event.clientX - pointerStart;
+        pointerStart = null;
+        if (Math.abs(delta) > 42) turnShopPage(delta < 0 ? 1 : -1);
+    });
+    page.addEventListener('pointercancel', () => { pointerStart = null; });
+    communityState.shopSwipeReady = true;
+}
+
+function shopDepartmentPages() {
+    const items = (communityState.shop?.items || []).filter((item) => item.department === communityState.shopDepartment);
+    const pageSize = communityState.shopDepartment === 'book' ? 1 : 2;
+    const pages = [];
+    for (let index = 0; index < items.length; index += pageSize) pages.push(items.slice(index, index + pageSize));
+    return pages;
+}
+
+function turnShopPage(direction) {
+    const pages = shopDepartmentPages();
+    if (!pages.length) return;
+    communityState.shopPage = (communityState.shopPage + direction + pages.length) % pages.length;
+    renderShopPage();
+}
+
+function renderShopPage() {
+    const pages = shopDepartmentPages();
+    const container = document.getElementById('shopDepartmentPages');
+    container.replaceChildren();
+    if (!pages.length) {
+        renderEmpty(container, 'В этом отделе товары скоро появятся.');
+        return;
+    }
+    communityState.shopPage = Math.min(communityState.shopPage, pages.length - 1);
+    pages[communityState.shopPage].forEach((item) => {
+        const card = document.createElement('article');
+        card.className = `shop-product shop-product-${communityState.shopDepartment}`;
+        const icon = document.createElement('span');
+        icon.className = 'shop-product-icon';
+        icon.textContent = item.icon;
+        const copy = document.createElement('div');
+        copy.innerHTML = `<strong>${item.name}</strong><p>${item.description}</p><small>${item.owned ? `Куплено до ${new Date(item.ownedUntil).toLocaleDateString('ru-RU')}` : 'Доступ на 30 дней'}</small>`;
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = item.owned ? 'btn btn-secondary' : 'btn';
+        action.textContent = item.owned ? 'Уже приобретено' : `Купить · ${item.price} 🪙`;
+        action.disabled = Boolean(item.owned);
+        action.addEventListener('click', () => purchaseShopItem(item));
+        card.append(icon, copy, action);
+        container.appendChild(card);
+    });
+    document.getElementById('shopPageNumber').textContent = `${communityState.shopPage + 1} / ${pages.length}`;
+}
+
+async function purchaseShopItem(item) {
+    setInlineMessage('shopMessage', `Покупаем «${item.name}»…`);
+    try {
+        const payload = await communityRequest('/api/shop/purchase', {
+            method: 'POST', headers: telegramHeaders(true),
+            body: JSON.stringify({itemId: item.id}),
+        });
+        communityState.shop = payload;
+        communityState.equippedItems = payload.equippedItems || {};
+        syncCoinBalance(payload.coins);
+        setInlineMessage('shopMessage', `«${item.name}» доступен 30 дней и добавлен в личный кабинет.`, 'success');
+        renderShopPage();
+    } catch (error) {
+        setInlineMessage('shopMessage', error.message, 'error');
+    }
+}
+
 function openBattle() {
     showScreen('battleScreen');
     document.getElementById('battleLobby').hidden = false;
     document.getElementById('battleGame').hidden = true;
+    document.getElementById('battleFinishActions').hidden = true;
+    document.getElementById('battleBackButton').hidden = false;
     setInlineMessage('battleStatus', '');
 }
 
@@ -997,15 +1239,20 @@ async function refreshBattle() {
 
 function handleBattleState(battle) {
     communityState.battle = battle;
+    if (Number.isFinite(Number(battle.coins))) syncCoinBalance(battle.coins);
     if (battle.status === 'waiting') {
         document.getElementById('battleLobby').hidden = false;
         document.getElementById('battleGame').hidden = true;
+        document.getElementById('battleFinishActions').hidden = true;
+        document.getElementById('battleBackButton').hidden = false;
         setInlineMessage('battleStatus', 'Ищем ученика вашего класса. Если за 20 секунд пара не найдётся, начнётся баттл с Матан-Ботом.');
         return;
     }
     if (battle.status === 'cancelled') {
         clearInterval(communityState.battlePoll);
         setInlineMessage('battleStatus', 'За 10 минут соперник не нашёлся. Попробуйте ещё раз позже.');
+        document.getElementById('battleFinishActions').hidden = false;
+        document.getElementById('battleBackButton').hidden = true;
         return;
     }
 
@@ -1090,18 +1337,24 @@ function renderBattleFinish(battle) {
     if (battle.status !== 'complete') {
         question.textContent = 'Ожидаем, пока соперник закончит свои пять заданий.';
     } else if (battle.me.score > battle.opponent.score) {
-        question.textContent = 'Победа! Вы получаете бонус рейтинга.';
+        const reward = battle.reward || {};
+        const coinText = reward.coins ? ` +${reward.coins} монет.` : ' Дневной лимит монет уже достигнут.';
+        const itemText = reward.item ? ` Награда до конца дня: ${reward.item.name}.` : '';
+        question.textContent = `Победа!${coinText}${itemText}`;
     } else if (battle.me.score < battle.opponent.score) {
         question.textContent = 'В этот раз победил соперник. Можно вызвать нового участника.';
     } else {
         question.textContent = 'Ничья — одинаковое количество правильных ответов.';
     }
-    if (battle.status === 'complete') clearInterval(communityState.battlePoll);
+    const complete = battle.status === 'complete';
+    document.getElementById('battleFinishActions').hidden = !complete;
+    document.getElementById('battleBackButton').hidden = complete;
+    if (complete) clearInterval(communityState.battlePoll);
 }
 
 document.getElementById('profileAvatarInput')?.addEventListener('change', handleProfileAvatarFile);
 
-document.addEventListener('DOMContentLoaded', claimDailyLogin);
+document.addEventListener('DOMContentLoaded', loadDailyLogin);
 
 async function openDeepLinkedView() {
     if (!tg.initData) return;
@@ -1136,7 +1389,37 @@ document.addEventListener('DOMContentLoaded', () => window.setTimeout(openDeepLi
 
 function leaveBattleScreen() {
     clearInterval(communityState.battlePoll);
-    showScreen('mainMenu');
+    communityState.battleId = null;
+    communityState.battle = null;
+    currentClass = null;
+    showScreen('classSelection');
+}
+
+async function openBattleStats() {
+    showScreen('battleStatsScreen');
+    setInlineMessage('battleStatsMessage', 'Загружаем статистику…');
+    try {
+        const stats = await communityRequest('/api/battle-stats', {headers: telegramHeaders()});
+        syncCoinBalance(stats.coins);
+        const summary = document.getElementById('battleStatsSummary');
+        summary.innerHTML = `
+            <article><strong>${stats.total}</strong><small>баттлов</small></article>
+            <article><strong>${stats.wins}</strong><small>побед</small></article>
+            <article><strong>${stats.draws}</strong><small>ничьих</small></article>
+            <article><strong>${stats.losses}</strong><small>поражений</small></article>`;
+        const bars = document.getElementById('battleStatsBars');
+        bars.replaceChildren();
+        [['Победы', stats.winPercent, 'win'], ['Ничьи', stats.drawPercent, 'draw'], ['Поражения', stats.lossPercent, 'loss']].forEach(([label, value, kind]) => {
+            const row = document.createElement('div');
+            row.className = `battle-stat-row battle-stat-${kind}`;
+            row.innerHTML = `<div><strong>${label}</strong><span>${value}%</span></div><div class="battle-stat-track"><i style="width:${value}%"></i></div>`;
+            bars.appendChild(row);
+        });
+        const left = Math.max(0, stats.dailyCoinLimit - stats.coinsToday);
+        setInlineMessage('battleStatsMessage', `Сегодня за победы: ${stats.coinsToday}/${stats.dailyCoinLimit} монет. Можно получить ещё ${left}.`, 'success');
+    } catch (error) {
+        setInlineMessage('battleStatsMessage', error.message, 'error');
+    }
 }
 
 function openEnrollment() {

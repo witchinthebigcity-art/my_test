@@ -35,7 +35,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "14"
+WEBAPP_VERSION = "15"
 ADMIN_ID = os.getenv("ADMIN_ID")
 PORT = int(os.getenv("PORT", 8080))
 QUESTIONS_CSV_URL = os.getenv(
@@ -503,6 +503,42 @@ async def claim_daily_login(request):
         return _community_error(error, status=401)
 
 
+async def get_daily_login(request):
+    try:
+        return web.json_response(await community_store.daily_login_status(_authenticated_user(request)))
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
+async def get_shop(request):
+    try:
+        return web.json_response(await community_store.shop_catalog(_authenticated_user(request)))
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
+async def purchase_shop_item(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await community_store.purchase_shop_item(
+            _authenticated_user(request), str(payload.get("itemId") or "")
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def equip_shop_item(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await community_store.equip_shop_item(
+            _authenticated_user(request),
+            str(payload.get("itemId") or ""),
+            bool(payload.get("remove")),
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
 async def award_training_coins(request):
     try:
         payload = await request.json()
@@ -837,6 +873,13 @@ async def get_battle(request):
         return _community_error(error, status=502)
 
 
+async def get_battle_stats(request):
+    try:
+        return web.json_response(await community_store.battle_stats(_authenticated_user(request)))
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
 async def answer_battle(request):
     try:
         user = _authenticated_user(request)
@@ -901,6 +944,10 @@ def create_app():
     application.router.add_get('/api/profile', get_profile)
     application.router.add_post('/api/profile', update_profile)
     application.router.add_post('/api/daily-login', claim_daily_login)
+    application.router.add_get('/api/daily-login', get_daily_login)
+    application.router.add_get('/api/shop', get_shop)
+    application.router.add_post('/api/shop/purchase', purchase_shop_item)
+    application.router.add_post('/api/shop/equip', equip_shop_item)
     application.router.add_post('/api/coins/training', award_training_coins)
     application.router.add_get('/api/characters', get_characters)
     application.router.add_post('/api/characters/select', select_character)
@@ -921,6 +968,7 @@ def create_app():
     application.router.add_post('/api/battle-invites/{invite_id}/decline', decline_battle_invite)
     application.router.add_post('/api/enrollments', create_enrollment)
     application.router.add_post('/api/battles/join', join_battle)
+    application.router.add_get('/api/battle-stats', get_battle_stats)
     application.router.add_get('/api/battles/{battle_id}', get_battle)
     application.router.add_post('/api/battles/{battle_id}/answer', answer_battle)
     return application

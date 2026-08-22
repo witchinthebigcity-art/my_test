@@ -62,7 +62,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=13">
+    <link rel="stylesheet" href="/app.css?v=15">
 </head>
 <body data-grade="8">
 
@@ -80,10 +80,13 @@
             <button class="btn btn-secondary" onclick="openProfile('classSelection')">👤 Личный кабинет</button>
             <button class="btn btn-secondary" onclick="openFriends('classSelection')">👥 Мои друзья</button>
         </div>
-        <div id="dailyRewardBanner" class="daily-reward-banner" hidden>
-            <span class="daily-reward-icon">🪙</span>
-            <div><strong id="dailyRewardTitle">Награда за вход</strong><small id="dailyRewardText"></small></div>
-            <button type="button" aria-label="Закрыть" onclick="this.parentElement.hidden=true">×</button>
+        <div id="dailyRewardBanner" class="daily-reward-panel" hidden>
+            <div class="daily-reward-heading">
+                <div><strong id="dailyRewardTitle">Награда за вход</strong><small id="dailyRewardText">Заберите монеты вручную.</small></div>
+                <strong class="daily-balance">🪙 <span id="dailyCoins">0</span></strong>
+            </div>
+            <div id="dailyRewardDays" class="daily-reward-days"></div>
+            <div id="dailyRewardAnimation" class="daily-coin-animation" aria-hidden="true">🪙</div>
         </div>
         <div id="classButtons" class="grade-grid"></div>
         <div class="secondary-actions">
@@ -186,6 +189,15 @@
             <div id="characterStage" class="character-stage"><p class="empty-state">Загружаем 3D-модель…</p></div>
             <div id="characterCatalogMessage" class="inline-message" hidden></div>
             <div id="characterCatalog" class="character-catalog"></div>
+        </section>
+        <section class="wardrobe-section">
+            <div class="section-heading"><h3>Гардероб и аксессуары</h3><button class="small-link-button" type="button" onclick="openShop()">В магазин</button></div>
+            <div id="wardrobeTabs" class="segmented-control wardrobe-tabs">
+                <button class="segment active" type="button" data-wardrobe="outfit" onclick="setWardrobeTab('outfit')">Одежда</button>
+                <button class="segment" type="button" data-wardrobe="accessory" onclick="setWardrobeTab('accessory')">Аксессуары</button>
+                <button class="segment" type="button" data-wardrobe="interior" onclick="setWardrobeTab('interior')">Интерьер</button>
+            </div>
+            <div id="wardrobeList" class="wardrobe-grid"><p class="empty-state">Приобретённые предметы появятся здесь.</p></div>
         </section>
         <section id="profileBattleInvitesSection" class="social-section" hidden>
             <div class="section-heading"><h3>Вызовы в баттл</h3></div>
@@ -297,7 +309,22 @@
             <div id="battleFeedback" class="inline-message" hidden></div>
             <button id="battleNextButton" class="btn" onclick="nextBattleQuestion()" hidden>Следующее задание</button>
         </div>
-        <button class="btn btn-secondary" onclick="leaveBattleScreen()">Назад</button>
+        <div id="battleFinishActions" class="battle-finish-actions" hidden>
+            <button class="btn" onclick="openShop()">Магазин</button>
+            <button class="btn btn-secondary" onclick="leaveBattleScreen()">Меню</button>
+            <button class="btn btn-secondary" onclick="openBattleStats()">Узнать статистику баттлов</button>
+        </div>
+        <button id="battleBackButton" class="btn btn-secondary" onclick="leaveBattleScreen()">Назад</button>
+    </div>
+
+    <div id="battleStatsScreen" class="screen">
+        <p class="eyebrow">История встреч</p>
+        <h2>Статистика баттлов</h2>
+        <div id="battleStatsSummary" class="battle-stats-summary"><p class="empty-state">Загружаем статистику…</p></div>
+        <div id="battleStatsBars" class="battle-stats-bars"></div>
+        <div id="battleStatsMessage" class="inline-message" hidden></div>
+        <button class="btn" onclick="leaveBattleScreen()">Главное меню</button>
+        <button class="btn btn-secondary" onclick="openBattle()">Новый баттл</button>
     </div>
 
     <div id="enrollmentScreen" class="screen">
@@ -366,9 +393,8 @@
         <p id="limitWarning" style="color: #ff4444; font-size: 12px; display: none;">Достигнут лимит монет (100/100). Приходи через <span id="timeToReset"></span> за новыми!</p>
         <div id="diagnosticSummary" class="diagnostic-summary" hidden></div>
         <div id="resultActions"></div>
-        <button id="resultShopButton" class="btn" onclick="openShop()">Перейти в магазин</button>
-        <button class="btn btn-secondary" onclick="showScreen('classSelection')">Поменять класс</button>
-        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
+        <button id="resultShopButton" class="btn" onclick="openShop()">Магазин</button>
+        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Меню</button>
     </div>
 
     <div id="theoryScreen" class="screen">
@@ -499,34 +525,29 @@
 
         <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад в меню</button>
     </div>
-    <div id="shopScreen" class="screen matrix-screen">
-        <div class="shop-counter">
-            <div>
-                <h2 style="margin: 0; text-align: center;">МАГАЗИН НАГРАД</h2>
-                <p style="text-align: center; margin: 5px 0;">🪙 Баланс: <span id="shopCoins">0</span></p>
+    <div id="shopScreen" class="screen cozy-shop-screen">
+        <div class="shop-heading">
+            <div><p class="eyebrow">Лавка редкостей</p><h2>Магазин наград</h2></div>
+            <strong class="shop-balance">🪙 <span id="shopCoins">0</span></strong>
+        </div>
+        <p class="supporting-text">Нажмите на книгу, журнал или ноутбук. Все покупки действуют 30 дней.</p>
+        <div class="cozy-shop-scene" aria-label="Интерактивная лавка">
+            <img src="/assets/cozy-shop-v1.png" alt="Уютная историческая лавка с продавщицей">
+            <button class="shop-hotspot shop-hotspot-book" type="button" aria-label="Открыть книгу с пособиями" onclick="openShopDepartment('book')"></button>
+            <button class="shop-hotspot shop-hotspot-magazine" type="button" aria-label="Открыть журнал одежды и интерьера" onclick="openShopDepartment('magazine')"></button>
+            <button class="shop-hotspot shop-hotspot-laptop" type="button" aria-label="Открыть интернет-магазин в ноутбуке" onclick="openShopDepartment('laptop')"></button>
+        </div>
+        <div id="shopDepartment" class="shop-department" hidden>
+            <div class="section-heading"><h3 id="shopDepartmentTitle">Каталог</h3><button class="small-link-button" type="button" onclick="closeShopDepartment()">Закрыть</button></div>
+            <div id="shopDepartmentPages" class="shop-page"></div>
+            <div class="shop-page-controls">
+                <button class="shop-page-arrow" type="button" onclick="turnShopPage(-1)" aria-label="Предыдущая страница">←</button>
+                <span id="shopPageNumber">1 / 1</span>
+                <button class="shop-page-arrow" type="button" onclick="turnShopPage(1)" aria-label="Следующая страница">→</button>
             </div>
+            <div id="shopMessage" class="inline-message" hidden></div>
         </div>
-        
-        <div class="shop-item matrix-shop">
-            <h3 style="color: #fff; margin-bottom: 5px;">🎁 Мини-гайд по темам</h3>
-            <p>30 🪙</p>
-            <button class="btn matrix-btn" onclick="buyItem(30)">Получить награду</button>
-        </div>
-
-        <div class="shop-item matrix-shop">
-            <h3 style="color: #fff; margin-bottom: 5px;">📜 Шпаргалка (PDF)</h3>
-            <p>50 🪙</p>
-            <button class="btn matrix-btn" onclick="buyItem(50)">Получить награду</button>
-        </div>
-
-        <div class="shop-item matrix-shop">
-            <h3 style="color: #fff; margin-bottom: 5px;">💎 Секретный файл 80+</h3>
-            <p>100 🪙</p>
-            <button class="btn matrix-btn" onclick="buyItem(100)">Получить награду</button>
-        </div>
-
-        <button class="btn matrix-btn" onclick="showScreen('mainMenu')" style="margin-bottom: 10px;">Вернуться в меню</button>
-        <button class="btn matrix-btn" onclick="goToChat()" style="border-color: #ff4444 !important; color: #ff4444 !important; box-shadow: 0 0 10px #ff4444;">Обратная связь / Чат</button>
+        <button class="btn btn-secondary" onclick="returnFromShop()">Вернуться назад</button>
     </div>
 <script>
     const tg = window.Telegram.WebApp;
@@ -536,10 +557,6 @@
     let coins = parseInt(localStorage.getItem('mathCoins')) || 0;
     let lives = 5;
     let userConsent = false; // Согласие по умолчанию
-function openShop() {
-    document.getElementById('shopCoins').innerText = coins; // Обновляем баланс
-    showScreen('shopScreen'); // Открываем экран
-}
     // Стилистика
     const classThemes = {
         8: {
@@ -707,30 +724,6 @@ const CHAT_SUPPORT = "https://t.me/+cR1lvAy5gNIxNDVi";
 const ADMIN_LS = "https://t.me/supertutor15";
 
 // --- ФУНКЦИИ ПЕРЕХОДОВ ---
-
-// Функция покупки в магазине
-function buyItem(price) {
-    if (coins >= price) {
-        tg.showConfirm(`Списать ${price} 🪙 за этот предмет?`, (ok) => {
-            if (ok) {
-                coins -= price;
-                localStorage.setItem('mathCoins', coins);
-                updateUI();
-                tg.showAlert("Оплата принята! Напиши мне в ЛС 'ХОЧУ ПОДАРОК' и я скину файл.");
-                // Открываем ЛС через небольшую паузу
-                setTimeout(() => { tg.openTelegramLink(ADMIN_LS); }, 1500);
-            }
-        });
-    } else {
-        tg.showPopup({
-            title: "Недостаточно монет",
-            message: `Тебе нужно еще ${price - coins} 🪙. Давай еще один тест?`,
-            buttons: [{id: 'yes', type: 'default', text: 'Погнали!'}, {type: 'cancel', text: 'Позже'}]
-        }, (btn) => {
-            if (btn === 'yes') showScreen('mainMenu');
-        });
-    }
-}
 
 // Замена старого reportError (для кнопки в теории и тестах)
 function handleErrorReport() {
@@ -1025,18 +1018,12 @@ function sendToForm(grade, topic, status) {
         const resultActions = document.getElementById('resultActions');
         resultActions.replaceChildren();
         const retryButton = document.createElement('button');
-        retryButton.className = 'btn';
+        retryButton.className = 'btn btn-secondary';
         if (window.diagnosticMode) {
             retryButton.textContent = 'Пройти диагностику ещё раз';
             retryButton.addEventListener('click', startDiagnostic);
-        } else if (quizMistakes.length > 0) {
-            retryButton.textContent = 'Пройти тест повторно (работа над ошибками)';
-            retryButton.addEventListener('click', startWorkOnErrors);
-        } else {
-            retryButton.textContent = 'Пройти ещё один тест';
-            retryButton.addEventListener('click', startPractice);
+            resultActions.appendChild(retryButton);
         }
-        resultActions.appendChild(retryButton);
         showScreen('resultScreen');
     }
 
@@ -1077,7 +1064,7 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=7"></script>
-<script src="/community.js?v=14"></script>
+<script src="/characters.js?v=8"></script>
+<script src="/community.js?v=15"></script>
 </body>
 </html>
