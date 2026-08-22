@@ -26,6 +26,19 @@ MONTHLY_AWARDS = {
     2: ("Серебряный призёр месяца", "🥈"),
     3: ("Бронзовый призёр месяца", "🥉"),
 }
+LOGIN_REWARDS = {1: 10, 2: 15, 3: 20, 4: 25, 5: 30, 6: 10, 7: 20}
+PREMIUM_CHARACTER_PRICES = (30, 40, 50, 100)
+CHARACTER_CATALOG = {
+    8: (
+        {"id": "g8-neon-runner", "name": "Неоновый спринтер", "base_price": 0, "style": "neon"},
+        {"id": "g8-basket-star", "name": "Баскет-звезда", "base_price": 0, "style": "basket"},
+        {"id": "g8-pixel-gamer", "name": "Пиксельная геймерша", "base_price": 0, "style": "pixel"},
+        {"id": "g8-pink-wave", "name": "Розовая волна", "base_price": None, "style": "pink-wave"},
+        {"id": "g8-white-street", "name": "Белый стрит", "base_price": None, "style": "white-street"},
+        {"id": "g8-aqua-pop", "name": "Аква-поп", "base_price": None, "style": "aqua-pop"},
+        {"id": "g8-turbo-bomber", "name": "Турбо-бомбер", "base_price": None, "style": "turbo"},
+    ),
+}
 MAX_AVATAR_BYTES = 600 * 1024
 BOT_WAIT_SECONDS = int(os.getenv("BATTLE_BOT_WAIT_SECONDS", "20"))
 BOT_PLAYER_ID = "__math_bot__"
@@ -148,7 +161,7 @@ def _now_iso():
 
 def _default_data():
     return {
-        "version": 2,
+        "version": 3,
         "profiles": {},
         "attempts": [],
         "awards": [],
@@ -156,6 +169,7 @@ def _default_data():
         "friendships": [],
         "messages": [],
         "battle_invites": [],
+        "coin_transactions": [],
         "enrollments": [],
     }
 
@@ -214,10 +228,22 @@ class CommunityStore:
             "leaderboard_consent": False,
             "grade": None,
             "public_id": uuid.uuid4().hex[:12],
+            "coins": 0,
+            "login_streak": 0,
+            "last_login_date": None,
+            "selected_characters": {},
+            "unlocked_characters": {},
+            "character_prices": {},
             "updated_at": _now_iso(),
         })
         profile.setdefault("public_id", uuid.uuid4().hex[:12])
         profile.setdefault("avatar_source", "telegram")
+        profile.setdefault("coins", 0)
+        profile.setdefault("login_streak", 0)
+        profile.setdefault("last_login_date", None)
+        profile.setdefault("selected_characters", {})
+        profile.setdefault("unlocked_characters", {})
+        profile.setdefault("character_prices", {})
         profile["telegram_avatar_url"] = user.get("photo_url", profile.get("telegram_avatar_url", ""))
         if user.get("photo_url") and profile.get("avatar_source") != "custom":
             profile["avatar_url"] = user["photo_url"]
@@ -279,6 +305,193 @@ class CommunityStore:
             profile["updated_at"] = _now_iso()
             self._save(data)
             return {**profile, "awards": [a for a in data["awards"] if a["user_id"] == self._user_id(user)]}
+
+    @staticmethod
+    def _catalog_for_grade(grade):
+        grade = int(grade)
+        if grade not in {8, 9, 10, 11}:
+            raise CommunityError("Выберите класс от 8 до 11")
+        return grade, CHARACTER_CATALOG.get(grade, ())
+
+    @staticmethod
+    def _ensure_character_prices(profile, grade, catalog):
+        grade_key = str(grade)
+        premium_ids = [item["id"] for item in catalog if item["base_price"] is None]
+        stored = profile["character_prices"].get(grade_key, {})
+        valid = (
+            set(stored) == set(premium_ids)
+            and sorted(int(value) for value in stored.values()) == sorted(PREMIUM_CHARACTER_PRICES)
+        )
+        if not valid and premium_ids:
+            prices = list(PREMIUM_CHARACTER_PRICES)
+            random.SystemRandom().shuffle(prices)
+            stored = dict(zip(premium_ids, prices))
+            profile["character_prices"][grade_key] = stored
+        return stored
+
+    @staticmethod
+    def _character_price(character, price_map):
+        return int(character["base_price"] if character["base_price"] is not None else price_map[character["id"]])
+
+    def _ensure_character_selection(self, profile, grade, catalog):
+        grade_key = str(grade)
+        available_ids = {item["id"] for item in catalog}
+        selected = profile["selected_characters"].get(grade_key)
+        if selected not in available_ids:
+            free_ids = [item["id"] for item in catalog if item["base_price"] == 0]
+            selected = random.SystemRandom().choice(free_ids) if free_ids else None
+            if selected:
+                profile["selected_characters"][grade_key] = selected
+        return selected
+
+    async def claim_daily_login(self, user):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            profile = self._ensure_profile(data, user)
+            today = datetime.now(MOSCOW).date()
+            today_key = today.isoformat()
+            if profile.get("last_login_date") == today_key:
+                self._save(data)
+                return {
+                    "claimed": False,
+                    "reward": 0,
+                    "streak": int(profile.get("login_streak") or 0),
+                    "coins": int(profile.get("coins") or 0),
+                }
+
+            is_consecutive = False
+            if profile.get("last_login_date"):
+                try:
+                    last_date = datetime.fromisoformat(profile["last_login_date"]).date()
+                    is_consecutive = last_date == today - timedelta(days=1)
+                except ValueError:
+                    pass
+            previous = int(profile.get("login_streak") or 0)
+            streak = (previous % 7) + 1 if is_consecutive else 1
+            reward = LOGIN_REWARDS[streak]
+            profile["login_streak"] = streak
+            profile["last_login_date"] = today_key
+            profile["coins"] = int(profile.get("coins") or 0) + reward
+            profile["updated_at"] = _now_iso()
+            data["coin_transactions"].append({
+                "id": f"login:{user_id}:{today_key}",
+                "user_id": user_id,
+                "amount": reward,
+                "kind": "daily_login",
+                "created_at": _now_iso(),
+            })
+            self._save(data)
+            return {"claimed": True, "reward": reward, "streak": streak, "coins": profile["coins"]}
+
+    async def award_training_coins(self, user, attempt_key):
+        attempt_key = str(attempt_key or "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9:_-]{8,160}", attempt_key):
+            raise CommunityError("Некорректный идентификатор тренировки")
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            profile = self._ensure_profile(data, user)
+            transaction_id = f"training:{user_id}:{attempt_key}"
+            if any(item.get("id") == transaction_id for item in data["coin_transactions"]):
+                return {"awarded": 0, "coins": int(profile.get("coins") or 0), "reason": "duplicate"}
+            today = datetime.now(MOSCOW).strftime("%Y-%m-%d")
+            earned_today = sum(
+                int(item.get("amount") or 0)
+                for item in data["coin_transactions"]
+                if item.get("user_id") == user_id
+                and item.get("kind") == "training"
+                and self._period_key(item["created_at"], "day") == today
+            )
+            reward = min(10, max(0, 50 - earned_today))
+            if reward:
+                profile["coins"] = int(profile.get("coins") or 0) + reward
+                data["coin_transactions"].append({
+                    "id": transaction_id,
+                    "user_id": user_id,
+                    "amount": reward,
+                    "kind": "training",
+                    "created_at": _now_iso(),
+                })
+                profile["updated_at"] = _now_iso()
+            self._save(data)
+            return {"awarded": reward, "coins": int(profile.get("coins") or 0)}
+
+    async def character_catalog(self, user, grade):
+        grade, catalog = self._catalog_for_grade(grade)
+        async with self.lock:
+            data = self._load()
+            profile = self._ensure_profile(data, user)
+            price_map = self._ensure_character_prices(profile, grade, catalog)
+            selected = self._ensure_character_selection(profile, grade, catalog)
+            unlocked = set(profile["unlocked_characters"].get(str(grade), []))
+            self._save(data)
+            return {
+                "grade": grade,
+                "coins": int(profile.get("coins") or 0),
+                "selectedId": selected,
+                "characters": [{
+                    "id": item["id"],
+                    "name": item["name"],
+                    "style": item["style"],
+                    "price": self._character_price(item, price_map),
+                    "owned": item["base_price"] == 0 or item["id"] in unlocked,
+                    "selected": item["id"] == selected,
+                } for item in catalog],
+            }
+
+    async def select_character(self, user, grade, character_id):
+        grade, catalog = self._catalog_for_grade(grade)
+        character = next((item for item in catalog if item["id"] == character_id), None)
+        if not character:
+            raise CommunityError("Персонаж не найден")
+        async with self.lock:
+            data = self._load()
+            profile = self._ensure_profile(data, user)
+            unlocked = set(profile["unlocked_characters"].get(str(grade), []))
+            if character["base_price"] is None and character_id not in unlocked:
+                raise CommunityError("Сначала откройте этого персонажа")
+            profile["selected_characters"][str(grade)] = character_id
+            profile["updated_at"] = _now_iso()
+            self._save(data)
+            return {"selectedId": character_id, "coins": int(profile.get("coins") or 0)}
+
+    async def purchase_character(self, user, grade, character_id):
+        grade, catalog = self._catalog_for_grade(grade)
+        character = next((item for item in catalog if item["id"] == character_id), None)
+        if not character or character["base_price"] is not None:
+            raise CommunityError("Этот персонаж доступен бесплатно")
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            profile = self._ensure_profile(data, user)
+            grade_key = str(grade)
+            price_map = self._ensure_character_prices(profile, grade, catalog)
+            price = self._character_price(character, price_map)
+            unlocked = set(profile["unlocked_characters"].get(grade_key, []))
+            if character_id in unlocked:
+                profile["selected_characters"][grade_key] = character_id
+                self._save(data)
+                return {"selectedId": character_id, "coins": int(profile.get("coins") or 0), "purchased": False}
+            balance = int(profile.get("coins") or 0)
+            if balance < price:
+                raise CommunityError(f"Не хватает {price - balance} монет")
+            profile["coins"] = balance - price
+            unlocked.add(character_id)
+            profile["unlocked_characters"][grade_key] = sorted(unlocked)
+            profile["selected_characters"][grade_key] = character_id
+            profile["updated_at"] = _now_iso()
+            data["coin_transactions"].append({
+                "id": uuid.uuid4().hex[:16],
+                "user_id": user_id,
+                "amount": -price,
+                "kind": "character_purchase",
+                "character_id": character_id,
+                "grade": grade,
+                "created_at": _now_iso(),
+            })
+            self._save(data)
+            return {"selectedId": character_id, "coins": profile["coins"], "purchased": True}
 
     def avatar_path(self, filename):
         if not re.fullmatch(r"[a-f0-9]{32}\.(?:jpg|png|webp)", str(filename or "")):
@@ -434,11 +647,19 @@ class CommunityStore:
 
     def _public_profile(self, data, target_id, viewer_id=None):
         profile = data["profiles"].get(target_id, {})
+        grade = profile.get("grade")
+        character_id = profile.get("selected_characters", {}).get(str(grade))
+        character = next(
+            (item for item in CHARACTER_CATALOG.get(grade, ()) if item["id"] == character_id),
+            None,
+        )
         public = {
             "publicId": profile.get("public_id"),
             "nickname": profile.get("nickname", "Участник"),
             "avatarUrl": profile.get("avatar_url", ""),
-            "grade": profile.get("grade"),
+            "grade": grade,
+            "characterId": character_id,
+            "characterStyle": character.get("style") if character else None,
             "friendshipStatus": self._friendship_status(data, viewer_id, target_id) if viewer_id else "none",
         }
         if profile.get("leaderboard_consent"):

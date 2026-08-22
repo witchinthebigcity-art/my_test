@@ -62,7 +62,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=8">
+    <link rel="stylesheet" href="/app.css?v=10">
 </head>
 <body data-grade="8">
 
@@ -79,6 +79,11 @@
         <div class="start-account-actions">
             <button class="btn btn-secondary" onclick="openProfile('classSelection')">👤 Личный кабинет</button>
             <button class="btn btn-secondary" onclick="openFriends('classSelection')">👥 Мои друзья</button>
+        </div>
+        <div id="dailyRewardBanner" class="daily-reward-banner" hidden>
+            <span class="daily-reward-icon">🪙</span>
+            <div><strong id="dailyRewardTitle">Награда за вход</strong><small id="dailyRewardText"></small></div>
+            <button type="button" aria-label="Закрыть" onclick="this.parentElement.hidden=true">×</button>
         </div>
         <div id="classButtons" class="grade-grid"></div>
         <div class="secondary-actions">
@@ -167,6 +172,10 @@
             <button class="btn btn-secondary" type="button" onclick="restoreTelegramAvatar()">Вернуть фото Telegram</button>
         </div>
         <p class="field-hint">Изображение автоматически обрежется до квадрата. Допустимы JPG, PNG и WebP.</p>
+        <label class="field-label" for="profileGrade">Класс участника</label>
+        <select id="profileGrade" class="text-field" onchange="handleProfileGradeChange()">
+            <option value="8">8 класс</option><option value="9">9 класс</option><option value="10">10 класс</option><option value="11">11 класс</option>
+        </select>
         <label class="field-label" for="profileNickname">Публичный никнейм</label>
         <input id="profileNickname" class="text-field" maxlength="24" placeholder="Например, Геометр_11">
         <label class="consent-card">
@@ -175,6 +184,13 @@
         </label>
         <div id="profileMessage" class="inline-message" hidden></div>
         <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
+        <section class="character-section">
+            <div class="section-heading"><h3>Мой персонаж</h3><strong class="character-balance">🪙 <span id="characterCoins">0</span></strong></div>
+            <p class="supporting-text">Проведите пальцем по модели, чтобы повернуть её. Бесплатные образы можно менять без ограничений.</p>
+            <div id="characterStage" class="character-stage"><p class="empty-state">Загружаем 3D-модель…</p></div>
+            <div id="characterCatalogMessage" class="inline-message" hidden></div>
+            <div id="characterCatalog" class="character-catalog"></div>
+        </section>
         <div class="section-heading"><h3>Мои награды</h3></div>
         <div id="awardShelf" class="award-grid"><p class="empty-state">Награды появятся после попадания в тройку лучших.</p></div>
         <button class="btn btn-secondary" onclick="returnFromProfile()">Назад</button>
@@ -226,6 +242,7 @@
     <div id="participantScreen" class="screen">
         <p class="eyebrow">Публичный профиль</p>
         <div id="participantCard" class="participant-profile"></div>
+        <div id="participantCharacterStage" class="character-stage participant-character-stage" hidden></div>
         <div id="participantStats" class="participant-stats"></div>
         <div id="participantAwards" class="award-grid"></div>
         <div id="participantActions" class="social-actions"></div>
@@ -901,6 +918,7 @@ function sendToForm(grade, topic, status) {
             if (!window.diagnosticMode) {
                 processCoins(10);
                 sessionCoinsEarned += 10;
+                awardServerTrainingCoins(currentAttemptKey);
             }
         } else {
             document.getElementById('feedbackTitle').innerText = "❌ Ошибка!";
@@ -1043,6 +1061,8 @@ function sendToForm(grade, topic, status) {
         renderMathInElement(document.body, { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     });
 </script>
-<script src="/community.js?v=8"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="/characters.js?v=1"></script>
+<script src="/community.js?v=10"></script>
 </body>
 </html>

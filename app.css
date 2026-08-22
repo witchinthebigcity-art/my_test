@@ -204,6 +204,22 @@ body::before {
 
 .start-account-actions .btn { min-height: 46px; margin: 0 !important; padding: 10px 12px !important; }
 
+.daily-reward-banner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    margin: 0 0 16px;
+    padding: 13px;
+    border: 1px solid color-mix(in srgb, #ffd66b 55%, var(--theme-border));
+    border-radius: 18px;
+    background: linear-gradient(120deg, rgba(255, 207, 86, .18), var(--surface-soft));
+}
+.daily-reward-banner[hidden] { display: none; }
+.daily-reward-banner small { display: block; margin-top: 3px; color: var(--text-muted); }
+.daily-reward-banner button { border: 0; background: transparent; color: var(--text-muted); font-size: 25px; cursor: pointer; }
+.daily-reward-icon { font-size: 29px; }
+
 .grade-card {
     position: relative;
     min-height: 148px;
@@ -429,6 +445,50 @@ details.theory-section summary { background: transparent !important; }
     border: 1px solid var(--theme-border);
     border-radius: 20px;
     background: var(--surface-soft);
+}
+
+.character-section { margin-top: 25px; }
+.character-balance { color: #ffd66b; white-space: nowrap; }
+.character-stage {
+    position: relative;
+    width: 100%;
+    height: min(62vw, 390px);
+    min-height: 300px;
+    margin: 16px 0 12px;
+    overflow: hidden;
+    border: 1px solid var(--theme-border);
+    border-radius: 24px;
+    background:
+        radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--theme-accent) 20%, transparent), transparent 42%),
+        linear-gradient(160deg, var(--surface-strong), var(--surface-soft));
+    touch-action: none;
+}
+.character-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+.participant-character-stage { min-height: 270px; margin-bottom: 16px; }
+.character-catalog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.character-option {
+    display: grid;
+    gap: 6px;
+    min-height: 108px;
+    padding: 12px;
+    border: 1px solid var(--theme-border);
+    border-radius: 17px;
+    background: var(--surface-soft);
+    color: var(--text-main);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.character-option strong { line-height: 1.25; }
+.character-option small { color: var(--text-muted); }
+.character-option .character-number { color: var(--theme-accent); font-size: 12px; font-weight: 850; }
+.character-option .btn { min-height: 42px; margin: 3px 0 0; padding: 9px 11px; font-size: 13px; }
+.character-option.selected { border-color: var(--theme-accent); box-shadow: inset 0 0 0 1px var(--theme-accent); }
+.character-option:not(.owned) { background: color-mix(in srgb, var(--surface-soft) 76%, #18151e); }
+
+@media (max-width: 390px) {
+    .start-account-actions,
+    .character-catalog { grid-template-columns: 1fr; }
 }
 
 .avatar-actions {

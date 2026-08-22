@@ -6,6 +6,7 @@ import os
 import tempfile
 import time
 import unittest
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 from community import (
@@ -208,6 +209,58 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state["grade"], 8)
         self.assertEqual(state["status"], "active")
         self.assertEqual((await self.store.get_profile(self.user_b))["grade"], 9)
+
+    async def test_daily_login_rewards_once_and_advances_streak(self):
+        first = await self.store.claim_daily_login(self.user_a)
+        self.assertTrue(first["claimed"])
+        self.assertEqual(first["reward"], 10)
+        self.assertEqual(first["coins"], 10)
+        repeated = await self.store.claim_daily_login(self.user_a)
+        self.assertFalse(repeated["claimed"])
+        self.assertEqual(repeated["coins"], 10)
+
+        with open(self.store.path, "r", encoding="utf-8") as source:
+            data = json.load(source)
+        data["profiles"]["1"]["last_login_date"] = (datetime.now().date() - timedelta(days=1)).isoformat()
+        data["profiles"]["1"]["login_streak"] = 1
+        with open(self.store.path, "w", encoding="utf-8") as target:
+            json.dump(data, target)
+        second_day = await self.store.claim_daily_login(self.user_a)
+        self.assertEqual(second_day["streak"], 2)
+        self.assertEqual(second_day["reward"], 15)
+
+    async def test_premium_character_prices_are_random_once_and_purchases_persist(self):
+        catalog = await self.store.character_catalog(self.user_a, 8)
+        self.assertEqual(len(catalog["characters"]), 7)
+        self.assertEqual(sum(item["owned"] for item in catalog["characters"]), 3)
+        premium = catalog["characters"][3:]
+        self.assertEqual(sorted(item["price"] for item in premium), [30, 40, 50, 100])
+        first_prices = {item["id"]: item["price"] for item in premium}
+        again = await self.store.character_catalog(self.user_a, 8)
+        self.assertEqual(first_prices, {item["id"]: item["price"] for item in again["characters"][3:]})
+
+        with open(self.store.path, "r", encoding="utf-8") as source:
+            data = json.load(source)
+        data["profiles"]["1"]["coins"] = 100
+        with open(self.store.path, "w", encoding="utf-8") as target:
+            json.dump(data, target)
+        cheapest = min(premium, key=lambda item: item["price"])
+        purchased = await self.store.purchase_character(self.user_a, 8, cheapest["id"])
+        self.assertTrue(purchased["purchased"])
+        self.assertEqual(purchased["coins"], 100 - cheapest["price"])
+        repeat = await self.store.purchase_character(self.user_a, 8, cheapest["id"])
+        self.assertFalse(repeat["purchased"])
+        self.assertEqual(repeat["coins"], purchased["coins"])
+
+    async def test_training_coins_are_idempotent_and_capped_at_fifty_per_day(self):
+        rewards = []
+        for index in range(6):
+            result = await self.store.award_training_coins(self.user_a, f"attempt:{index}:valid")
+            rewards.append(result["awarded"])
+        self.assertEqual(rewards, [10, 10, 10, 10, 10, 0])
+        duplicate = await self.store.award_training_coins(self.user_a, "attempt:0:valid")
+        self.assertEqual(duplicate["awarded"], 0)
+        self.assertEqual(duplicate["reason"], "duplicate")
 
 
 if __name__ == "__main__":

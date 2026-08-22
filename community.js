@@ -9,6 +9,8 @@ const communityState = {
     leaderboardPeriod: 'day',
     profileReturnScreen: 'mainMenu',
     friendsReturnScreen: 'mainMenu',
+    characterGrade: 8,
+    characterCatalog: [],
 };
 let pendingAvatarDataUrl = null;
 
@@ -23,6 +25,49 @@ async function communityRequest(url, options = {}) {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || payload.message || 'Не удалось выполнить запрос');
     return payload;
+}
+
+function syncCoinBalance(balance) {
+    coins = Number(balance || 0);
+    localStorage.setItem('mathCoins', coins);
+    ['quizCoins', 'shopCoins', 'characterCoins'].forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = coins;
+    });
+}
+
+async function claimDailyLogin() {
+    if (!tg.initData) return;
+    try {
+        const payload = await communityRequest('/api/daily-login', {
+            method: 'POST',
+            headers: telegramHeaders(true),
+            body: '{}',
+        });
+        syncCoinBalance(payload.coins);
+        if (payload.claimed) {
+            document.getElementById('dailyRewardTitle').textContent = `День ${payload.streak} · +${payload.reward} монет`;
+            document.getElementById('dailyRewardText').textContent = 'Награда за регулярный вход уже на балансе.';
+            document.getElementById('dailyRewardBanner').hidden = false;
+        }
+    } catch (error) {
+        console.warn('Не удалось начислить награду за вход:', error.message);
+    }
+}
+
+async function awardServerTrainingCoins(attemptKey) {
+    if (!tg.initData || !attemptKey) return;
+    try {
+        const payload = await communityRequest('/api/coins/training', {
+            method: 'POST',
+            headers: telegramHeaders(true),
+            body: JSON.stringify({attemptKey}),
+        });
+        syncCoinBalance(payload.coins);
+        if (!payload.awarded) document.getElementById('limitWarning').style.display = 'block';
+    } catch (error) {
+        console.warn('Не удалось синхронизировать монеты:', error.message);
+    }
 }
 
 function setInlineMessage(id, message, kind = 'info') {
@@ -117,6 +162,9 @@ async function openProfile(returnScreen = null) {
     setInlineMessage('profileMessage', 'Загружаем профиль…');
     try {
         const profile = await communityRequest('/api/profile', { headers: telegramHeaders() });
+        const profileGrade = Number(profile.grade || currentClass || 8);
+        communityState.characterGrade = profileGrade;
+        document.getElementById('profileGrade').value = String(profileGrade);
         document.getElementById('profileNickname').value = profile.nickname || '';
         document.getElementById('profilePreviewName').textContent = profile.nickname || 'Участник';
         document.getElementById('leaderboardConsent').checked = Boolean(profile.leaderboard_consent);
@@ -126,6 +174,7 @@ async function openProfile(returnScreen = null) {
             profile.avatar_url
         );
         renderAwards(profile.awards || []);
+        await loadCharacterCatalog(profileGrade);
         setInlineMessage('profileMessage', '');
     } catch (error) {
         setInlineMessage('profileMessage', error.message, 'error');
@@ -133,7 +182,130 @@ async function openProfile(returnScreen = null) {
 }
 
 function returnFromProfile() {
+    window.characterViewer?.dispose();
     showScreen(communityState.profileReturnScreen || (currentClass ? 'mainMenu' : 'classSelection'));
+}
+
+async function handleProfileGradeChange() {
+    const grade = Number(document.getElementById('profileGrade').value);
+    communityState.characterGrade = grade;
+    await loadCharacterCatalog(grade);
+}
+
+async function loadCharacterCatalog(grade) {
+    const catalog = document.getElementById('characterCatalog');
+    catalog.replaceChildren();
+    const loading = document.createElement('p');
+    loading.className = 'empty-state';
+    loading.textContent = 'Загружаем персонажей…';
+    catalog.appendChild(loading);
+    setInlineMessage('characterCatalogMessage', '');
+    try {
+        const payload = await communityRequest(`/api/characters?grade=${grade}`, {
+            headers: telegramHeaders(),
+        });
+        communityState.characterGrade = Number(payload.grade);
+        communityState.characterCatalog = payload.characters || [];
+        renderCharacterCatalog(payload);
+    } catch (error) {
+        window.characterViewer?.dispose();
+        document.getElementById('characterStage').replaceChildren();
+        renderEmpty(catalog, error.message);
+    }
+}
+
+function renderCharacterCatalog(payload) {
+    const catalog = document.getElementById('characterCatalog');
+    const coinsElement = document.getElementById('characterCoins');
+    coinsElement.textContent = payload.coins;
+    coins = Number(payload.coins || 0);
+    localStorage.setItem('mathCoins', coins);
+    const quizCoins = document.getElementById('quizCoins');
+    if (quizCoins) quizCoins.textContent = coins;
+    catalog.replaceChildren();
+
+    if (!payload.characters?.length) {
+        window.characterViewer?.dispose();
+        document.getElementById('characterStage').replaceChildren();
+        renderEmpty(catalog, `Персонажи для ${payload.grade} класса появятся в следующем обновлении.`);
+        return;
+    }
+
+    const selected = payload.characters.find((character) => character.selected)
+        || payload.characters.find((character) => character.id === payload.selectedId)
+        || payload.characters[0];
+    window.characterViewer?.mount(document.getElementById('characterStage'), selected.style);
+
+    payload.characters.forEach((character, index) => {
+        const card = document.createElement('article');
+        card.className = `character-option${character.selected ? ' selected' : ''}${character.owned ? ' owned' : ''}`;
+        const order = document.createElement('span');
+        order.className = 'character-number';
+        order.textContent = String(index + 1);
+        const copy = document.createElement('div');
+        const name = document.createElement('strong');
+        name.textContent = character.name;
+        const status = document.createElement('small');
+        status.textContent = character.selected
+            ? 'Выбран сейчас'
+            : character.owned
+                ? 'Доступен'
+                : `🪙 ${character.price}`;
+        copy.append(name, status);
+        const button = document.createElement('button');
+        button.className = character.selected ? 'btn btn-secondary' : 'btn';
+        button.type = 'button';
+        button.textContent = character.selected ? 'Выбран' : character.owned ? 'Выбрать' : 'Купить';
+        button.disabled = Boolean(character.selected);
+        button.addEventListener('click', () => {
+            if (character.owned) selectCharacter(character.id);
+            else confirmCharacterPurchase(character);
+        });
+        card.addEventListener('click', (event) => {
+            if (event.target !== button) window.characterViewer?.mount(document.getElementById('characterStage'), character.style);
+        });
+        card.append(order, copy, button);
+        catalog.appendChild(card);
+    });
+}
+
+async function selectCharacter(characterId) {
+    setInlineMessage('characterCatalogMessage', 'Меняем персонажа…');
+    try {
+        await communityRequest('/api/characters/select', {
+            method: 'POST',
+            headers: telegramHeaders(true),
+            body: JSON.stringify({grade: communityState.characterGrade, characterId}),
+        });
+        await loadCharacterCatalog(communityState.characterGrade);
+        setInlineMessage('characterCatalogMessage', 'Персонаж выбран', 'success');
+    } catch (error) {
+        setInlineMessage('characterCatalogMessage', error.message, 'error');
+    }
+}
+
+function confirmCharacterPurchase(character) {
+    const proceed = () => purchaseCharacter(character.id);
+    const message = `Открыть персонажа «${character.name}» за ${character.price} монет? Покупка останется навсегда.`;
+    if (typeof tg.showConfirm === 'function') tg.showConfirm(message, (confirmed) => confirmed && proceed());
+    else if (window.confirm(message)) proceed();
+}
+
+async function purchaseCharacter(characterId) {
+    setInlineMessage('characterCatalogMessage', 'Проверяем баланс…');
+    try {
+        const result = await communityRequest('/api/characters/purchase', {
+            method: 'POST',
+            headers: telegramHeaders(true),
+            body: JSON.stringify({grade: communityState.characterGrade, characterId}),
+        });
+        coins = Number(result.coins || 0);
+        localStorage.setItem('mathCoins', coins);
+        await loadCharacterCatalog(communityState.characterGrade);
+        setInlineMessage('characterCatalogMessage', result.purchased === false ? 'Персонаж уже был открыт' : 'Персонаж открыт навсегда!', 'success');
+    } catch (error) {
+        setInlineMessage('characterCatalogMessage', error.message, 'error');
+    }
 }
 
 async function saveProfile() {
@@ -145,7 +317,7 @@ async function saveProfile() {
             body: JSON.stringify({
                 nickname: document.getElementById('profileNickname').value,
                 leaderboardConsent: document.getElementById('leaderboardConsent').checked,
-                grade: currentClass,
+                grade: Number(document.getElementById('profileGrade').value),
                 avatarDataUrl: pendingAvatarDataUrl,
             }),
         });
@@ -157,6 +329,7 @@ async function saveProfile() {
             payload.avatar_url
         );
         renderAwards(payload.awards || []);
+        await loadCharacterCatalog(Number(payload.grade || 8));
         setInlineMessage('profileMessage', 'Профиль сохранён', 'success');
     } catch (error) {
         setInlineMessage('profileMessage', error.message, 'error');
@@ -432,6 +605,10 @@ async function openParticipant(publicId, returnScreen = 'friendsScreen') {
     document.getElementById('participantStats').replaceChildren();
     document.getElementById('participantAwards').replaceChildren();
     document.getElementById('participantActions').replaceChildren();
+    const characterStage = document.getElementById('participantCharacterStage');
+    characterStage.hidden = true;
+    characterStage.replaceChildren();
+    window.characterViewer?.dispose();
     setInlineMessage('participantMessage', '');
     try {
         const participant = await communityRequest(`/api/participants/${publicId}`, {
@@ -454,6 +631,14 @@ function renderParticipant(participant) {
     grade.textContent = participant.grade ? `${participant.grade} класс` : 'Класс пока не выбран';
     identity.append(title, grade);
     card.appendChild(identity);
+
+    const characterStage = document.getElementById('participantCharacterStage');
+    if (participant.characterStyle) {
+        characterStage.hidden = false;
+        window.characterViewer?.mount(characterStage, participant.characterStyle);
+    } else {
+        characterStage.hidden = true;
+    }
 
     const stats = document.getElementById('participantStats');
     stats.replaceChildren();
@@ -528,6 +713,7 @@ async function requestFriendFromProfile(publicId) {
 }
 
 function returnFromParticipant() {
+    window.characterViewer?.dispose();
     if (communityState.participantReturnScreen === 'leaderboardScreen') openLeaderboard(communityState.leaderboardPeriod);
     else openFriends();
 }
@@ -806,6 +992,8 @@ function renderBattleFinish(battle) {
 }
 
 document.getElementById('profileAvatarInput')?.addEventListener('change', handleProfileAvatarFile);
+
+document.addEventListener('DOMContentLoaded', claimDailyLogin);
 
 const deepLinkedBattleId = new URLSearchParams(window.location.search).get('battle');
 if (deepLinkedBattleId && /^[a-f0-9]{12}$/.test(deepLinkedBattleId)) {

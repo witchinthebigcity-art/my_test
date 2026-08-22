@@ -350,6 +350,10 @@ async def handle_community_script(request):
     return web.FileResponse('community.js', headers={"Cache-Control": "no-store, max-age=0"})
 
 
+async def handle_character_script(request):
+    return web.FileResponse('characters.js', headers={"Cache-Control": "no-store, max-age=0"})
+
+
 async def handle_math_script(request):
     return web.FileResponse('math-format.js', headers={"Cache-Control": "no-store, max-age=0"})
 
@@ -490,6 +494,52 @@ async def update_profile(request):
         return _community_error(error, status=422)
 
 
+async def claim_daily_login(request):
+    try:
+        return web.json_response(await community_store.claim_daily_login(_authenticated_user(request)))
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
+async def award_training_coins(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await community_store.award_training_coins(
+            _authenticated_user(request), payload.get("attemptKey")
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def get_characters(request):
+    try:
+        return web.json_response(await community_store.character_catalog(
+            _authenticated_user(request), int(request.query.get("grade") or 0)
+        ))
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+
+
+async def select_character(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await community_store.select_character(
+            _authenticated_user(request), payload.get("grade"), payload.get("characterId")
+        ))
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+
+
+async def purchase_character(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await community_store.purchase_character(
+            _authenticated_user(request), payload.get("grade"), payload.get("characterId")
+        ))
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+
+
 async def get_avatar(request):
     avatar_path = community_store.avatar_path(request.match_info.get("filename"))
     if not avatar_path:
@@ -521,7 +571,7 @@ async def _notify_social_user(user_id, text, button_text="Открыть при�
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
                 text=button_text,
                 web_app=WebAppInfo(url=(
-                    f"{WEBAPP_URL}?v=8&battle={battle_id}" if battle_id else f"{WEBAPP_URL}?v=8"
+                    f"{WEBAPP_URL}?v=10&battle={battle_id}" if battle_id else f"{WEBAPP_URL}?v=10"
                 )),
             )]]),
         )
@@ -817,6 +867,7 @@ def create_app():
     application.router.add_get('/', handle_index)
     application.router.add_get('/app.css', handle_styles)
     application.router.add_get('/community.js', handle_community_script)
+    application.router.add_get('/characters.js', handle_character_script)
     application.router.add_get('/math-format.js', handle_math_script)
     application.router.add_static('/assets/', 'assets', show_index=False)
     application.router.add_get('/api/questions', get_questions)
@@ -824,6 +875,11 @@ def create_app():
     application.router.add_get('/stats', get_stats)
     application.router.add_get('/api/profile', get_profile)
     application.router.add_post('/api/profile', update_profile)
+    application.router.add_post('/api/daily-login', claim_daily_login)
+    application.router.add_post('/api/coins/training', award_training_coins)
+    application.router.add_get('/api/characters', get_characters)
+    application.router.add_post('/api/characters/select', select_character)
+    application.router.add_post('/api/characters/purchase', purchase_character)
     application.router.add_get('/avatars/{filename}', get_avatar)
     application.router.add_get('/api/leaderboard', get_leaderboard)
     application.router.add_get('/api/participants/search', search_participants)
@@ -858,7 +914,7 @@ async def main():
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(
                 text="Прокачать матан",
-                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v=8"),
+                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v=10"),
             )
         )
     except (
