@@ -511,6 +511,201 @@ async def get_leaderboard(request):
         return _community_error(error)
 
 
+async def _notify_social_user(user_id, text, button_text="Открыть приложение", battle_id=None):
+    if not WEBAPP_URL:
+        return
+    try:
+        await bot.send_message(
+            int(user_id),
+            text,
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+                text=button_text,
+                web_app=WebAppInfo(url=(
+                    f"{WEBAPP_URL}?v=7&battle={battle_id}" if battle_id else f"{WEBAPP_URL}?v=7"
+                )),
+            )]]),
+        )
+    except (
+        ValueError,
+        TelegramBadRequest,
+        TelegramForbiddenError,
+        TelegramNetworkError,
+        TelegramServerError,
+    ):
+        pass
+
+
+async def get_participant(request):
+    try:
+        user = _authenticated_user(request)
+        return web.json_response(
+            await community_store.participant(user, request.match_info["public_id"])
+        )
+    except CommunityError as error:
+        return _community_error(error, status=404)
+
+
+async def search_participants(request):
+    try:
+        return web.json_response(await community_store.search_participants(
+            _authenticated_user(request), request.query.get("q", "")
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def get_friends(request):
+    try:
+        return web.json_response(await community_store.friends(_authenticated_user(request)))
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
+async def request_friend(request):
+    try:
+        user = _authenticated_user(request)
+        result = await community_store.request_friend(user, request.match_info["public_id"])
+        target_user_id = result.pop("targetUserId", None)
+        profile = await community_store.get_profile(user)
+        if target_user_id:
+            if result["status"] == "accepted":
+                text = f"✅ Вы и {profile.get('nickname', 'участник')} теперь друзья."
+                button = "Открыть друзей"
+            else:
+                text = f"👋 {profile.get('nickname', 'Участник')} хочет добавить вас в друзья."
+                button = "Посмотреть заявку"
+            await _notify_social_user(target_user_id, text, button)
+        return web.json_response(result)
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def accept_friend(request):
+    try:
+        user = _authenticated_user(request)
+        result = await community_store.accept_friend(user, request.match_info["request_id"])
+        target_user_id = result.pop("targetUserId", None)
+        profile = await community_store.get_profile(user)
+        if target_user_id:
+            await _notify_social_user(
+                target_user_id,
+                f"✅ {profile.get('nickname', 'Участник')} принял(а) вашу заявку в друзья.",
+                "Открыть друзей",
+            )
+        return web.json_response(result)
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def decline_friend(request):
+    try:
+        return web.json_response(await community_store.decline_friend(
+            _authenticated_user(request), request.match_info["request_id"]
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def get_messages(request):
+    try:
+        return web.json_response(await community_store.conversation(
+            _authenticated_user(request), request.match_info["public_id"]
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=403)
+
+
+async def send_message(request):
+    try:
+        user = _authenticated_user(request)
+        payload = await request.json()
+        result = await community_store.send_message(
+            user, request.match_info["public_id"], payload.get("text")
+        )
+        target_user_id = result.pop("targetUserId", None)
+        profile = await community_store.get_profile(user)
+        if target_user_id:
+            await _notify_social_user(
+                target_user_id,
+                f"💬 Новое сообщение от {profile.get('nickname', 'друга')}.",
+                "Открыть сообщения",
+            )
+        return web.json_response(result)
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def get_battle_invites(request):
+    try:
+        return web.json_response(await community_store.battle_invites(_authenticated_user(request)))
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
+async def create_battle_invite(request):
+    try:
+        user = _authenticated_user(request)
+        payload = await request.json()
+        result = await community_store.create_battle_invite(
+            user, payload.get("publicId"), payload.get("grade")
+        )
+        target_user_id = result.pop("targetUserId", None)
+        profile = await community_store.get_profile(user)
+        if target_user_id:
+            await _notify_social_user(
+                target_user_id,
+                f"⚔️ {profile.get('nickname', 'Друг')} приглашает вас в баттл за {int(payload.get('grade'))} класс.",
+                "Принять вызов",
+            )
+        return web.json_response(result)
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+
+
+async def accept_battle_invite(request):
+    try:
+        user = _authenticated_user(request)
+        invites = await community_store.battle_invites(user)
+        invite = next((
+            item for item in invites["incoming"]
+            if item["id"] == request.match_info["invite_id"]
+        ), None)
+        if not invite:
+            raise CommunityError("Приглашение в баттл не найдено или устарело")
+        questions = [
+            question for question in await _load_questions()
+            if question.grade == int(invite["grade"])
+        ]
+        result = await community_store.accept_battle_invite(
+            user, request.match_info["invite_id"], questions
+        )
+        target_user_id = result.pop("targetUserId", None)
+        profile = await community_store.get_profile(user)
+        if target_user_id:
+            await _notify_social_user(
+                target_user_id,
+                f"🔥 {profile.get('nickname', 'Друг')} принял(а) вызов. Баттл начался!",
+                "Открыть баттл",
+                battle_id=result["battleId"],
+            )
+        question_map = {question.question_id: question for question in questions}
+        state = await community_store.battle_state(user, result["battleId"], question_map)
+        return web.json_response(state)
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+    except (QuestionFormatError, aiohttp.ClientError, asyncio.TimeoutError) as error:
+        return _community_error(error, status=502)
+
+
+async def decline_battle_invite(request):
+    try:
+        return web.json_response(await community_store.decline_battle_invite(
+            _authenticated_user(request), request.match_info["invite_id"]
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
 async def create_enrollment(request):
     try:
         user = _authenticated_user(request)
@@ -631,6 +826,18 @@ def create_app():
     application.router.add_post('/api/profile', update_profile)
     application.router.add_get('/avatars/{filename}', get_avatar)
     application.router.add_get('/api/leaderboard', get_leaderboard)
+    application.router.add_get('/api/participants/search', search_participants)
+    application.router.add_get('/api/participants/{public_id}', get_participant)
+    application.router.add_get('/api/friends', get_friends)
+    application.router.add_post('/api/friends/{public_id}', request_friend)
+    application.router.add_post('/api/friend-requests/{request_id}/accept', accept_friend)
+    application.router.add_post('/api/friend-requests/{request_id}/decline', decline_friend)
+    application.router.add_get('/api/messages/{public_id}', get_messages)
+    application.router.add_post('/api/messages/{public_id}', send_message)
+    application.router.add_get('/api/battle-invites', get_battle_invites)
+    application.router.add_post('/api/battle-invites', create_battle_invite)
+    application.router.add_post('/api/battle-invites/{invite_id}/accept', accept_battle_invite)
+    application.router.add_post('/api/battle-invites/{invite_id}/decline', decline_battle_invite)
     application.router.add_post('/api/enrollments', create_enrollment)
     application.router.add_post('/api/battles/join', join_battle)
     application.router.add_get('/api/battles/{battle_id}', get_battle)
@@ -651,7 +858,7 @@ async def main():
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(
                 text="Прокачать матан",
-                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v=6"),
+                web_app=WebAppInfo(url=f"{WEBAPP_URL}?v=7"),
             )
         )
     except (

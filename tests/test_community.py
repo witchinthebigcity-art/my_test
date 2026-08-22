@@ -8,7 +8,14 @@ import time
 import unittest
 from urllib.parse import urlencode
 
-from community import CommunityError, CommunityStore, decode_avatar_data_url, validate_nickname, validate_telegram_init_data
+from community import (
+    CommunityError,
+    CommunityStore,
+    decode_avatar_data_url,
+    validate_message_text,
+    validate_nickname,
+    validate_telegram_init_data,
+)
 from questions import Question
 
 
@@ -46,6 +53,11 @@ class NicknameTests(unittest.TestCase):
         for value in ("f.u.c.k", "a-d-m-i-n", "пиздец"):
             with self.subTest(value=value), self.assertRaises(CommunityError):
                 validate_nickname(value)
+
+    def test_moderates_private_messages(self):
+        self.assertEqual(validate_message_text("  Привет!\nКак дела?  "), "Привет!\nКак дела?")
+        with self.assertRaises(CommunityError):
+            validate_message_text("ты мудак")
 
 
 class AvatarTests(unittest.TestCase):
@@ -142,6 +154,60 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         restored = await self.store.update_profile(self.user_a, {"useTelegramAvatar": True})
         self.assertEqual(restored["avatar_url"], self.user_a["photo_url"])
         self.assertFalse(os.path.exists(stored_path))
+
+    async def test_friend_requests_use_public_ids_and_hide_telegram_ids(self):
+        profile_a = await self.store.update_profile(
+            self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8}
+        )
+        profile_b = await self.store.update_profile(
+            self.user_b, {"nickname": "Геометр8", "leaderboardConsent": True, "grade": 8}
+        )
+        search = await self.store.search_participants(self.user_a, "Геометр")
+        self.assertEqual(search["entries"][0]["publicId"], profile_b["public_id"])
+        self.assertNotIn("user_id", search["entries"][0])
+        self.assertNotIn("username", search["entries"][0])
+
+        created = await self.store.request_friend(self.user_a, profile_b["public_id"])
+        self.assertEqual(created["status"], "pending")
+        incoming = await self.store.friends(self.user_b)
+        self.assertEqual(incoming["incoming"][0]["participant"]["publicId"], profile_a["public_id"])
+        await self.store.accept_friend(self.user_b, incoming["incoming"][0]["id"])
+        friends = await self.store.friends(self.user_a)
+        self.assertEqual(friends["friends"][0]["participant"]["friendshipStatus"], "friends")
+
+    async def test_messages_are_private_to_accepted_friends(self):
+        profile_b = await self.store.update_profile(
+            self.user_b, {"nickname": "Геометр8", "leaderboardConsent": True, "grade": 8}
+        )
+        with self.assertRaises(CommunityError):
+            await self.store.send_message(self.user_a, profile_b["public_id"], "Привет")
+
+        request = await self.store.request_friend(self.user_a, profile_b["public_id"])
+        await self.store.accept_friend(self.user_b, request["requestId"])
+        sent = await self.store.send_message(self.user_a, profile_b["public_id"], "Решим задачу?")
+        self.assertTrue(sent["message"]["mine"])
+        conversation = await self.store.conversation(self.user_b, (await self.store.get_profile(self.user_a))["public_id"])
+        self.assertEqual(conversation["messages"][0]["text"], "Решим задачу?")
+        self.assertFalse(conversation["messages"][0]["mine"])
+        self.assertNotIn("sender_id", conversation["messages"][0])
+
+    async def test_invited_friends_can_battle_across_different_grades(self):
+        profile_a = await self.store.update_profile(
+            self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8}
+        )
+        profile_b = await self.store.update_profile(
+            self.user_b, {"nickname": "Геометр9", "leaderboardConsent": True, "grade": 9}
+        )
+        request = await self.store.request_friend(self.user_a, profile_b["public_id"])
+        await self.store.accept_friend(self.user_b, request["requestId"])
+
+        invite = await self.store.create_battle_invite(self.user_a, profile_b["public_id"], 8)
+        accepted = await self.store.accept_battle_invite(self.user_b, invite["inviteId"], self.questions)
+        question_map = {question.question_id: question for question in self.questions}
+        state = await self.store.battle_state(self.user_b, accepted["battleId"], question_map)
+        self.assertEqual(state["grade"], 8)
+        self.assertEqual(state["status"], "active")
+        self.assertEqual((await self.store.get_profile(self.user_b))["grade"], 9)
 
 
 if __name__ == "__main__":

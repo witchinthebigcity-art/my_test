@@ -62,7 +62,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=6">
+    <link rel="stylesheet" href="/app.css?v=7">
 </head>
 <body data-grade="8">
 
@@ -122,6 +122,7 @@
             <button class="action-card" onclick="startPractice()"><span class="action-icon">✏️</span><span><strong>Начать тренировку</strong><small>Новая подборка из таблицы</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startDiagnostic()"><span class="action-icon">🧭</span><span><strong>Пробное тестирование</strong><small>Определить уровень и получить рекомендации</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openBattle()"><span class="action-icon">⚔️</span><span><strong>Баттлы</strong><small>Пять одинаковых задач против ученика своего класса</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" onclick="openFriends()"><span class="action-icon">👥</span><span><strong>Мои друзья</strong><small>Сообщения и личные вызовы в баттл</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openLeaderboard('day')"><span class="action-icon">🏅</span><span><strong>Рейтинг</strong><small>Лучшие результаты дня и месяца</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openTheory()"><span class="action-icon">📚</span><span><strong>Открыть теорию</strong><small>Формулы и короткие объяснения</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openShop()"><span class="action-icon">🎁</span><span><strong>Магазин наград</strong><small>Использовать заработанные монеты</small></span><span class="action-arrow">›</span></button>
@@ -166,7 +167,7 @@
         <input id="profileNickname" class="text-field" maxlength="24" placeholder="Например, Геометр_11">
         <label class="consent-card">
             <input id="leaderboardConsent" type="checkbox">
-            <span><strong>Участвовать в рейтинге и баттлах</strong><small>Другим участникам будут видны только никнейм, аватар и результат. Настройку можно отключить.</small></span>
+            <span><strong>Участвовать в рейтинге, друзьях и баттлах</strong><small>Другие смогут найти вас по никнейму и увидят только никнейм, аватар и результат. Настройку можно отключить.</small></span>
         </label>
         <div id="profileMessage" class="inline-message" hidden></div>
         <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
@@ -190,6 +191,55 @@
             <p><span>🏆</span> Чемпион месяца · Серебряный и бронзовый призёры месяца</p>
         </div>
         <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
+    </div>
+
+    <div id="friendsScreen" class="screen">
+        <p class="eyebrow">Ваш круг участников</p>
+        <h2>Мои друзья</h2>
+        <p class="supporting-text">Найдите участника по публичному никнейму. Писать сообщения и отправлять личные вызовы можно после принятия заявки.</p>
+        <div class="social-search">
+            <input id="friendSearchInput" class="text-field" maxlength="24" placeholder="Введите никнейм">
+            <button class="btn" type="button" onclick="searchParticipants()">Найти</button>
+        </div>
+        <div id="friendMessage" class="inline-message" hidden></div>
+        <div id="friendSearchResults" class="social-list"></div>
+
+        <section id="friendRequestsSection" class="social-section" hidden>
+            <div class="section-heading"><h3>Заявки в друзья</h3></div>
+            <div id="friendRequestsList" class="social-list"></div>
+        </section>
+        <section id="battleInvitesSection" class="social-section" hidden>
+            <div class="section-heading"><h3>Вызовы в баттл</h3></div>
+            <div id="battleInvitesList" class="social-list"></div>
+        </section>
+        <section class="social-section">
+            <div class="section-heading"><h3>Список друзей</h3></div>
+            <div id="friendsList" class="social-list"><p class="empty-state">Загружаем…</p></div>
+        </section>
+        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад</button>
+    </div>
+
+    <div id="participantScreen" class="screen">
+        <p class="eyebrow">Публичный профиль</p>
+        <div id="participantCard" class="participant-profile"></div>
+        <div id="participantStats" class="participant-stats"></div>
+        <div id="participantAwards" class="award-grid"></div>
+        <div id="participantActions" class="social-actions"></div>
+        <div id="participantMessage" class="inline-message" hidden></div>
+        <button class="btn btn-secondary" onclick="returnFromParticipant()">Назад</button>
+    </div>
+
+    <div id="chatScreen" class="screen chat-screen">
+        <p class="eyebrow">Личные сообщения</p>
+        <div id="chatParticipant" class="chat-participant"></div>
+        <div id="chatMessages" class="chat-messages"><p class="empty-state">Загружаем сообщения…</p></div>
+        <div id="chatMessage" class="inline-message" hidden></div>
+        <div class="chat-composer">
+            <textarea id="chatInput" class="text-field" maxlength="500" rows="2" placeholder="Напишите сообщение"></textarea>
+            <button class="btn" type="button" onclick="sendChatMessage()">Отправить</button>
+        </div>
+        <p class="field-hint">До 500 символов. Оскорбительные слова блокируются.</p>
+        <button class="btn btn-secondary" onclick="closeChat()">Назад к друзьям</button>
     </div>
 
     <div id="battleScreen" class="screen">
@@ -989,6 +1039,6 @@ function sendToForm(grade, topic, status) {
         renderMathInElement(document.body, { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
     });
 </script>
-<script src="/community.js?v=6"></script>
+<script src="/community.js?v=7"></script>
 </body>
 </html>

@@ -100,6 +100,25 @@ def validate_nickname(value):
     return nickname
 
 
+def validate_message_text(value):
+    message = unicodedata.normalize("NFKC", str(value or "")).strip()
+    message = "\n".join(line.strip() for line in message.splitlines())
+    message = re.sub(r"\n{3,}", "\n\n", message)
+    if not message:
+        raise CommunityError("Введите сообщение")
+    if len(message) > 500:
+        raise CommunityError("Сообщение должно быть не длиннее 500 символов")
+    if any(unicodedata.category(char) == "Cc" and char not in "\n\t" for char in message):
+        raise CommunityError("Сообщение содержит недопустимые символы")
+
+    folded = message.casefold().replace("ё", "е")
+    compact = re.sub(r"[\W_]+", "", folded, flags=re.UNICODE)
+    latinised = compact.translate(_CONFUSABLES)
+    if any(word in candidate for word in _FORBIDDEN for candidate in (folded, compact, latinised)):
+        raise CommunityError("Сообщение не прошло проверку. Уберите оскорбительные слова")
+    return message
+
+
 def decode_avatar_data_url(value):
     match = re.fullmatch(
         r"data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=\r\n]+)",
@@ -129,11 +148,14 @@ def _now_iso():
 
 def _default_data():
     return {
-        "version": 1,
+        "version": 2,
         "profiles": {},
         "attempts": [],
         "awards": [],
         "battles": {},
+        "friendships": [],
+        "messages": [],
+        "battle_invites": [],
         "enrollments": [],
     }
 
@@ -152,6 +174,16 @@ class CommunityStore:
         default = _default_data()
         for key, value in default.items():
             data.setdefault(key, value)
+        data["version"] = default["version"]
+        seen_public_ids = set()
+        for profile in data["profiles"].values():
+            public_id = str(profile.get("public_id") or "")
+            if not re.fullmatch(r"[a-f0-9]{12}", public_id) or public_id in seen_public_ids:
+                public_id = uuid.uuid4().hex[:12]
+                while public_id in seen_public_ids:
+                    public_id = uuid.uuid4().hex[:12]
+                profile["public_id"] = public_id
+            seen_public_ids.add(public_id)
         return data
 
     def _save(self, data):
@@ -181,8 +213,10 @@ class CommunityStore:
             "telegram_avatar_url": user.get("photo_url", ""),
             "leaderboard_consent": False,
             "grade": None,
+            "public_id": uuid.uuid4().hex[:12],
             "updated_at": _now_iso(),
         })
+        profile.setdefault("public_id", uuid.uuid4().hex[:12])
         profile.setdefault("avatar_source", "telegram")
         profile["telegram_avatar_url"] = user.get("photo_url", profile.get("telegram_avatar_url", ""))
         if user.get("photo_url") and profile.get("avatar_source") != "custom":
@@ -359,6 +393,7 @@ class CommunityStore:
                 profile = data["profiles"].get(user_id, {})
                 entry = {
                     "rank": rank,
+                    "publicId": profile.get("public_id"),
                     "nickname": profile.get("nickname", "Участник"),
                     "avatarUrl": profile.get("avatar_url", ""),
                     "score": result["score"],
@@ -369,6 +404,391 @@ class CommunityStore:
                     entry["award"] = {"name": award_names[rank][0], "icon": award_names[rank][1]}
                 entries.append(entry)
             return {"period": period, "periodKey": period_key, "entries": entries}
+
+    @staticmethod
+    def _find_user_by_public_id(data, public_id):
+        public_id = str(public_id or "")
+        return next((
+            (user_id, profile)
+            for user_id, profile in data["profiles"].items()
+            if profile.get("public_id") == public_id
+        ), (None, None))
+
+    @staticmethod
+    def _friendship_between(data, first_id, second_id):
+        return next((
+            item for item in reversed(data["friendships"])
+            if {item.get("sender_id"), item.get("receiver_id")} == {first_id, second_id}
+            and item.get("status") in {"pending", "accepted"}
+        ), None)
+
+    def _friendship_status(self, data, viewer_id, target_id):
+        if viewer_id == target_id:
+            return "self"
+        friendship = self._friendship_between(data, viewer_id, target_id)
+        if not friendship:
+            return "none"
+        if friendship["status"] == "accepted":
+            return "friends"
+        return "incoming" if friendship["receiver_id"] == viewer_id else "outgoing"
+
+    def _public_profile(self, data, target_id, viewer_id=None):
+        profile = data["profiles"].get(target_id, {})
+        public = {
+            "publicId": profile.get("public_id"),
+            "nickname": profile.get("nickname", "Участник"),
+            "avatarUrl": profile.get("avatar_url", ""),
+            "grade": profile.get("grade"),
+            "friendshipStatus": self._friendship_status(data, viewer_id, target_id) if viewer_id else "none",
+        }
+        if profile.get("leaderboard_consent"):
+            now = datetime.now(MOSCOW)
+            day_rank = dict(self._ranking(data, "day", now.strftime("%Y-%m-%d"))).get(target_id, {})
+            month_rank = dict(self._ranking(data, "month", now.strftime("%Y-%m"))).get(target_id, {})
+            completed = [
+                battle for battle in data["battles"].values()
+                if battle.get("status") == "complete" and target_id in battle.get("players", {})
+            ]
+            wins = 0
+            for battle in completed:
+                scores = [player.get("score", 0) for player in battle["players"].values()]
+                own_score = battle["players"][target_id].get("score", 0)
+                if scores and own_score == max(scores) and scores.count(max(scores)) == 1:
+                    wins += 1
+            public["stats"] = {
+                "dayScore": int(day_rank.get("score", 0)),
+                "monthScore": int(month_rank.get("score", 0)),
+                "battleWins": wins,
+            }
+            public["awards"] = [
+                {key: award[key] for key in ("period", "period_key", "rank", "name", "icon")}
+                for award in data["awards"]
+                if award.get("user_id") == target_id
+            ]
+        else:
+            public["stats"] = None
+            public["awards"] = []
+        return public
+
+    async def participant(self, user, public_id):
+        async with self.lock:
+            data = self._load()
+            viewer_id = self._user_id(user)
+            self._ensure_profile(data, user)
+            target_id, target = self._find_user_by_public_id(data, public_id)
+            friendship = self._friendship_between(data, viewer_id, target_id) if target_id else None
+            can_view_friend = friendship and friendship.get("status") == "accepted"
+            if not target_id or (
+                target_id != viewer_id
+                and not target.get("leaderboard_consent")
+                and not can_view_friend
+            ):
+                raise CommunityError("Профиль участника не найден")
+            self._finalise_awards(data)
+            self._save(data)
+            return self._public_profile(data, target_id, viewer_id)
+
+    async def search_participants(self, user, query):
+        query = unicodedata.normalize("NFKC", str(query or "")).strip().casefold()
+        if len(query) < 2:
+            raise CommunityError("Введите минимум 2 символа никнейма")
+        async with self.lock:
+            data = self._load()
+            viewer_id = self._user_id(user)
+            self._ensure_profile(data, user)
+            matches = []
+            for target_id, profile in data["profiles"].items():
+                if target_id == viewer_id or not profile.get("leaderboard_consent"):
+                    continue
+                if query not in str(profile.get("nickname", "")).casefold():
+                    continue
+                matches.append(self._public_profile(data, target_id, viewer_id))
+                if len(matches) >= 20:
+                    break
+            self._save(data)
+            return {"entries": matches}
+
+    async def friends(self, user):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            self._ensure_profile(data, user)
+            groups = {"friends": [], "incoming": [], "outgoing": []}
+            for item in data["friendships"]:
+                if user_id not in {item.get("sender_id"), item.get("receiver_id")}:
+                    continue
+                target_id = item["receiver_id"] if item["sender_id"] == user_id else item["sender_id"]
+                if target_id not in data["profiles"]:
+                    continue
+                record = {
+                    "id": item["id"],
+                    "createdAt": item["created_at"],
+                    "participant": self._public_profile(data, target_id, user_id),
+                }
+                if item["status"] == "accepted":
+                    groups["friends"].append(record)
+                elif item["status"] == "pending" and item["receiver_id"] == user_id:
+                    groups["incoming"].append(record)
+                elif item["status"] == "pending":
+                    groups["outgoing"].append(record)
+            self._save(data)
+            return groups
+
+    async def request_friend(self, user, target_public_id):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            self._ensure_profile(data, user)
+            target_id, target = self._find_user_by_public_id(data, target_public_id)
+            if not target_id or not target.get("leaderboard_consent"):
+                raise CommunityError("Профиль участника не найден")
+            if target_id == user_id:
+                raise CommunityError("Нельзя добавить в друзья самого себя")
+            existing = self._friendship_between(data, user_id, target_id)
+            if existing and existing["status"] == "accepted":
+                raise CommunityError("Этот участник уже у вас в друзьях")
+            if existing and existing["status"] == "pending":
+                if existing["receiver_id"] == user_id:
+                    existing["status"] = "accepted"
+                    existing["updated_at"] = _now_iso()
+                    self._save(data)
+                    return {"status": "accepted", "targetUserId": target_id}
+                raise CommunityError("Заявка уже отправлена")
+            request = {
+                "id": uuid.uuid4().hex[:12],
+                "sender_id": user_id,
+                "receiver_id": target_id,
+                "status": "pending",
+                "created_at": _now_iso(),
+                "updated_at": _now_iso(),
+            }
+            data["friendships"].append(request)
+            self._save(data)
+            return {"status": "pending", "requestId": request["id"], "targetUserId": target_id}
+
+    async def accept_friend(self, user, request_id):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            self._ensure_profile(data, user)
+            request = next((item for item in data["friendships"] if item.get("id") == request_id), None)
+            if not request or request.get("receiver_id") != user_id or request.get("status") != "pending":
+                raise CommunityError("Заявка в друзья не найдена")
+            request["status"] = "accepted"
+            request["updated_at"] = _now_iso()
+            self._save(data)
+            return {"status": "accepted", "targetUserId": request["sender_id"]}
+
+    async def decline_friend(self, user, request_id):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            request = next((item for item in data["friendships"] if item.get("id") == request_id), None)
+            if not request or request.get("receiver_id") != user_id or request.get("status") != "pending":
+                raise CommunityError("Заявка в друзья не найдена")
+            request["status"] = "declined"
+            request["updated_at"] = _now_iso()
+            self._save(data)
+            return {"status": "declined"}
+
+    def _require_friend(self, data, user_id, target_id):
+        friendship = self._friendship_between(data, user_id, target_id)
+        if not friendship or friendship.get("status") != "accepted":
+            raise CommunityError("Сначала добавьте участника в друзья")
+        return friendship
+
+    async def conversation(self, user, target_public_id):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            self._ensure_profile(data, user)
+            target_id, _target = self._find_user_by_public_id(data, target_public_id)
+            if not target_id:
+                raise CommunityError("Участник не найден")
+            self._require_friend(data, user_id, target_id)
+            messages = [
+                item for item in data["messages"]
+                if {item.get("sender_id"), item.get("receiver_id")} == {user_id, target_id}
+            ][-100:]
+            changed = False
+            now = _now_iso()
+            for item in messages:
+                if item["receiver_id"] == user_id and not item.get("read_at"):
+                    item["read_at"] = now
+                    changed = True
+            if changed:
+                self._save(data)
+            return {
+                "participant": self._public_profile(data, target_id, user_id),
+                "messages": [{
+                    "id": item["id"],
+                    "text": item["text"],
+                    "createdAt": item["created_at"],
+                    "mine": item["sender_id"] == user_id,
+                    "read": bool(item.get("read_at")),
+                } for item in messages],
+            }
+
+    async def send_message(self, user, target_public_id, raw_text):
+        text = validate_message_text(raw_text)
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            self._ensure_profile(data, user)
+            target_id, _target = self._find_user_by_public_id(data, target_public_id)
+            if not target_id:
+                raise CommunityError("Участник не найден")
+            self._require_friend(data, user_id, target_id)
+            cutoff = datetime.now(MOSCOW) - timedelta(seconds=30)
+            recent = [
+                item for item in data["messages"]
+                if item.get("sender_id") == user_id
+                and datetime.fromisoformat(item["created_at"]).astimezone(MOSCOW) >= cutoff
+            ]
+            if len(recent) >= 5:
+                raise CommunityError("Слишком много сообщений. Подождите немного")
+            message = {
+                "id": uuid.uuid4().hex[:16],
+                "sender_id": user_id,
+                "receiver_id": target_id,
+                "text": text,
+                "created_at": _now_iso(),
+                "read_at": None,
+            }
+            data["messages"].append(message)
+            data["messages"] = data["messages"][-5000:]
+            self._save(data)
+            return {
+                "message": {
+                    "id": message["id"], "text": text, "createdAt": message["created_at"],
+                    "mine": True, "read": False,
+                },
+                "targetUserId": target_id,
+            }
+
+    def _expire_battle_invites(self, data):
+        now = datetime.now(MOSCOW)
+        for invite in data["battle_invites"]:
+            if invite.get("status") != "pending":
+                continue
+            created = datetime.fromisoformat(invite["created_at"]).astimezone(MOSCOW)
+            if now - created > timedelta(hours=24):
+                invite["status"] = "expired"
+
+    async def battle_invites(self, user):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            self._ensure_profile(data, user)
+            self._expire_battle_invites(data)
+            groups = {"incoming": [], "outgoing": []}
+            for invite in data["battle_invites"]:
+                if invite.get("status") != "pending" or user_id not in {invite["sender_id"], invite["receiver_id"]}:
+                    continue
+                target_id = invite["sender_id"] if invite["receiver_id"] == user_id else invite["receiver_id"]
+                entry = {
+                    "id": invite["id"],
+                    "grade": invite["grade"],
+                    "createdAt": invite["created_at"],
+                    "participant": self._public_profile(data, target_id, user_id),
+                }
+                key = "incoming" if invite["receiver_id"] == user_id else "outgoing"
+                groups[key].append(entry)
+            self._save(data)
+            return groups
+
+    async def create_battle_invite(self, user, target_public_id, grade):
+        grade = int(grade)
+        if grade not in {8, 9, 10, 11}:
+            raise CommunityError("Выберите класс от 8 до 11")
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            profile = self._ensure_profile(data, user)
+            target_id, target = self._find_user_by_public_id(data, target_public_id)
+            if not target_id:
+                raise CommunityError("Участник не найден")
+            self._require_friend(data, user_id, target_id)
+            if not profile.get("leaderboard_consent") or not target.get("leaderboard_consent"):
+                raise CommunityError("Оба участника должны включить участие в баттлах")
+            profile["grade"] = grade
+            self._expire_battle_invites(data)
+            duplicate = next((
+                item for item in data["battle_invites"]
+                if item.get("status") == "pending"
+                and {item["sender_id"], item["receiver_id"]} == {user_id, target_id}
+            ), None)
+            if duplicate:
+                raise CommunityError("Приглашение в баттл уже отправлено")
+            invite = {
+                "id": uuid.uuid4().hex[:12],
+                "sender_id": user_id,
+                "receiver_id": target_id,
+                "grade": grade,
+                "status": "pending",
+                "created_at": _now_iso(),
+                "updated_at": _now_iso(),
+                "battle_id": None,
+            }
+            data["battle_invites"].append(invite)
+            self._save(data)
+            return {"status": "pending", "inviteId": invite["id"], "targetUserId": target_id}
+
+    async def accept_battle_invite(self, user, invite_id, questions):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            profile = self._ensure_profile(data, user)
+            self._expire_battle_invites(data)
+            invite = next((item for item in data["battle_invites"] if item.get("id") == invite_id), None)
+            if not invite or invite.get("receiver_id") != user_id or invite.get("status") != "pending":
+                raise CommunityError("Приглашение в баттл не найдено или устарело")
+            sender_id = invite["sender_id"]
+            sender = data["profiles"].get(sender_id, {})
+            self._require_friend(data, user_id, sender_id)
+            if not profile.get("leaderboard_consent") or not sender.get("leaderboard_consent"):
+                raise CommunityError("Оба участника должны включить участие в баттлах")
+            grade = int(invite["grade"])
+            if len(questions) < 5:
+                raise CommunityError("Для баттла нужно минимум 5 заданий этого класса")
+            for battle in data["battles"].values():
+                active_players = set(battle.get("players", {})) if battle.get("status") in {"waiting", "active"} else set()
+                if {user_id, sender_id} & active_players:
+                    raise CommunityError("Один из участников уже находится в активном баттле")
+            selected = random.SystemRandom().sample(questions, 5)
+            battle_id = uuid.uuid4().hex[:12]
+            data["battles"][battle_id] = {
+                "id": battle_id,
+                "grade": grade,
+                "status": "active",
+                "question_ids": [question.question_id for question in selected],
+                "players": {
+                    sender_id: {"score": 0, "answers": {}, "finished_at": None},
+                    user_id: {"score": 0, "answers": {}, "finished_at": None},
+                },
+                "created_at": _now_iso(),
+                "started_at": _now_iso(),
+                "bonus_awarded": False,
+                "invite_id": invite["id"],
+            }
+            invite["status"] = "accepted"
+            invite["battle_id"] = battle_id
+            invite["updated_at"] = _now_iso()
+            self._save(data)
+            return {"battleId": battle_id, "targetUserId": sender_id}
+
+    async def decline_battle_invite(self, user, invite_id):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            self._expire_battle_invites(data)
+            invite = next((item for item in data["battle_invites"] if item.get("id") == invite_id), None)
+            if not invite or invite.get("receiver_id") != user_id or invite.get("status") != "pending":
+                raise CommunityError("Приглашение в баттл не найдено или устарело")
+            invite["status"] = "declined"
+            invite["updated_at"] = _now_iso()
+            self._save(data)
+            return {"status": "declined"}
 
     async def create_enrollment(self, user, payload):
         grade = int(payload.get("grade") or 0)
