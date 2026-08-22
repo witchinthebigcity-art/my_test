@@ -8,7 +8,7 @@ import aiohttp
 import certifi
 from aiohttp import web
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.types import (
     BotCommand,
@@ -28,6 +28,7 @@ from aiogram.exceptions import (
 )
 
 from community import CommunityError, CommunityStore, validate_telegram_init_data
+from drive_questions import fetch_public_drive_index, parse_drive_index
 from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 
 # === НАСТРОЙКИ ===
@@ -41,6 +42,10 @@ QUESTIONS_CSV_URL = os.getenv(
 )
 QUESTIONS_CACHE_TTL = int(os.getenv("QUESTIONS_CACHE_TTL", "60"))
 LOCAL_IMAGE_QUESTIONS_FILE = os.getenv("LOCAL_IMAGE_QUESTIONS_FILE", "image_questions.csv")
+DRIVE_INDEX_URL = os.getenv("DRIVE_INDEX_URL", "").strip()
+DRIVE_ROOT_FOLDER_ID = os.getenv(
+    "DRIVE_ROOT_FOLDER_ID", "1CIagfcGHZO_Sdk2G1QysBNg-rX06c_-r"
+).strip()
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -139,14 +144,86 @@ async def start(message: types.Message):
 @dp.message(Command("admin"))
 async def admin_panel(message: types.Message):
     if str(message.from_user.id) == str(ADMIN_ID):
+        markup = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text="🔄 Обновить базу заданий",
+                callback_data="admin_refresh_questions",
+            )
+        ]])
         await message.answer(
             "🛠 Панель администратора\n\n"
             "1. Отправьте боту готовое сообщение: текст, фото, видео, аудио или голосовое.\n"
             "2. Ответьте на это сообщение командой /sendall или /all.\n\n"
             "Также можно отправить: /sendall текст сообщения\n"
             "/users — количество и список пользователей\n"
-            "/delete_last — удалить последнюю рассылку у получателей"
+            "/delete_last — удалить последнюю рассылку у получателей\n"
+            "/refresh — обновить Google Таблицу и изображения",
+            reply_markup=markup,
         )
+
+
+def _question_counts(questions):
+    counts = {}
+    for grade in sorted(SUPPORTED_GRADES):
+        grade_questions = [question for question in questions if question.grade == grade]
+        images = sum(bool(question.image_url) for question in grade_questions)
+        counts[grade] = {
+            "total": len(grade_questions),
+            "images": images,
+            "text": len(grade_questions) - images,
+        }
+    return counts
+
+
+async def _refresh_questions_for_admin(message):
+    try:
+        questions = await _load_questions(force=True)
+        counts = _question_counts(questions)
+        source_status = (
+            "Google Таблица и папки Google Drive"
+            if DRIVE_INDEX_URL or DRIVE_ROOT_FOLDER_ID
+            else "Google Таблица; папки Google Drive не подключены"
+        )
+        lines = [
+            f"{grade} класс: {values['total']} "
+            f"(текстовых: {values['text']}, с картинкой: {values['images']})"
+            for grade, values in counts.items()
+        ]
+        await message.answer(
+            "✅ База заданий обновлена\n\n"
+            + "\n".join(lines)
+            + f"\n\nИсточник: {source_status}."
+        )
+    except (
+        QuestionFormatError,
+        aiohttp.ClientError,
+        asyncio.TimeoutError,
+        OSError,
+        ValueError,
+    ) as error:
+        await message.answer(
+            "⚠ Не удалось обновить базу. Рабочая версия сохранена без изменений.\n\n"
+            f"Причина: {error}"
+        )
+
+
+@dp.message(Command("refresh"))
+async def refresh_questions_command(message: types.Message):
+    if str(message.from_user.id) != str(ADMIN_ID):
+        await message.answer("Эта команда доступна только администратору.")
+        return
+    await message.answer("⏳ Проверяю Google Таблицу и папки с изображениями…")
+    await _refresh_questions_for_admin(message)
+
+
+@dp.callback_query(F.data == "admin_refresh_questions")
+async def refresh_questions_button(callback: types.CallbackQuery):
+    if str(callback.from_user.id) != str(ADMIN_ID):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    await callback.answer("Обновление запущено")
+    await callback.message.answer("⏳ Проверяю Google Таблицу и папки с изображениями…")
+    await _refresh_questions_for_admin(callback.message)
 
 
 @dp.message(Command("sendall", "all"))
@@ -286,19 +363,34 @@ def _community_error(error, status=400):
     return web.json_response({"error": str(error)}, status=status)
 
 
-async def _load_questions():
+async def _load_questions(force=False):
     now = time.monotonic()
-    if questions_cache["items"] and now - questions_cache["loaded_at"] < QUESTIONS_CACHE_TTL:
+    manual_refresh_enabled = bool(DRIVE_INDEX_URL or DRIVE_ROOT_FOLDER_ID)
+    if (
+        not force
+        and questions_cache["items"]
+        and (
+            manual_refresh_enabled
+            or now - questions_cache["loaded_at"] < QUESTIONS_CACHE_TTL
+        )
+    ):
         return questions_cache["items"]
 
     async with questions_cache_lock:
         now = time.monotonic()
-        if questions_cache["items"] and now - questions_cache["loaded_at"] < QUESTIONS_CACHE_TTL:
+        if (
+            not force
+            and questions_cache["items"]
+            and (
+                manual_refresh_enabled
+                or now - questions_cache["loaded_at"] < QUESTIONS_CACHE_TTL
+            )
+        ):
             return questions_cache["items"]
 
         separator = "&" if "?" in QUESTIONS_CSV_URL else "?"
         cache_busted_url = f"{QUESTIONS_CSV_URL}{separator}t={int(time.time())}"
-        timeout = aiohttp.ClientTimeout(total=15)
+        timeout = aiohttp.ClientTimeout(total=30)
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         connector = aiohttp.TCPConnector(ssl=ssl_context)
         async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
@@ -306,10 +398,33 @@ async def _load_questions():
                 response.raise_for_status()
                 csv_text = await response.text()
 
+            drive_payload = None
+            if DRIVE_INDEX_URL:
+                drive_separator = "&" if "?" in DRIVE_INDEX_URL else "?"
+                drive_url = f"{DRIVE_INDEX_URL}{drive_separator}t={int(time.time())}"
+                async with session.get(drive_url) as response:
+                    response.raise_for_status()
+                    drive_payload = await response.json(content_type=None)
+            elif DRIVE_ROOT_FOLDER_ID:
+                try:
+                    drive_payload = await fetch_public_drive_index(
+                        session, DRIVE_ROOT_FOLDER_ID
+                    )
+                except (QuestionFormatError, aiohttp.ClientError, asyncio.TimeoutError):
+                    if force:
+                        raise
+                    # On a cold start the verified bundled image set keeps the
+                    # bot usable even if Google Drive is temporarily unavailable.
+                    drive_payload = None
+
         questions = parse_questions_csv(csv_text)
+        # Files 1–5 are the verified legacy set. The Drive parser ignores these
+        # numeric-only filenames and adds only new files following "6 - answer".
         if os.path.exists(LOCAL_IMAGE_QUESTIONS_FILE):
             with open(LOCAL_IMAGE_QUESTIONS_FILE, "r", encoding="utf-8") as source:
                 questions.extend(parse_questions_csv(source.read()))
+        if drive_payload is not None:
+            questions.extend(parse_drive_index(drive_payload))
         questions = list({question.question_id: question for question in questions}.values())
         questions_cache["items"] = questions
         questions_cache["loaded_at"] = time.monotonic()
@@ -552,6 +667,7 @@ async def main():
                 [
                     BotCommand(command="admin", description="Панель администратора"),
                     BotCommand(command="sendall", description="Разослать сообщение всем"),
+                    BotCommand(command="refresh", description="Обновить базу заданий"),
                     BotCommand(command="users", description="Список пользователей"),
                     BotCommand(command="delete_last", description="Удалить последнюю рассылку"),
                 ],
