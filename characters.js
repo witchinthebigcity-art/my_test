@@ -36,8 +36,8 @@
         return mesh;
     }
 
-    function box(group, size, position, color, rotation = null) {
-        return addMesh(group, new THREE.BoxGeometry(...size), color, position, rotation);
+    function box(group, size, position, color, rotation = null, options = {}) {
+        return addMesh(group, new THREE.BoxGeometry(...size), color, position, rotation, null, options);
     }
 
     function sphere(group, radius, position, color, scale = null) {
@@ -157,9 +157,25 @@
         } else if (config.equipment === 'dog-varsity') {
             leftElbow = [-1.08, .3, .12];
             leftHand = [-1.08, -.28, .34];
-        } else if (config.fashion === 'phone') {
+        } else if (config.fashion === 'phone' || config.fashion === 'fold-phone') {
             rightElbow = [1.13, .88, .12];
-            rightHand = [.83, 1.58, .53];
+            rightHand = [.8, 1.45, .62];
+        } else if (config.fashion === 'tablet') {
+            leftElbow = [-1.05, .55, .12];
+            rightElbow = [1.05, .55, .12];
+            leftHand = [-.58, .48, .72];
+            rightHand = [.58, .48, .72];
+        } else if (config.fashion === 'laptop') {
+            leftElbow = [-1.08, .5, .12];
+            leftHand = [-.56, .78, .78];
+        } else if (config.fashion === 'console' || config.fashion === 'camera' || config.fashion === 'camera-pro') {
+            leftElbow = [-1.08, .5, .12];
+            rightElbow = [1.08, .5, .12];
+            leftHand = [-.48, .56, .7];
+            rightHand = [.48, .56, .7];
+        } else if (config.fashion === 'stylus' || config.fashion === 'projector') {
+            rightElbow = [1.1, .62, .14];
+            rightHand = [.88, .92, .68];
         } else if (config.equipment === 'festive') {
             rightElbow = [1.14, .55, .12];
             rightHand = [1.32, .08, .34];
@@ -338,18 +354,18 @@
         if (config.accessory === 'bracelets') {
             torus(group, .18, .045, [pose.leftHand[0], pose.leftHand[1] + .2, pose.leftHand[2]], 0xffd24a, [Math.PI / 2, 0, 0]);
         }
-        if (config.fashion === 'phone') {
+        if (config.fashion === 'phone' && !config.shopAccessory) {
             const phonePosition = [pose.rightHand[0] + .02, pose.rightHand[1] + .12, pose.rightHand[2] + .2];
             roundedBox(group, [.44, .76, .1], .09, phonePosition, 0x20242b);
             roundedBox(group, [.34, .6, .035], .06, [phonePosition[0], phonePosition[1], phonePosition[2] + .07], 0x63d8e5);
             sphere(group, .035, [phonePosition[0], phonePosition[1] - .31, phonePosition[2] + .1], 0xe8edf0, [1, 1, .4]);
         }
-        if (config.fashion === 'smartwatch') {
+        if (config.fashion === 'smartwatch' && !config.shopAccessory) {
             const wrist = [pose.leftHand[0], pose.leftHand[1] + .23, pose.leftHand[2]];
             box(group, [.34, .16, .48], wrist, 0x20242b);
             roundedBox(group, [.28, .24, .08], .05, [wrist[0], wrist[1], wrist[2] + .27], 0x58d7d1);
         }
-        if (config.fashion === 'airpods' || config.fashion === 'airpods-print') {
+        if ((config.fashion === 'airpods' || config.fashion === 'airpods-print') && !config.shopAccessory) {
             [-1, 1].forEach((side) => {
                 sphere(group, .075, [side * .76, 2.18, .22], 0xf8faf9, [.72, 1, .52]);
                 box(group, [.055, .2, .055], [side * .76, 2.07, .22], 0xf8faf9, [0, 0, side * .08]);
@@ -363,11 +379,234 @@
         }
     }
 
+    function addChestEmblem(group, color, gem = 0x57d8f0) {
+        const crest = box(group, [.42, .48, .08], [0, .7, .62], color, [0, 0, Math.PI / 4], {roughness: .32, metalness: .6});
+        crest.scale.set(.76, 1, 1);
+        sphere(group, .09, [0, .7, .69], gem, [1, 1, .36]);
+        [-1, 1].forEach((side) => limbBetween(group, [0, .7, .65], [side * .3, .93, .63], .035, .035, color));
+    }
+
+    function addCape(group, main, lining, trim, premium = false) {
+        box(group, [1.78, 1.76, .14], [0, .23, -.54], lining, [0, 0, 0], {roughness: .88});
+        box(group, [1.58, 1.68, .12], [0, .28, -.64], main, [0, 0, 0], {roughness: .5});
+        box(group, [1.72, .16, .2], [0, 1.12, -.51], trim, null, {roughness: .3, metalness: .55});
+        [-.66, -.44, -.22, 0, .22, .44, .66].forEach((x, index) => {
+            sphere(group, premium ? .055 : .04, [x, -.5 + (index % 2) * .08, -.72], trim, [1, 1, .45]);
+        });
+        if (premium) {
+            [-1, 1].forEach((side) => {
+                sphere(group, .3, [side * .76, 1.04, -.18], trim, [1.2, .52, .8]);
+                limbBetween(group, [side * .55, .82, -.72], [side * .15, -.2, -.73], .045, .045, trim);
+            });
+        }
+    }
+
+    function buildWearableOutfit(group, outfitId) {
+        if (!outfitId) return;
+        const gold = 0xe6b94d;
+        const silver = 0xc7d5df;
+        const pearl = 0xf4ead4;
+        if (outfitId === 'outfit-viking') {
+            addCape(group, 0x274b62, 0x152938, 0xb8964c, true);
+            [-1, 1].forEach((side) => {
+                sphere(group, .34, [side * .75, 1.08, -.05], 0xd7d0bf, [1.35, .66, .86]);
+                box(group, [.35, .44, .1], [side * .43, .62, .55], 0x335f72, [0, 0, side * .12]);
+            });
+            addChestEmblem(group, gold, 0x63c4dc);
+        } else if (outfitId === 'outfit-renaissance') {
+            box(group, [1.5, 1.2, .14], [0, .56, .5], 0x702342, null, {roughness: .42});
+            [-1, 1].forEach((side) => {
+                box(group, [.62, 1.08, .08], [side * .38, .54, .59], side < 0 ? 0x7f2b4b : 0x5f1935, [0, 0, side * .04]);
+                sphere(group, .3, [side * .76, 1.06, .04], 0xd5b469, [1.25, .6, .86]);
+                limbBetween(group, [side * .58, 1.05, .62], [side * .18, .72, .64], .035, .035, gold);
+            });
+            [-.45, -.15, .15, .45].forEach((y) => sphere(group, .05, [0, .72 + y, .66], pearl, [1, 1, .42]));
+        } else if (outfitId === 'outfit-victorian') {
+            addCape(group, 0x172431, 0x401d34, gold, true);
+            [-1, 1].forEach((side) => {
+                box(group, [.72, 1.42, .13], [side * .38, .43, .55], 0x20384b, [0, 0, side * .035], {roughness: .35});
+                box(group, [.09, 1.3, .04], [side * .06, .43, .66], gold, [0, 0, side * -.04], {metalness: .55});
+                box(group, [.4, .14, .08], [side * .47, .94, .65], 0x822c45, [0, 0, side * .35]);
+            });
+            [1.0, .72, .44, .16].forEach((y) => sphere(group, .045, [0, y, .68], gold, [1, 1, .38]));
+            limbBetween(group, [-.33, .85, .68], [.34, .58, .68], .035, .035, gold);
+            addChestEmblem(group, gold, 0xb7375c);
+        } else if (outfitId === 'outfit-neon') {
+            box(group, [1.58, 1.26, .14], [0, .55, .5], 0x142a3a, null, {roughness: .34});
+            [-1, 1].forEach((side) => {
+                box(group, [.62, 1.1, .08], [side * .4, .56, .61], side < 0 ? 0x12637a : 0x522c82);
+                limbBetween(group, [side * .68, 1.06, .66], [side * .22, .18, .66], .055, .045, side < 0 ? 0x42f1d5 : 0xff55c5);
+            });
+            box(group, [.48, .3, .08], [0, .68, .68], 0x12151b);
+            box(group, [.32, .055, .04], [0, .68, .74], 0x7cfff2);
+        } else if (outfitId === 'outfit-academy') {
+            box(group, [1.34, 1.12, .12], [0, .58, .5], 0x263647);
+            box(group, [.12, 1.0, .04], [0, .56, .61], 0xcab885);
+            [-.32, -.1, .12, .34].forEach((y) => sphere(group, .04, [0, .67 + y, .66], gold));
+            addChestEmblem(group, 0xcab885, 0x6bbfd2);
+        } else if (outfitId === 'outfit-denim') {
+            box(group, [1.55, 1.16, .14], [0, .56, .5], 0x376b8c);
+            box(group, [1.48, .12, .08], [0, .05, .6], 0xd6c7a5);
+            [[-.4, .78], [.38, .45], [-.28, .26]].forEach(([x, y], index) => {
+                box(group, [.25, .19, .04], [x, y, .65], [0xe85d5d, 0xf2c14e, 0x61d4c9][index], [0, 0, index * .25]);
+            });
+        } else if (outfitId === 'outfit-varsity') {
+            box(group, [1.58, 1.2, .14], [0, .56, .5], 0x304761);
+            box(group, [.14, 1.08, .05], [0, .56, .63], pearl);
+            [-1, 1].forEach((side) => box(group, [.7, .16, .08], [side * .38, 1.08, .62], 0xc64b4b));
+            addChestEmblem(group, 0xf0d06b, 0xe65455);
+        } else if (outfitId === 'outfit-cyber') {
+            box(group, [1.56, 1.22, .15], [0, .56, .5], 0x111827, null, {roughness: .25});
+            [[-.58, .98, -.18, .28], [.58, .8, .12, -.34], [-.42, .28, .28, -.1]].forEach(([x, y, dx, dy], index) => {
+                limbBetween(group, [x, y, .67], [x + dx, y + dy, .67], .055, .04, index % 2 ? 0xff4bd8 : 0x36f4dd);
+            });
+            sphere(group, .11, [0, .64, .69], 0x69fff0, [1, 1, .35]);
+        } else if (outfitId === 'outfit-samurai') {
+            [-.42, 0, .42].forEach((x) => box(group, [.48, .98, .18], [x, .62, .51], 0x32475a, [0, 0, x * -.08], {metalness: .38}));
+            [1.02, .74, .46, .18].forEach((y, index) => box(group, [1.62 - index * .1, .16, .16], [0, y, .62], index % 2 ? 0xa53036 : 0x1f2f40, null, {metalness: .35}));
+            [-1, 1].forEach((side) => sphere(group, .34, [side * .82, 1.0, .02], 0xa53036, [1.35, .52, .88]));
+            addChestEmblem(group, gold, 0xc03d45);
+        } else if (outfitId === 'outfit-astronomer') {
+            addCape(group, 0x182d5a, 0x0d1734, silver, true);
+            box(group, [1.5, 1.2, .13], [0, .56, .51], 0x203e74, null, {roughness: .38});
+            const stars = [[-.5, .95], [.38, .9], [-.2, .56], [.48, .22], [-.48, .12]];
+            stars.forEach(([x, y], index) => {
+                sphere(group, index === 2 ? .075 : .045, [x, y, .68], index === 2 ? 0x7be8f6 : pearl, [1, 1, .36]);
+                if (index) limbBetween(group, [stars[index - 1][0], stars[index - 1][1], .665], [x, y, .665], .018, .018, silver);
+            });
+        } else if (outfitId === 'outfit-baroque') {
+            box(group, [1.55, 1.3, .15], [0, .52, .5], 0x5c245b, null, {roughness: .4});
+            [-1, 1].forEach((side) => {
+                box(group, [.52, 1.12, .07], [side * .4, .57, .62], side < 0 ? 0x6f3268 : 0x4b1b4a);
+                for (let i = 0; i < 4; i += 1) torus(group, .11 + i * .015, .018, [side * (.18 + i * .11), .96 - i * .22, .7], gold);
+                sphere(group, .3, [side * .78, 1.04, .02], pearl, [1.35, .55, .86]);
+            });
+            [-.38, -.12, .14, .4].forEach((y) => sphere(group, .055, [0, .7 + y, .7], pearl, [1, 1, .38]));
+        } else if (outfitId === 'outfit-celestial') {
+            addCape(group, 0x101b4a, 0x4b2676, 0xc7e8ff, true);
+            box(group, [1.56, 1.3, .16], [0, .53, .5], 0x17275f, null, {roughness: .25});
+            [[-.5, 1.02], [.2, 1.08], [.5, .7], [-.1, .58], [-.48, .28], [.32, .15]].forEach(([x, y], index, stars) => {
+                sphere(group, index % 3 === 0 ? .075 : .045, [x, y, .7], index % 3 === 0 ? 0x66e7ff : pearl, [1, 1, .3]);
+                if (index) limbBetween(group, [stars[index - 1][0], stars[index - 1][1], .685], [x, y, .685], .022, .018, 0x9cdcff);
+            });
+            addChestEmblem(group, silver, 0x755cff);
+        } else if (outfitId === 'outfit-imperial') {
+            addCape(group, 0x741f31, 0x2d1020, gold, true);
+            box(group, [1.58, 1.34, .16], [0, .5, .51], 0x8f2638, null, {roughness: .3});
+            [-1, 1].forEach((side) => {
+                sphere(group, .36, [side * .78, 1.03, .02], gold, [1.35, .48, .82]);
+                for (let i = 0; i < 3; i += 1) limbBetween(group, [side * (.58 - i * .1), 1.06, .68], [side * (.22 + i * .08), .2, .68], .035, .03, gold);
+            });
+            addChestEmblem(group, gold, 0xd23547);
+        } else if (outfitId === 'outfit-dragon') {
+            addCape(group, 0x351015, 0x0e0b0e, 0xd99a39, true);
+            box(group, [1.58, 1.34, .18], [0, .5, .5], 0x49151c, null, {roughness: .3, metalness: .25});
+            for (let row = 0; row < 4; row += 1) {
+                for (let col = 0; col < 5; col += 1) {
+                    const x = -.48 + col * .24 + (row % 2) * .1;
+                    sphere(group, .13, [x, .94 - row * .25, .68], row % 2 ? 0x7a2025 : 0xa8322e, [1, .65, .28]);
+                }
+            }
+            [-1, 1].forEach((side) => addMesh(group, new THREE.ConeGeometry(.16, .52, 6), gold, [side * .83, 1.3, -.02], [0, 0, side * -.55]));
+            addChestEmblem(group, gold, 0xe6413f);
+        } else if (outfitId === 'daily-victor-armor') {
+            [-.45, 0, .45].forEach((x) => box(group, [.5, 1.18, .2], [x, .58, .51], x ? 0x65778d : 0x7f91a6, [0, 0, x * -.08], {roughness: .22, metalness: .7}));
+            [-1, 1].forEach((side) => {
+                sphere(group, .39, [side * .82, 1.02, .02], gold, [1.32, .5, .86]);
+                box(group, [.23, .62, .12], [side * .62, .45, .67], 0x94a5b4, [0, 0, side * .18], {metalness: .72});
+            });
+            addChestEmblem(group, gold, 0x54d8ff);
+            [-.5, -.25, 0, .25, .5].forEach((x) => sphere(group, .05, [x, .08, .69], 0x53d7ff, [1, 1, .3]));
+        } else if (outfitId === 'daily-victor-cape') {
+            addCape(group, 0x6e1b55, 0x201038, gold, true);
+            box(group, [1.52, 1.25, .15], [0, .54, .5], 0x55204e, null, {roughness: .3});
+            [-1, 1].forEach((side) => {
+                limbBetween(group, [side * .62, 1.03, .69], [side * .18, .18, .69], .04, .035, gold);
+                sphere(group, .1, [side * .35, .66, .71], side < 0 ? 0x61e4ff : 0xff5fca, [1, 1, .32]);
+            });
+            addChestEmblem(group, gold, 0xb750ff);
+        }
+    }
+
+    function buildShopAccessory(group, accessoryId, pose) {
+        if (!accessoryId) return;
+        const dark = 0x171d27;
+        const cyan = 0x51e1ed;
+        const gold = 0xe2b64b;
+        if (accessoryId === 'gadget-phone' || accessoryId === 'gadget-fold-phone') {
+            const position = [pose.rightHand[0] - .02, pose.rightHand[1] + .32, pose.rightHand[2] + .08];
+            const premium = accessoryId === 'gadget-fold-phone';
+            roundedBox(group, [premium ? .56 : .45, .78, .1], .08, position, premium ? 0x6040a4 : dark);
+            roundedBox(group, [premium ? .46 : .35, .62, .025], .05, [position[0], position[1], position[2] + .067], premium ? 0x8ff4ff : 0x54cddd);
+            if (premium) {
+                box(group, [.035, .68, .025], [position[0], position[1], position[2] + .085], gold);
+                sphere(group, .045, [position[0] + .18, position[1] + .27, position[2] + .09], 0xff69c8, [1, 1, .35]);
+            }
+        } else if (accessoryId === 'gadget-watch') {
+            const wrist = [pose.leftHand[0], pose.leftHand[1] + .23, pose.leftHand[2]];
+            box(group, [.34, .16, .46], wrist, dark);
+            roundedBox(group, [.28, .24, .075], .05, [wrist[0], wrist[1], wrist[2] + .26], 0x58d7d1);
+        } else if (accessoryId === 'gadget-tablet') {
+            roundedBox(group, [1.16, .78, .1], .09, [0, .58, .86], dark);
+            roundedBox(group, [.98, .62, .025], .06, [0, .58, .925], 0x61cadf);
+            sphere(group, .04, [.48, .58, .95], pearlColor(), [1, 1, .34]);
+        } else if (accessoryId === 'gadget-laptop') {
+            box(group, [1.42, .12, .96], [0, .81, .9], 0x323b49, [-.12, 0, 0], {roughness: .25, metalness: .62});
+            roundedBox(group, [1.42, .92, .1], .08, [0, 1.37, .68], 0x252e3d);
+            roundedBox(group, [1.23, .72, .025], .055, [0, 1.38, .745], 0x4ed8e9);
+            box(group, [.28, .28, .025], [0, 1.38, .77], 0xc9d7df, [0, 0, Math.PI / 4], {metalness: .5});
+            sphere(group, .055, [0, 1.38, .79], 0x7c5cff, [1, 1, .32]);
+        } else if (accessoryId === 'gadget-camera' || accessoryId === 'gadget-camera-pro') {
+            const premium = accessoryId === 'gadget-camera-pro';
+            roundedBox(group, [premium ? 1.02 : .82, .56, .34], .08, [0, .67, .82], premium ? 0x28374b : 0x252830);
+            cylinder(group, premium ? .26 : .21, premium ? .23 : .19, .25, [0, .67, 1.04], premium ? gold : 0x68778b, [Math.PI / 2, 0, 0]);
+            sphere(group, premium ? .16 : .13, [0, .67, 1.19], premium ? 0x62e7ff : 0x4d9ed1, [1, 1, .34]);
+            if (premium) {
+                torus(group, .36, .025, [0, .67, 1.26], 0x8ff5ff);
+                sphere(group, .06, [.38, .86, 1.02], 0xff61c7, [1, 1, .35]);
+            }
+        } else if (accessoryId === 'gadget-stylus') {
+            limbBetween(group, [pose.rightHand[0] - .08, pose.rightHand[1] - .18, pose.rightHand[2] + .05], [pose.rightHand[0] + .25, pose.rightHand[1] + .36, pose.rightHand[2] + .16], .055, .055, 0x6de8f0);
+            sphere(group, .065, [pose.rightHand[0] + .27, pose.rightHand[1] + .39, pose.rightHand[2] + .17], 0xf3ca55, [1, 1, .5]);
+        } else if (accessoryId === 'gadget-projector') {
+            roundedBox(group, [.5, .28, .42], .06, [pose.rightHand[0], pose.rightHand[1] + .16, pose.rightHand[2] + .03], 0x303948);
+            sphere(group, .1, [pose.rightHand[0], pose.rightHand[1] + .17, pose.rightHand[2] + .25], cyan, [1, 1, .3]);
+            box(group, [.9, .56, .02], [pose.rightHand[0] - .3, pose.rightHand[1] + .75, pose.rightHand[2] + .28], 0x6ae4f0, [0, 0, -.12], {roughness: .12, metalness: .12});
+        } else if (accessoryId === 'gadget-smart-ring') {
+            torus(group, .14, .035, [pose.rightHand[0], pose.rightHand[1] + .18, pose.rightHand[2] + .16], gold, [Math.PI / 2, 0, 0]);
+            torus(group, .29, .02, [pose.rightHand[0], pose.rightHand[1] + .42, pose.rightHand[2] + .18], cyan, [0, 0, 0]);
+        } else if (accessoryId === 'gadget-console') {
+            roundedBox(group, [1.15, .42, .18], .12, [0, .58, .85], 0x313849);
+            box(group, [.68, .32, .025], [0, .58, .96], 0x5bd2df);
+            [-.43, .43].forEach((x, index) => sphere(group, .07, [x, .58, .99], index ? 0xff5f91 : 0x68ef9b, [1, 1, .35]));
+        } else if (accessoryId === 'gadget-vr') {
+            roundedBox(group, [1.22, .46, .2], .12, [0, 2.19, .77], 0x222a37);
+            box(group, [1.02, .28, .035], [0, 2.19, .9], 0x62dfeb);
+            torus(group, .8, .04, [0, 2.2, .05], 0x4b5970);
+        }
+    }
+
+    function pearlColor() {
+        return 0xf2f6f7;
+    }
+
     function buildCharacter(style, equipped = []) {
         const config = {...(STYLE_CONFIGS[style] || STYLE_CONFIGS.neon)};
-        if (equipped.includes('gadget-phone')) config.fashion = 'phone';
-        else if (equipped.includes('gadget-watch')) config.fashion = 'smartwatch';
-        else if (equipped.includes('gadget-airpods')) config.fashion = 'airpods';
+        const equippedOutfit = equipped.find((item) => item.startsWith('outfit-') || item.startsWith('daily-victor-'));
+        const equippedAccessory = equipped.find((item) => item.startsWith('gadget-'));
+        const accessoryPoses = {
+            'gadget-phone': 'phone',
+            'gadget-fold-phone': 'fold-phone',
+            'gadget-tablet': 'tablet',
+            'gadget-laptop': 'laptop',
+            'gadget-console': 'console',
+            'gadget-camera': 'camera',
+            'gadget-camera-pro': 'camera-pro',
+            'gadget-stylus': 'stylus',
+            'gadget-projector': 'projector',
+        };
+        config.shopAccessory = equippedAccessory;
+        if (equippedAccessory && accessoryPoses[equippedAccessory]) config.fashion = accessoryPoses[equippedAccessory];
         const root = new THREE.Group();
         const body = new THREE.Group();
         root.add(body);
@@ -394,29 +633,6 @@
         const pose = buildArms(body, config);
         buildAccessories(body, config, pose);
 
-        if (equipped.includes('outfit-viking')) {
-            box(body, [1.68, 1.55, .16], [0, .42, -.48], 0x37566b);
-            sphere(body, .12, [0, 1.14, .52], 0xc7a64a, [1.15, 1.15, .45]);
-        } else if (equipped.includes('outfit-renaissance')) {
-            box(body, [1.5, 1.18, .12], [0, .58, .48], 0x6c2440);
-            [-.42, 0, .42].forEach((x) => sphere(body, .045, [x, .62, .57], 0xe0b552));
-        } else if (equipped.includes('outfit-victorian')) {
-            box(body, [1.56, 1.48, .12], [0, .45, .48], 0x24313c);
-            box(body, [.12, 1.25, .05], [0, .48, .58], 0xb4a686);
-        } else if (equipped.includes('outfit-neon')) {
-            box(body, [1.58, 1.25, .12], [0, .55, .48], 0x162938);
-            box(body, [.12, 1.08, .05], [0, .55, .58], 0x45e3cf);
-        } else if (equipped.includes('daily-victor-armor')) {
-            box(body, [1.58, 1.28, .22], [0, .55, .48], 0x727f91);
-            sphere(body, .15, [0, .75, .68], 0xe3ba4c, [1.3, 1.3, .38]);
-        } else if (equipped.includes('daily-victor-cape')) {
-            box(body, [1.72, 1.75, .16], [0, .26, -.52], 0x7d2350);
-            sphere(body, .13, [0, 1.15, .54], 0xf0c44b, [1.3, 1.3, .38]);
-        }
-        if (equipped.includes('gadget-tablet')) {
-            roundedBox(body, [.82, 1.05, .09], .08, [pose.leftHand[0] + .25, pose.leftHand[1] + .36, .7], 0x20262f);
-        }
-
         if (config.outfit === 'plaid') {
             [-.42, .42].forEach((x) => {
                 box(body, [.08, 1.48, .05], [x - .12, -1.02, .35], 0xc8b9ac);
@@ -433,6 +649,8 @@
             const chestStripe = box(body, [.85, .18, .06], [0, .7, .46], config.accent);
             chestStripe.material.roughness = .5;
         }
+        buildWearableOutfit(body, equippedOutfit);
+        buildShopAccessory(body, equippedAccessory, pose);
         root.scale.set(.9, .9, .9);
         return root;
     }

@@ -35,7 +35,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "16"
+WEBAPP_VERSION = "17"
 ADMIN_ID = os.getenv("ADMIN_ID")
 ADMIN_USERNAMES = {
     value.strip().lstrip("@").casefold()

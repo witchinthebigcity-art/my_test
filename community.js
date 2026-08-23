@@ -1215,11 +1215,14 @@ function renderShopPage() {
     pages[communityState.shopPage].forEach((item) => {
         const card = document.createElement('article');
         card.className = `shop-product shop-product-${communityState.shopDepartment}`;
+        const tier = item.price >= 10000 ? 'premium' : item.price >= 5000 ? 'rare' : item.price >= 2500 ? 'uncommon' : 'basic';
+        const tierNames = {basic: 'Базовый', uncommon: 'Необычный', rare: 'Редкий', premium: 'Премиум'};
+        card.dataset.tier = tier;
         const icon = document.createElement('span');
         icon.className = 'shop-product-icon';
         icon.textContent = item.icon;
         const copy = document.createElement('div');
-        copy.innerHTML = `<strong>${item.name}</strong><p>${item.description}</p><small>${item.owned ? `Куплено до ${new Date(item.ownedUntil).toLocaleDateString('ru-RU')}` : 'Доступ на 30 дней'}</small>`;
+        copy.innerHTML = `<span class="shop-rarity">${tierNames[tier]}</span><strong>${item.name}</strong><p>${item.description}</p><small>${item.owned ? `Куплено до ${new Date(item.ownedUntil).toLocaleDateString('ru-RU')}` : 'Доступ на 30 дней'}</small>`;
         const action = document.createElement('button');
         action.type = 'button';
         action.className = item.owned ? 'btn btn-secondary' : 'btn';

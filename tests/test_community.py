@@ -344,6 +344,21 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         expires = datetime.fromisoformat(phone["ownedUntil"])
         self.assertGreater(expires, datetime.now(expires.tzinfo) + timedelta(days=29))
 
+    async def test_shop_catalog_is_tripled_and_headphones_removed(self):
+        catalog = await self.store.shop_catalog(self.user_a)
+        departments = {
+            name: [item for item in catalog["items"] if item["department"] == name]
+            for name in ("book", "magazine", "laptop")
+        }
+        self.assertEqual(len(departments["book"]), 9)
+        self.assertEqual(len(departments["magazine"]), 24)
+        self.assertEqual(len(departments["laptop"]), 12)
+        self.assertNotIn("gadget-airpods", {item["id"] for item in catalog["items"]})
+        self.assertEqual(
+            {item["price"] for items in departments.values() for item in items},
+            {1500, 2500, 5000, 10000},
+        )
+
     async def test_global_character_catalog_and_purchases_persist(self):
         catalog = await self.store.character_catalog(self.user_a)
         self.assertEqual(len(catalog["characters"]), 17)
