@@ -24,6 +24,7 @@ const communityState = {
     equippedItems: {},
 };
 let pendingAvatarDataUrl = null;
+let adminMode = false;
 
 function telegramHeaders(json = false) {
     const headers = { 'X-Telegram-Init-Data': tg.initData || '' };
@@ -38,23 +39,34 @@ async function communityRequest(url, options = {}) {
     return payload;
 }
 
-function syncCoinBalance(balance) {
+function syncCoinBalance(balance, isAdmin) {
+    if (typeof isAdmin === 'boolean') adminMode = isAdmin;
+    window.isAdminMode = adminMode;
     coins = Number(balance || 0);
     localStorage.setItem('mathCoins', coins);
     ['quizCoins', 'shopCoins', 'characterCoins', 'dailyCoins'].forEach((id) => {
         const element = document.getElementById(id);
-        if (element) element.textContent = coins;
+        if (element) element.textContent = adminMode ? '∞' : coins;
     });
+    const menuCoins = document.getElementById('coinsCount');
+    if (menuCoins) menuCoins.textContent = adminMode ? '∞' : coins;
+    if (adminMode) {
+        lives = Infinity;
+        ['livesCount', 'quizLives'].forEach((id) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = '∞';
+        });
+    }
 }
 
 function renderDailyLogin(payload) {
     const banner = document.getElementById('dailyRewardBanner');
     if (!banner) return;
     banner.hidden = false;
-    syncCoinBalance(payload.coins);
+    syncCoinBalance(payload.coins, payload.admin);
     const days = document.getElementById('dailyRewardDays');
     days.replaceChildren();
-    (payload.schedule || []).forEach(({day, reward}) => {
+    (payload.schedule || []).forEach(({day, reward, kind}) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'daily-day-button';
@@ -63,16 +75,33 @@ function renderDailyLogin(payload) {
         button.classList.toggle('active', isActive && !payload.claimedToday);
         button.classList.toggle('claimed', isPast || (isActive && payload.claimedToday));
         button.disabled = !isActive || payload.claimedToday;
-        button.innerHTML = `<strong>День ${day}</strong><small>${isPast || (isActive && payload.claimedToday) ? '✓' : `+${reward}`}</small>`;
+        const prize = kind === 'wheel' ? '🎡' : `+${reward}`;
+        button.innerHTML = `<strong>День ${day}</strong><small>${isPast || (isActive && payload.claimedToday) ? '✓' : prize}</small>`;
         if (!button.disabled) button.addEventListener('click', claimDailyLogin);
         days.appendChild(button);
     });
-    document.getElementById('dailyRewardTitle').textContent = payload.claimedToday
-        ? `День ${payload.activeDay} уже получен`
-        : `День ${payload.activeDay} · +${payload.activeReward} монет`;
-    document.getElementById('dailyRewardText').textContent = payload.claimedToday
-        ? 'Следующая ячейка откроется завтра.'
-        : 'Нажмите на активный день, чтобы забрать награду.';
+    document.getElementById('dailyRewardTitle').textContent = payload.wheelAvailable
+        ? 'Призовой барабан открыт'
+        : payload.claimedToday
+            ? `День ${payload.activeDay} уже получен`
+            : payload.activeKind === 'wheel'
+                ? `День ${payload.activeDay} · призовой барабан`
+                : `День ${payload.activeDay} · +${payload.activeReward} монет`;
+    document.getElementById('dailyRewardText').textContent = payload.wheelAvailable
+        ? 'Крутите барабан и получите монеты или купон на скидку.'
+        : payload.wheelClaimed
+            ? `Ваш приз: ${payload.wheelPrize?.label || 'получен'}.`
+            : payload.claimedToday
+                ? 'Следующая ячейка откроется завтра.'
+                : 'Нажмите на активный день, чтобы забрать награду.';
+    const wheelPanel = document.getElementById('dailyWheelPanel');
+    const wheelButton = document.getElementById('dailyWheelButton');
+    wheelPanel.hidden = !payload.wheelAvailable && !payload.wheelClaimed;
+    wheelButton.hidden = !payload.wheelAvailable;
+    wheelButton.disabled = !payload.wheelAvailable;
+    document.getElementById('dailyWheelResult').textContent = payload.wheelClaimed
+        ? `Вы выиграли: ${payload.wheelPrize?.label || 'приз'}`
+        : '';
 }
 
 async function loadDailyLogin() {
@@ -97,7 +126,7 @@ async function claimDailyLogin() {
         renderDailyLogin(payload);
         if (payload.claimed) {
             const animation = document.getElementById('dailyRewardAnimation');
-            animation.textContent = `+${payload.reward} 🪙`;
+            animation.textContent = payload.activeKind === 'wheel' ? '🎡' : `+${payload.reward} 🪙`;
             animation.classList.remove('play');
             void animation.offsetWidth;
             animation.classList.add('play');
@@ -105,6 +134,36 @@ async function claimDailyLogin() {
     } catch (error) {
         console.warn('Не удалось начислить награду за вход:', error.message);
         await loadDailyLogin();
+    }
+}
+
+async function spinDailyWheel() {
+    const button = document.getElementById('dailyWheelButton');
+    const wheel = document.getElementById('dailyWheel');
+    button.disabled = true;
+    document.getElementById('dailyWheelResult').textContent = 'Барабан вращается…';
+    wheel.classList.remove('spinning');
+    void wheel.offsetWidth;
+    wheel.classList.add('spinning');
+    try {
+        const payload = await communityRequest('/api/daily-wheel', {
+            method: 'POST', headers: telegramHeaders(true), body: '{}',
+        });
+        window.setTimeout(() => {
+            renderDailyLogin(payload);
+            document.getElementById('dailyWheelResult').textContent = `Вы выиграли: ${payload.prize.label}`;
+            if (payload.prize.kind === 'coins') {
+                const animation = document.getElementById('dailyRewardAnimation');
+                animation.textContent = `+${payload.prize.value} 🪙`;
+                animation.classList.remove('play');
+                void animation.offsetWidth;
+                animation.classList.add('play');
+            }
+        }, 2300);
+    } catch (error) {
+        wheel.classList.remove('spinning');
+        button.disabled = false;
+        document.getElementById('dailyWheelResult').textContent = error.message;
     }
 }
 
@@ -116,8 +175,7 @@ async function awardServerTrainingCoins(attemptKey) {
             headers: telegramHeaders(true),
             body: JSON.stringify({attemptKey}),
         });
-        syncCoinBalance(payload.coins);
-        if (!payload.awarded) document.getElementById('limitWarning').style.display = 'block';
+        syncCoinBalance(payload.coins, payload.admin);
     } catch (error) {
         console.warn('Не удалось синхронизировать монеты:', error.message);
     }
@@ -245,7 +303,7 @@ async function loadWardrobe() {
         const payload = await communityRequest('/api/shop', {headers: telegramHeaders()});
         communityState.shop = payload;
         communityState.equippedItems = payload.equippedItems || {};
-        syncCoinBalance(payload.coins);
+        syncCoinBalance(payload.coins, payload.admin);
         renderWardrobe();
     } catch (error) {
         renderEmpty(list, error.message);
@@ -323,12 +381,7 @@ async function loadCharacterCatalog() {
 
 function renderCharacterCatalog(payload) {
     const catalog = document.getElementById('characterCatalog');
-    const coinsElement = document.getElementById('characterCoins');
-    coinsElement.textContent = payload.coins;
-    coins = Number(payload.coins || 0);
-    localStorage.setItem('mathCoins', coins);
-    const quizCoins = document.getElementById('quizCoins');
-    if (quizCoins) quizCoins.textContent = coins;
+    syncCoinBalance(payload.coins, payload.admin);
     catalog.replaceChildren();
 
     if (!payload.characters?.length) {
@@ -380,7 +433,7 @@ function renderCharacterTumbler() {
     details.className = 'character-tumbler-details';
     const badge = document.createElement('span');
     badge.className = 'character-category-badge';
-    badge.textContent = character.category === 'free' ? 'Бесплатный' : 'Премиум';
+    badge.textContent = character.category === 'basic' ? 'Базовый' : 'Премиум';
     const name = document.createElement('strong');
     name.textContent = character.name;
     const counter = document.createElement('small');
@@ -389,11 +442,9 @@ function renderCharacterTumbler() {
 
     const price = document.createElement('p');
     price.className = 'character-tumbler-price';
-    price.textContent = character.category === 'free'
-        ? 'Бесплатно'
-        : character.owned
-            ? 'Уже куплен'
-            : `🪙 ${character.price} монет`;
+    price.textContent = character.owned
+        ? 'Уже куплен'
+        : `🪙 ${character.price} монет`;
 
     const action = document.createElement('button');
     action.type = 'button';
@@ -1084,8 +1135,12 @@ async function openShop() {
         const payload = await communityRequest('/api/shop', {headers: telegramHeaders()});
         communityState.shop = payload;
         communityState.equippedItems = payload.equippedItems || {};
-        syncCoinBalance(payload.coins);
-        setInlineMessage('shopMessage', '');
+        syncCoinBalance(payload.coins, payload.admin);
+        setInlineMessage(
+            'shopMessage',
+            payload.bestDiscount ? `Активен купон −${payload.bestDiscount}%. Он применится к следующей покупке.` : '',
+            'success',
+        );
     } catch (error) {
         setInlineMessage('shopMessage', error.message, 'error');
     }
@@ -1168,7 +1223,11 @@ function renderShopPage() {
         const action = document.createElement('button');
         action.type = 'button';
         action.className = item.owned ? 'btn btn-secondary' : 'btn';
-        action.textContent = item.owned ? 'Уже приобретено' : `Купить · ${item.price} 🪙`;
+        action.textContent = item.owned
+            ? 'Уже приобретено'
+            : item.discountedPrice < item.price
+                ? `Купить · ${item.discountedPrice} 🪙 (−${communityState.shop.bestDiscount}%)`
+                : `Купить · ${item.price} 🪙`;
         action.disabled = Boolean(item.owned);
         action.addEventListener('click', () => purchaseShopItem(item));
         card.append(icon, copy, action);
@@ -1186,8 +1245,9 @@ async function purchaseShopItem(item) {
         });
         communityState.shop = payload;
         communityState.equippedItems = payload.equippedItems || {};
-        syncCoinBalance(payload.coins);
-        setInlineMessage('shopMessage', `«${item.name}» доступен 30 дней и добавлен в личный кабинет.`, 'success');
+        syncCoinBalance(payload.coins, payload.admin);
+        const discountText = payload.discountApplied ? ` Купон −${payload.discountApplied}% применён.` : '';
+        setInlineMessage('shopMessage', `«${item.name}» доступен 30 дней и добавлен в личный кабинет.${discountText}`, 'success');
         renderShopPage();
     } catch (error) {
         setInlineMessage('shopMessage', error.message, 'error');
@@ -1239,7 +1299,7 @@ async function refreshBattle() {
 
 function handleBattleState(battle) {
     communityState.battle = battle;
-    if (Number.isFinite(Number(battle.coins))) syncCoinBalance(battle.coins);
+    if (Number.isFinite(Number(battle.coins))) syncCoinBalance(battle.coins, battle.admin);
     if (battle.status === 'waiting') {
         document.getElementById('battleLobby').hidden = false;
         document.getElementById('battleGame').hidden = true;
@@ -1338,7 +1398,7 @@ function renderBattleFinish(battle) {
         question.textContent = 'Ожидаем, пока соперник закончит свои пять заданий.';
     } else if (battle.me.score > battle.opponent.score) {
         const reward = battle.reward || {};
-        const coinText = reward.coins ? ` +${reward.coins} монет.` : ' Дневной лимит монет уже достигнут.';
+        const coinText = reward.coins ? ` +${reward.coins} монет.` : '';
         const itemText = reward.item ? ` Награда до конца дня: ${reward.item.name}.` : '';
         question.textContent = `Победа!${coinText}${itemText}`;
     } else if (battle.me.score < battle.opponent.score) {
@@ -1400,7 +1460,7 @@ async function openBattleStats() {
     setInlineMessage('battleStatsMessage', 'Загружаем статистику…');
     try {
         const stats = await communityRequest('/api/battle-stats', {headers: telegramHeaders()});
-        syncCoinBalance(stats.coins);
+        syncCoinBalance(stats.coins, stats.admin);
         const summary = document.getElementById('battleStatsSummary');
         summary.innerHTML = `
             <article><strong>${stats.total}</strong><small>баттлов</small></article>
@@ -1415,8 +1475,7 @@ async function openBattleStats() {
             row.innerHTML = `<div><strong>${label}</strong><span>${value}%</span></div><div class="battle-stat-track"><i style="width:${value}%"></i></div>`;
             bars.appendChild(row);
         });
-        const left = Math.max(0, stats.dailyCoinLimit - stats.coinsToday);
-        setInlineMessage('battleStatsMessage', `Сегодня за победы: ${stats.coinsToday}/${stats.dailyCoinLimit} монет. Можно получить ещё ${left}.`, 'success');
+        setInlineMessage('battleStatsMessage', `Сегодня за победы заработано ${stats.coinsToday} монет. Дневного лимита нет.`, 'success');
     } catch (error) {
         setInlineMessage('battleStatsMessage', error.message, 'error');
     }

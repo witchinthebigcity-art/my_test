@@ -35,8 +35,20 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "15"
+WEBAPP_VERSION = "16"
 ADMIN_ID = os.getenv("ADMIN_ID")
+ADMIN_USERNAMES = {
+    value.strip().lstrip("@").casefold()
+    for value in os.getenv("ADMIN_USERNAMES", "supertutor15,Dany_german").split(",")
+    if value.strip()
+}
+
+
+def is_admin_telegram_user(user):
+    return bool(user) and (
+        str(user.id) == str(ADMIN_ID)
+        or str(getattr(user, "username", "") or "").casefold() in ADMIN_USERNAMES
+    )
 PORT = int(os.getenv("PORT", 8080))
 QUESTIONS_CSV_URL = os.getenv(
     "QUESTIONS_CSV_URL",
@@ -145,7 +157,7 @@ async def start(message: types.Message):
 
 @dp.message(Command("admin"))
 async def admin_panel(message: types.Message):
-    if str(message.from_user.id) == str(ADMIN_ID):
+    if is_admin_telegram_user(message.from_user):
         markup = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
                 text="🔄 Обновить базу заданий",
@@ -211,7 +223,7 @@ async def _refresh_questions_for_admin(message):
 
 @dp.message(Command("refresh"))
 async def refresh_questions_command(message: types.Message):
-    if str(message.from_user.id) != str(ADMIN_ID):
+    if not is_admin_telegram_user(message.from_user):
         await message.answer("Эта команда доступна только администратору.")
         return
     await message.answer("⏳ Проверяю Google Таблицу и папки с изображениями…")
@@ -220,7 +232,7 @@ async def refresh_questions_command(message: types.Message):
 
 @dp.callback_query(F.data == "admin_refresh_questions")
 async def refresh_questions_button(callback: types.CallbackQuery):
-    if str(callback.from_user.id) != str(ADMIN_ID):
+    if not is_admin_telegram_user(callback.from_user):
         await callback.answer("Недостаточно прав", show_alert=True)
         return
     await callback.answer("Обновление запущено")
@@ -230,7 +242,7 @@ async def refresh_questions_button(callback: types.CallbackQuery):
 
 @dp.message(Command("sendall", "all"))
 async def broadcast_command(message: types.Message):
-    if str(message.from_user.id) != str(ADMIN_ID):
+    if not is_admin_telegram_user(message.from_user):
         await message.answer("Эта команда доступна только администратору.")
         return
 
@@ -272,7 +284,7 @@ async def broadcast_command(message: types.Message):
 
 @dp.message(Command("delete_last"))
 async def delete_last_broadcast(message: types.Message):
-    if str(message.from_user.id) != str(ADMIN_ID): 
+    if not is_admin_telegram_user(message.from_user):
         return
 
     if not os.path.exists(BROADCAST_FILE):
@@ -303,7 +315,7 @@ async def delete_last_broadcast(message: types.Message):
 @dp.message(Command("users"))
 async def get_all_users(message: types.Message):
     # Проверка, что пишет именно админ
-    if str(message.from_user.id) != str(ADMIN_ID): 
+    if not is_admin_telegram_user(message.from_user):
         return
 
     if not os.path.exists(USERS_FILE):
@@ -508,6 +520,13 @@ async def get_daily_login(request):
         return web.json_response(await community_store.daily_login_status(_authenticated_user(request)))
     except CommunityError as error:
         return _community_error(error, status=401)
+
+
+async def spin_daily_wheel(request):
+    try:
+        return web.json_response(await community_store.spin_daily_wheel(_authenticated_user(request)))
+    except CommunityError as error:
+        return _community_error(error, status=422)
 
 
 async def get_shop(request):
@@ -945,6 +964,7 @@ def create_app():
     application.router.add_post('/api/profile', update_profile)
     application.router.add_post('/api/daily-login', claim_daily_login)
     application.router.add_get('/api/daily-login', get_daily_login)
+    application.router.add_post('/api/daily-wheel', spin_daily_wheel)
     application.router.add_get('/api/shop', get_shop)
     application.router.add_post('/api/shop/purchase', purchase_shop_item)
     application.router.add_post('/api/shop/equip', equip_shop_item)

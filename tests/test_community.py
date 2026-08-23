@@ -8,6 +8,7 @@ import time
 import unittest
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
+from unittest.mock import patch
 
 from community import (
     CommunityError,
@@ -264,7 +265,40 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status["activeReward"], 10)
         self.assertEqual(status["coins"], 0)
 
-    async def test_battle_win_coins_are_capped_and_daily_cosmetics_unlock(self):
+    async def test_sixth_day_wheel_awards_coupon_once_and_applies_it(self):
+        await self.store.get_profile(self.user_a)
+        data = self.store._load()
+        profile = data["profiles"]["1"]
+        profile["last_login_date"] = datetime.now().date().isoformat()
+        profile["login_streak"] = 6
+        profile["coins"] = 2000
+        self.store._save(data)
+
+        discount_prize = {"kind": "discount", "value": 20, "label": "Скидка 20%", "weight": 8}
+        with patch("community.random.SystemRandom.choices", return_value=[discount_prize]):
+            wheel = await self.store.spin_daily_wheel(self.user_a)
+        self.assertEqual(wheel["prize"]["value"], 20)
+        self.assertTrue(wheel["wheelClaimed"])
+        with self.assertRaises(CommunityError):
+            await self.store.spin_daily_wheel(self.user_a)
+
+        purchased = await self.store.purchase_shop_item(self.user_a, "guide-algebra")
+        self.assertEqual(purchased["discountApplied"], 20)
+        self.assertEqual(purchased["paid"], 1200)
+        self.assertEqual(purchased["coins"], 800)
+
+    async def test_named_admin_has_unlimited_shop_character_and_lives_flag(self):
+        admin = {"id": 77, "first_name": "Данил", "username": "supertutor15"}
+        status = await self.store.daily_login_status(admin)
+        self.assertTrue(status["admin"])
+        shop = await self.store.purchase_shop_item(admin, "gadget-tablet")
+        self.assertTrue(shop["admin"])
+        self.assertEqual(shop["coins"], 0)
+        character = await self.store.purchase_character(admin, "premium-cardboard-bot")
+        self.assertTrue(character["admin"])
+        self.assertEqual(character["coins"], 0)
+
+    async def test_battle_win_coins_have_no_daily_cap_and_cosmetics_unlock(self):
         await self.store.update_profile(self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8})
         await self.store.update_profile(self.user_b, {"nickname": "Геометр8", "leaderboardConsent": True, "grade": 8})
         data = self.store._load()
@@ -287,22 +321,22 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.store._save(data)
 
         profile = (await self.store.get_profile(self.user_a))
-        self.assertEqual(profile["coins"], 30)
+        self.assertEqual(profile["coins"], 50)
         stored = self.store._load()["profiles"]["1"]
         self.assertIn("daily-victor-armor", stored["temporary_items"])
         self.assertIn("daily-victor-cape", stored["temporary_items"])
         stats = await self.store.battle_stats(self.user_a)
         self.assertEqual(stats["wins"], 5)
         self.assertEqual(stats["winPercent"], 100.0)
-        self.assertEqual(stats["coinsToday"], 30)
+        self.assertEqual(stats["coinsToday"], 50)
 
     async def test_shop_purchase_last_thirty_days_and_can_be_equipped(self):
         await self.store.get_profile(self.user_a)
         data = self.store._load()
-        data["profiles"]["1"]["coins"] = 200
+        data["profiles"]["1"]["coins"] = 6000
         self.store._save(data)
         purchased = await self.store.purchase_shop_item(self.user_a, "gadget-phone")
-        self.assertEqual(purchased["coins"], 110)
+        self.assertEqual(purchased["coins"], 1000)
         phone = next(item for item in purchased["items"] if item["id"] == "gadget-phone")
         self.assertTrue(phone["owned"])
         equipped = await self.store.equip_shop_item(self.user_a, "gadget-phone")
@@ -313,25 +347,25 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
     async def test_global_character_catalog_and_purchases_persist(self):
         catalog = await self.store.character_catalog(self.user_a)
         self.assertEqual(len(catalog["characters"]), 17)
-        free = [item for item in catalog["characters"] if item["category"] == "free"]
+        basic = [item for item in catalog["characters"] if item["category"] == "basic"]
         premium = [item for item in catalog["characters"] if item["category"] == "premium"]
-        self.assertEqual(len(free), 8)
-        self.assertEqual(len(premium), 9)
-        self.assertTrue(all(item["owned"] and item["price"] == 0 for item in free))
+        self.assertEqual(len(basic), 9)
+        self.assertEqual(len(premium), 8)
+        self.assertEqual(sum(item["owned"] for item in catalog["characters"]), 1)
         self.assertEqual(
             sorted(item["price"] for item in premium),
-            [40, 45, 60, 65, 75, 80, 110, 120, 130],
+            [5000, 5000, 5000, 5000, 10000, 10000, 10000, 10000],
         )
 
         with open(self.store.path, "r", encoding="utf-8") as source:
             data = json.load(source)
-        data["profiles"]["1"]["coins"] = 200
+        data["profiles"]["1"]["coins"] = 20000
         with open(self.store.path, "w", encoding="utf-8") as target:
             json.dump(data, target)
         cheapest = min(premium, key=lambda item: item["price"])
         purchased = await self.store.purchase_character(self.user_a, cheapest["id"])
         self.assertTrue(purchased["purchased"])
-        self.assertEqual(purchased["coins"], 200 - cheapest["price"])
+        self.assertEqual(purchased["coins"], 20000 - cheapest["price"])
         repeat = await self.store.purchase_character(self.user_a, cheapest["id"])
         self.assertFalse(repeat["purchased"])
         self.assertEqual(repeat["coins"], purchased["coins"])
@@ -352,12 +386,12 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(turbo["owned"])
         self.assertTrue(turbo["selected"])
 
-    async def test_training_coins_are_idempotent_and_capped_at_fifty_per_day(self):
+    async def test_training_coins_are_idempotent_without_daily_cap(self):
         rewards = []
         for index in range(6):
             result = await self.store.award_training_coins(self.user_a, f"attempt:{index}:valid")
             rewards.append(result["awarded"])
-        self.assertEqual(rewards, [10, 10, 10, 10, 10, 0])
+        self.assertEqual(rewards, [10, 10, 10, 10, 10, 10])
         duplicate = await self.store.award_training_coins(self.user_a, "attempt:0:valid")
         self.assertEqual(duplicate["awarded"], 0)
         self.assertEqual(duplicate["reason"], "duplicate")

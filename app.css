@@ -247,6 +247,74 @@ body::before {
 .daily-day-button.active { border-color: #ffd66b; background: rgba(255, 214, 107, .16); color: #fff; cursor: pointer; box-shadow: 0 0 18px rgba(255, 214, 107, .16); }
 .daily-day-button.claimed { color: var(--success); }
 .daily-day-button:disabled { opacity: .64; }
+.daily-wheel-panel {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+}
+.daily-wheel-panel[hidden] { display: none; }
+.daily-wheel {
+    position: relative;
+    width: 176px;
+    height: 176px;
+    border: 5px solid #ffd66b;
+    border-radius: 50%;
+    background: conic-gradient(
+        #6f51ca 0 12.5%, #287ac5 12.5% 25%, #149b91 25% 37.5%, #43a047 37.5% 50%,
+        #d59d24 50% 62.5%, #df6b32 62.5% 75%, #cf4f83 75% 87.5%, #854fbe 87.5% 100%
+    );
+    box-shadow: 0 0 28px rgba(255, 214, 107, .25), inset 0 0 25px rgba(0, 0, 0, .25);
+}
+.daily-wheel::before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    z-index: 2;
+    border-right: 10px solid transparent;
+    border-left: 10px solid transparent;
+    border-top: 22px solid #fff2bd;
+    transform: translateX(-50%);
+}
+.daily-wheel::after {
+    content: '∑';
+    position: absolute;
+    inset: 58px;
+    display: grid;
+    place-items: center;
+    border: 3px solid #fff2bd;
+    border-radius: 50%;
+    background: #24214f;
+    color: #ffd66b;
+    font-size: 24px;
+    font-weight: 900;
+}
+.daily-wheel span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 45%;
+    color: white;
+    font-size: 10px;
+    font-weight: 900;
+    text-align: right;
+    transform-origin: left center;
+}
+.daily-wheel span:nth-child(1) { transform: rotate(22deg) translateX(4px); }
+.daily-wheel span:nth-child(2) { transform: rotate(67deg) translateX(4px); }
+.daily-wheel span:nth-child(3) { transform: rotate(112deg) translateX(4px); }
+.daily-wheel span:nth-child(4) { transform: rotate(157deg) translateX(4px); }
+.daily-wheel span:nth-child(5) { transform: rotate(202deg) translateX(4px); }
+.daily-wheel span:nth-child(6) { transform: rotate(247deg) translateX(4px); }
+.daily-wheel span:nth-child(7) { transform: rotate(292deg) translateX(4px); }
+.daily-wheel span:nth-child(8) { transform: rotate(337deg) translateX(4px); }
+.daily-wheel.spinning { animation: daily-wheel-spin 2.3s cubic-bezier(.12, .65, .18, 1); }
+@keyframes daily-wheel-spin { to { transform: rotate(1800deg); } }
+.daily-wheel-button { max-width: 260px; }
+.daily-wheel-result { min-height: 22px; color: #ffd66b; text-align: center; }
 .daily-coin-animation { position: absolute; top: 50%; left: 50%; z-index: 3; opacity: 0; color: #ffd66b; font-size: 24px; font-weight: 900; pointer-events: none; }
 .daily-coin-animation.play { animation: coin-to-balance 1.1s ease-out; }
 @keyframes coin-to-balance {
