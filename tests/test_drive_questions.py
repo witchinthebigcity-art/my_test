@@ -25,6 +25,17 @@ class DriveQuestionTests(unittest.TestCase):
         self.assertEqual(questions[0].options[questions[0].correct_index], "2,5")
         self.assertEqual(questions[1].options[questions[1].correct_index], "-3")
 
+    def test_supports_negative_answer_in_parentheses(self):
+        questions = parse_drive_index({"files": [{
+            "id": "parenthesised_negative",
+            "name": "52 - (-1).png",
+            "grade": 11,
+            "mimeType": "image/png",
+        }]})
+        question = questions[0]
+        self.assertEqual(question.options[question.correct_index], "-1")
+        self.assertEqual(question.solution, "Правильный ответ: -1.")
+
     def test_rejects_image_without_answer_in_name(self):
         with self.assertRaises(QuestionFormatError):
             parse_drive_index({"files": [{

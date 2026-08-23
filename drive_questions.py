@@ -24,7 +24,9 @@ PUBLIC_FOLDER_DATA_PATTERN = re.compile(
     r"window\['_DRIVE_ivd'\]\s*=\s*'(.*?)';",
     re.DOTALL,
 )
+PUBLIC_API_KEY_PATTERN = re.compile(r"AIza[0-9A-Za-z_-]{30,50}")
 FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
+DRIVE_FILES_API_URL = "https://www.googleapis.com/drive/v3/files"
 
 
 def _format_decimal(value: Decimal, comma: bool) -> str:
@@ -36,7 +38,11 @@ def _format_decimal(value: Decimal, comma: bool) -> str:
 
 
 def _numeric_options(answer: str):
-    source = answer.strip().replace("−", "-").replace(",", ".")
+    source = answer.strip().replace("−", "-")
+    parenthesised = re.fullmatch(r"\(\s*([+-]?\s*\d+(?:[.,]\d+)?)\s*\)", source)
+    if parenthesised:
+        source = parenthesised.group(1).replace(" ", "")
+    source = source.replace(",", ".")
     try:
         value = Decimal(source)
     except InvalidOperation:
@@ -163,6 +169,54 @@ def parse_public_folder_html(html: str) -> list[dict]:
     return result
 
 
+async def _fetch_complete_public_folder(session, folder_id: str, html: str):
+    """Use a public key embedded by Drive to get every item, including pages after 50."""
+    api_keys = list(dict.fromkeys(PUBLIC_API_KEY_PATTERN.findall(html)))
+    if not api_keys:
+        return None
+
+    for api_key in api_keys:
+        entries = []
+        page_token = ""
+        failed = False
+        for _page in range(20):
+            params = {
+                "q": f"'{folder_id}' in parents and trashed=false",
+                "fields": "nextPageToken,files(id,name,mimeType)",
+                "pageSize": "1000",
+                "key": api_key,
+            }
+            if page_token:
+                params["pageToken"] = page_token
+            async with session.get(DRIVE_FILES_API_URL, params=params) as response:
+                if response.status != 200:
+                    failed = True
+                    break
+                try:
+                    payload = await response.json(content_type=None)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    failed = True
+                    break
+            files = payload.get("files") if isinstance(payload, dict) else None
+            if not isinstance(files, list):
+                failed = True
+                break
+            for item in files:
+                if not isinstance(item, dict):
+                    continue
+                file_id = item.get("id")
+                name = item.get("name")
+                mime_type = item.get("mimeType")
+                if all(isinstance(value, str) for value in (file_id, name, mime_type)):
+                    entries.append({"id": file_id, "name": name, "mimeType": mime_type})
+            page_token = str(payload.get("nextPageToken") or "")
+            if not page_token:
+                break
+        if not failed:
+            return entries
+    return None
+
+
 async def fetch_public_drive_index(session, root_folder_id: str) -> dict:
     """Collect class images from a public Drive folder without Google credentials."""
     if not re.fullmatch(r"[A-Za-z0-9_-]+", root_folder_id or ""):
@@ -172,7 +226,14 @@ async def fetch_public_drive_index(session, root_folder_id: str) -> dict:
         url = f"https://drive.google.com/drive/folders/{quote(folder_id)}?usp=drive_link"
         async with session.get(url) as response:
             response.raise_for_status()
-            return parse_public_folder_html(await response.text())
+            html = await response.text()
+        initial_entries = parse_public_folder_html(html)
+        if len(initial_entries) < 50:
+            return initial_entries
+        complete_entries = await _fetch_complete_public_folder(session, folder_id, html)
+        if complete_entries is not None and len(complete_entries) >= len(initial_entries):
+            return complete_entries
+        return initial_entries
 
     root_entries = await read_folder(root_folder_id)
     grade_folders = {}
