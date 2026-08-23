@@ -30,7 +30,8 @@
         let formula = String(value || '').trim();
         formula = formula.replace(/≥q/g, '≥').replace(/≤q/g, '≤').replace(/=\s*>/g, '\\Rightarrow ');
         formula = formula.replace(/(?<![A-Za-zА-Яа-яЁё])pi(?![A-Za-zА-Яа-яЁё])/gi, '\\pi');
-        formula = formula.replace(/π/g, '\\pi ');
+        formula = formula.replace(/π\s*/g, '\\pi ');
+        formula = formula.replace(/(\d),(\d)/g, '$1{,}$2');
         formula = formula.replace(/[₀-₉]+/g, (digits) => `_{${[...digits].map((digit) => SUBSCRIPT_DIGITS[digit]).join('')}}`);
         formula = formula.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (digits) => `^{${[...digits].map((digit) => SUPERSCRIPT_DIGITS[digit]).join('')}}`);
         formula = formula.replace(/²/g, '^{2}').replace(/³/g, '^{3}');
@@ -45,6 +46,7 @@
         formula = formula.replace(/\blog_([A-Za-zА-Яа-я0-9.,]+)\s*\(([^()]*)\)/gi, '\\log_{$1}($2)');
         formula = formula.replace(/\blog_([A-Za-zА-Яа-я0-9.,]+)/gi, '\\log_{$1}');
         formula = formula.replace(/_([А-Яа-яЁё]+)/g, '_{\\mathrm{$1}}');
+        formula = formula.replace(/_([A-Za-z0-9]+)/g, '_{$1}');
         formula = formula.replace(/(?<!\\)\blog\b/gi, '\\log');
         formula = formula.replace(/(?<!\\)\bln\b/gi, '\\ln');
         formula = formula.replace(/(?<!\\)\bsin\b/gi, '\\sin');
@@ -53,14 +55,30 @@
         formula = formula.replace(/(?<![A-Za-z])tg\b/gi, '\\operatorname{tg}');
         formula = formula.replace(/(?<![A-Za-z])ctg\b/gi, '\\operatorname{ctg}');
         formula = formula.replace(/°/g, '^{\\circ}');
-        formula = formula.replace(/·/g, '\\cdot ');
-        return formula;
+        formula = formula.replace(/\^\s*([A-Za-z])/g, '^{$1}');
+        formula = formula.replace(/\s*·\s*/g, ' \\cdot ');
+        formula = formula.replace(/(\^\{[^}]+\})\s+([A-Za-z])/g, '$1\\,$2');
+        return formula.replace(/[ \t]{2,}/g, ' ').trim();
     }
 
     function looksLikeFormula(value) {
         const text = String(value || '').trim();
         if (!text || /[А-Яа-яЁё]{3,}/.test(text)) return false;
         return /[0-9A-Za-zπ√=<>≤≥+\-*/^_()°·]/.test(text);
+    }
+
+    function stashInlineAssignments(text, stash) {
+        const symbol = '[A-Za-z](?:_[A-Za-z0-9]+|[₀-₉]+)?';
+        const expression = '[A-Za-z0-9π√_₀-₉⁰¹²³⁴⁵⁶⁷⁸⁹.,()+\\-*/·\\s]+';
+        const boundary = `(?=\\s+(?:при|если|где)(?=\\s|[,.;?!]|$)|,\\s*${symbol}\\s*=|[;?!]|\\.\\s|$)`;
+        const assignment = new RegExp(`(${symbol}\\s*=\\s*${expression}?)${boundary}`, 'gi');
+        return text.replace(assignment, (match) => {
+            const trailingSpace = match.match(/\s+$/)?.[0] || '';
+            const trimmed = match.trim();
+            const punctuation = trimmed.match(/[.;]$/)?.[0] || '';
+            const formula = punctuation ? trimmed.slice(0, -1).trimEnd() : trimmed;
+            return formula ? `${stash(formula)}${punctuation}${trailingSpace}` : match;
+        });
     }
 
     function prepareMathText(value) {
@@ -77,7 +95,15 @@
         };
 
         text = text.replace(/\$\$([\s\S]*?)\$\$|\$([^$]+)\$/g, (_match, display, inline) => stash(display ?? inline));
+        // A lone dollar sign is a malformed delimiter, not part of a school task.
+        // Removing only unmatched delimiters prevents strings such as "$T = ..."
+        // from being shown literally while leaving the source question untouched.
+        text = text.replace(/\$/g, '');
         if (looksLikeFormula(text)) return `$${normaliseLatex(text)}$`;
+
+        // Mixed prose and formulas are common in the task sheet. Render assignment
+        // fragments separately so words and variables keep a readable visual gap.
+        text = stashInlineAssignments(text, stash);
 
         text = text.replace(/√\(([^()]*)\)/g, (_match, radicand) => stash(`\\sqrt{${radicand}}`));
         text = text.replace(/√([A-Za-zА-Яа-я0-9.,]+)/g, (_match, radicand) => stash(`\\sqrt{${radicand}}`));
@@ -110,5 +136,6 @@
 
     window.normaliseLatex = normaliseLatex;
     window.prepareMathText = prepareMathText;
+    window.stashInlineAssignments = stashInlineAssignments;
     window.setMathContent = setMathContent;
 })();

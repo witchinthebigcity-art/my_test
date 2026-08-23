@@ -470,10 +470,23 @@ body::before {
 .stats > span { padding: 9px 12px; border-radius: 999px; background: var(--surface-soft); }
 
 #quizTopic { margin-top: 22px; color: var(--theme-accent) !important; }
-#quizQuestionText { line-height: 1.35; }
+#quizQuestionText,
+#battleQuestion {
+    font-size: clamp(18px, 4.8vw, 23px);
+    line-height: 1.58;
+    letter-spacing: .006em;
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+}
 .katex { font-size: 1.06em; }
 #quizQuestionText .katex,
-#battleQuestion .katex { font-size: 1.12em; }
+#battleQuestion .katex {
+    display: inline-block;
+    margin-inline: .1em;
+    font-size: 1.1em;
+    line-height: 1.2;
+    vertical-align: -.08em;
+}
 #quizOptions .katex,
 .battle-options .katex { pointer-events: none; }
 #quizOptions { display: grid; gap: 9px; }
@@ -486,6 +499,8 @@ body::before {
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.035) !important;
     color: var(--text-main) !important;
     text-align: left;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
 }
 #quizOptions .btn:hover { border-color: var(--theme-accent) !important; background: color-mix(in srgb, var(--surface-strong) 72%, transparent) !important; }
 #quizFeedback { border: 1px solid var(--theme-border); background: var(--surface-soft) !important; }

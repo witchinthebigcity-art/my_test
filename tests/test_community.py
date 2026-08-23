@@ -352,8 +352,9 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         }
         self.assertEqual(len(departments["book"]), 9)
         self.assertEqual(len(departments["magazine"]), 24)
-        self.assertEqual(len(departments["laptop"]), 12)
+        self.assertEqual(len(departments["laptop"]), 18)
         self.assertNotIn("gadget-airpods", {item["id"] for item in catalog["items"]})
+        self.assertNotIn("gadget-smart-ring", {item["id"] for item in catalog["items"]})
         self.assertEqual(
             {item["price"] for items in departments.values() for item in items},
             {1500, 2500, 5000, 10000},
