@@ -139,6 +139,70 @@ def parse_drive_index(payload) -> list[Question]:
     return questions
 
 
+def parse_extended_drive_index(payload) -> dict[int, list[dict]]:
+    """Build second-part task rubrics from each grade's `2 часть` folder."""
+    files = payload.get("extendedFiles") if isinstance(payload, dict) else None
+    if not isinstance(files, list):
+        return {grade: [] for grade in SUPPORTED_GRADES}
+    tasks = {grade: [] for grade in SUPPORTED_GRADES}
+    errors = []
+    seen = set()
+    for item in files:
+        if not isinstance(item, dict) or item.get("mimeType") not in IMAGE_TYPES:
+            continue
+        try:
+            grade = int(item.get("grade"))
+        except (TypeError, ValueError):
+            continue
+        if grade not in SUPPORTED_GRADES:
+            continue
+        name = os.path.basename(str(item.get("name") or ""))
+        match = FILENAME_PATTERN.match(name)
+        if not match:
+            errors.append(f"{grade} класс / 2 часть: {name}")
+            continue
+        number = int(match.group("number"))
+        if (grade, number) in seen:
+            errors.append(f"{grade} класс / 2 часть: повторяется номер {number}")
+            continue
+        seen.add((grade, number))
+        file_id = str(item.get("id") or "")
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", file_id):
+            errors.append(f"{grade} класс / 2 часть: некорректный ID {name}")
+            continue
+        _options, _correct_index, answer = _answer_options(match.group("answer"), file_id)
+        exam = "ОГЭ" if grade == 9 else "ЕГЭ" if grade == 11 else "Итоговая контрольная"
+        criteria = (
+            "Критерии ОГЭ: математически грамотный и завершённый ход решения"
+            if grade == 9 else
+            "Критерии ЕГЭ для задачи соответствующего типа"
+            if grade == 11 else
+            "Математические правила, корректность преобразований и полнота решения"
+        )
+        tasks[grade].append({
+            "id": f"drive-extended-{grade}-{file_id}",
+            "title": f"{exam} · задание №{number}",
+            "question": f"Решите задание №{number}. Приложите развёрнутое решение и запишите ответ.",
+            "imageUrl": f"https://drive.google.com/thumbnail?id={quote(file_id)}&sz=w1600",
+            "kind": f"{exam}, {grade} класс",
+            "maxScore": 2,
+            "criteriaSource": criteria,
+            "fields": [{
+                "id": "answer",
+                "label": "Итоговый ответ",
+                "hint": "Введите ответ через MathLive",
+                "answers": [answer],
+                "points": 2,
+            }],
+        })
+    if errors:
+        preview = "; ".join(errors[:5])
+        raise QuestionFormatError(
+            "В папках «2 часть» используйте схему «номер - правильный ответ»: " + preview
+        )
+    return tasks
+
+
 def parse_public_folder_html(html: str) -> list[dict]:
     """Read public Drive folder entries from the initial page payload."""
     match = PUBLIC_FOLDER_DATA_PATTERN.search(html)
@@ -258,10 +322,26 @@ async def fetch_public_drive_index(session, root_folder_id: str) -> dict:
         read_folder(grade_folders[grade]) for grade in sorted(SUPPORTED_GRADES)
     ))
     files = []
+    second_part_folders = {}
     for grade, entries in zip(sorted(SUPPORTED_GRADES), folder_entries):
         for entry in entries:
             if entry["mimeType"] in IMAGE_TYPES:
                 files.append({**entry, "grade": grade})
+            elif entry["mimeType"] == FOLDER_MIME_TYPE:
+                folder_name = re.sub(r"[\s_-]+", "", entry["name"].casefold().replace("ё", "е"))
+                if folder_name in {"2часть", "часть2", "втораячасть"}:
+                    if grade in second_part_folders:
+                        raise QuestionFormatError(
+                            f"В папке {grade} класса найдено несколько папок «2 часть»"
+                        )
+                    second_part_folders[grade] = entry["id"]
     if not files:
         raise QuestionFormatError("В папках 8–11 классов не найдено изображений")
-    return {"files": files}
+    second_entries = await asyncio.gather(*(
+        read_folder(second_part_folders[grade]) if grade in second_part_folders else asyncio.sleep(0, result=[])
+        for grade in sorted(SUPPORTED_GRADES)
+    ))
+    extended_files = []
+    for grade, entries in zip(sorted(SUPPORTED_GRADES), second_entries):
+        extended_files.extend({**entry, "grade": grade} for entry in entries if entry["mimeType"] in IMAGE_TYPES)
+    return {"files": files, "extendedFiles": extended_files}

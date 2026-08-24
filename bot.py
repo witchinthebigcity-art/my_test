@@ -3,6 +3,7 @@ import json
 import asyncio
 import ssl
 import time
+import random
 from urllib.parse import urlencode
 
 import aiohttp
@@ -29,14 +30,18 @@ from aiogram.exceptions import (
 )
 
 from community import CommunityError, CommunityStore, validate_telegram_init_data
-from drive_questions import fetch_public_drive_index, parse_drive_index
+from drive_questions import fetch_public_drive_index, parse_drive_index, parse_extended_drive_index
 from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "18"
+WEBAPP_VERSION = "19"
 ADMIN_ID = os.getenv("ADMIN_ID")
+MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
+MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_GRADER_MODEL = os.getenv("OPENAI_GRADER_MODEL", "gpt-5-mini").strip()
 ADMIN_USERNAMES = {
     value.strip().lstrip("@").casefold()
     for value in os.getenv("ADMIN_USERNAMES", "supertutor15,Dany_german").split(",")
@@ -74,7 +79,7 @@ COMMUNITY_FILE = f"{DATA_DIR}/community.json"
 
 community_store = CommunityStore(COMMUNITY_FILE)
 
-questions_cache = {"loaded_at": 0.0, "items": []}
+questions_cache = {"loaded_at": 0.0, "items": [], "extended": {grade: [] for grade in SUPPORTED_GRADES}}
 questions_cache_lock = asyncio.Lock()
 
 def save_user(user_id):
@@ -200,7 +205,8 @@ async def _refresh_questions_for_admin(message):
         )
         lines = [
             f"{grade} класс: {values['total']} "
-            f"(текстовых: {values['text']}, с картинкой: {values['images']})"
+            f"(текстовых: {values['text']}, с картинкой: {values['images']}, "
+            f"2 часть: {len(questions_cache.get('extended', {}).get(grade, []))})"
             for grade, values in counts.items()
         ]
         await message.answer(
@@ -372,6 +378,10 @@ async def handle_math_script(request):
     return web.FileResponse('math-format.js', headers={"Cache-Control": "no-store, max-age=0"})
 
 
+async def handle_adventure_script(request):
+    return web.FileResponse('adventure.js', headers={"Cache-Control": "no-store, max-age=0"})
+
+
 def _authenticated_user(request):
     init_data = request.headers.get("X-Telegram-Init-Data", "")
     return validate_telegram_init_data(init_data, TOKEN)
@@ -443,6 +453,9 @@ async def _load_questions(force=False):
                 questions.extend(parse_questions_csv(source.read()))
         if drive_payload is not None:
             questions.extend(parse_drive_index(drive_payload))
+            questions_cache["extended"] = parse_extended_drive_index(drive_payload)
+        else:
+            questions_cache["extended"] = {grade: [] for grade in SUPPORTED_GRADES}
         questions = list({question.question_id: question for question in questions}.values())
         questions_cache["items"] = questions
         questions_cache["loaded_at"] = time.monotonic()
@@ -938,7 +951,7 @@ async def get_stats(request):
                         if data.get('isCorrect'):
                             stats["correct"] += 1
                         
-                        topic = data.get('topic', 'Общее')
+                        topic = normalise_stats_topic(data.get('topic', 'Общее'))
                         if topic not in stats["topics"]:
                             stats["topics"][topic] = {"total": 0, "correct": 0}
                         stats["topics"][topic]["total"] += 1
@@ -949,17 +962,299 @@ async def get_stats(request):
         print(f"Ошибка чтения файла: {e}")
                 
     return web.json_response(stats)
+
+
+def normalise_stats_topic(value):
+    topic = " ".join(str(value or "").split()).strip(" .,:;-")
+    if not topic:
+        return "Общее"
+    lower = topic.casefold().replace("ё", "е")
+    looks_like_task = (
+        len(topic) > 72
+        or "?" in topic
+        or sum(char.isdigit() for char in topic) >= 3
+        or ("=" in topic and len(topic.split()) >= 5)
+        or len(topic.split()) > 10
+    )
+    if not looks_like_task:
+        return topic[:72]
+    groups = (
+        ("Геометрия", ("треуг", "окруж", "угол", "площад", "радиус", "сторон", "прямоуг", "вектор")),
+        ("Тригонометрия", ("sin", "cos", "tg", "ctg", "синус", "косин", "танген")),
+        ("Логарифмы", ("log", "логариф")),
+        ("Функции и производная", ("функц", "график", "производн", "касатель")),
+        ("Уравнения и неравенства", ("уравнен", "неравен", "корн", "дискриминант")),
+        ("Вероятность и статистика", ("вероят", "средн", "медиан", "событ")),
+        ("Проценты и текстовые задачи", ("процент", "скорост", "вклад", "стоимост", "мощност", "температур")),
+    )
+    for label, markers in groups:
+        if any(marker in lower for marker in markers):
+            return label
+    return "Смешанные задачи"
+
+
+async def get_training_history(request):
+    try:
+        user = _authenticated_user(request)
+        grade_value = request.query.get("grade")
+        grade = int(grade_value) if grade_value else None
+        grouped = {}
+        if os.path.exists(RESULTS_FILE):
+            with open(RESULTS_FILE, "r", encoding="utf-8") as source:
+                for line in source:
+                    try:
+                        item = json.loads(line)
+                        if str(item.get("user_id")) != str(user["id"]):
+                            continue
+                        item_grade = int(item.get("grade") or item.get("class") or 0)
+                        if grade and item_grade != grade:
+                            continue
+                        key = str(item.get("attemptKey") or item.get("time") or "legacy")
+                        row = grouped.setdefault(key, {
+                            "id": key,
+                            "grade": item_grade,
+                            "createdAt": item.get("time"),
+                            "total": 0,
+                            "correct": 0,
+                            "topics": set(),
+                        })
+                        row["total"] += 1
+                        row["correct"] += int(bool(item.get("isCorrect")))
+                        row["topics"].add(normalise_stats_topic(item.get("topic")))
+                        if item.get("time") and (not row["createdAt"] or item["time"] > row["createdAt"]):
+                            row["createdAt"] = item["time"]
+                    except (ValueError, TypeError, json.JSONDecodeError):
+                        continue
+        entries = sorted(grouped.values(), key=lambda item: item.get("createdAt") or "", reverse=True)[:30]
+        for entry in entries:
+            entry["topics"] = sorted(entry["topics"])
+            entry["percent"] = round(entry["correct"] * 100 / entry["total"]) if entry["total"] else 0
+        extended_entries = await community_store.adventure_history(user, grade)
+        for entry in extended_entries:
+            entry["percent"] = round(entry["correct"] * 100 / entry["total"]) if entry["total"] else 0
+        entries = sorted(
+            entries + extended_entries,
+            key=lambda item: item.get("createdAt") or "",
+            reverse=True,
+        )[:30]
+        return web.json_response({"entries": entries})
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
+async def get_adventure(request):
+    try:
+        return web.json_response(await community_store.get_adventure(
+            _authenticated_user(request), int(request.query.get("grade") or 0)
+        ))
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+
+
+async def start_adventure(request):
+    try:
+        payload = await request.json()
+        grade = int(payload.get("grade") or 0)
+        user = _authenticated_user(request)
+        attempt_key = str(payload.get("attemptKey") or "").strip()
+        await _load_questions()
+        available = questions_cache.get("extended", {}).get(grade, [])
+        used_ids = await community_store.used_adventure_task_ids(user, grade, attempt_key)
+        fresh_tasks = [task for task in available if task.get("id") not in used_ids]
+        # Once every task in the folder has been solved, a new shuffled cycle may begin.
+        task = random.choice(fresh_tasks or available) if available else None
+        return web.json_response(await community_store.start_adventure(
+            user, grade, attempt_key, task=task
+        ))
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+
+
+async def progress_adventure(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await community_store.collect_adventure_crystal(
+            _authenticated_user(request), request.match_info["session_id"], payload.get("crystal")
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def save_adventure_draft(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await community_store.save_adventure_draft(
+            _authenticated_user(request), request.match_info["session_id"], payload
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def submit_adventure(request):
+    try:
+        user = _authenticated_user(request)
+        payload = await request.json()
+        context = await community_store.adventure_context(user, request.match_info["session_id"])
+        expert_result = await _grade_extended_solution(context, payload)
+        return web.json_response(await community_store.submit_adventure(
+            user, request.match_info["session_id"], payload, expert_result=expert_result
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def _grade_extended_solution(context, payload):
+    if not OPENAI_API_KEY:
+        return None
+    task = context["task"]
+    grade = int(context["grade"])
+    reference = {
+        field["label"]: field.get("answers", [])
+        for field in task.get("fields", [])
+    }
+    criteria = (
+        "ОГЭ: 2 — математически грамотное завершённое решение с понятным ходом; "
+        "1 — верный ход с несущественной или вычислительной ошибкой либо незавершённостью; "
+        "0 — только ответ, фрагменты или существенная математическая ошибка."
+        if grade == 9 else
+        "ЕГЭ: применяй критерии указанного типа задания; проверяй ограничения, корректность преобразований, полноту обоснований и ответ."
+        if grade == 11 else
+        "Проверяй как учитель математики: корректность каждого преобразования, полноту обоснований и совпадение ответа. Шкала 0–2."
+    )
+    text = (
+        f"Класс: {grade}\nТип: {task.get('kind')}\nУсловие: {task.get('question')}\n"
+        f"Эталонные ответы: {json.dumps(reference, ensure_ascii=False)}\nКритерии: {criteria}\n"
+        f"Поля ученика: {json.dumps(payload.get('answers') or {}, ensure_ascii=False)}\n"
+        f"Распознанный/введённый ход решения: {str(payload.get('explanation') or '')[:5000]}"
+    )
+    content = [{"type": "input_text", "text": text}]
+    for image_value in (task.get("imageUrl"), payload.get("conditionImage"), payload.get("solutionImage")):
+        if image_value:
+            content.append({"type": "input_image", "image_url": image_value, "detail": "high"})
+    request_payload = {
+        "model": OPENAI_GRADER_MODEL,
+        "store": False,
+        "instructions": (
+            "Ты строгий, но объективный эксперт по школьной математике. Оцени только представленное решение. "
+            "Не требуй конкретного оформления, если ход математически верен. Не выдавай полный балл за один ответ без решения. "
+            "Если символ неразборчив, перечисли его в uncertainSymbols и не угадывай."
+        ),
+        "input": [{"role": "user", "content": content}],
+        "text": {"format": {
+            "type": "json_schema",
+            "name": "math_solution_grade",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "score": {"type": "integer", "minimum": 0, "maximum": 2},
+                    "verdict": {"type": "string"},
+                    "criteria": {"type": "array", "items": {
+                        "type": "object",
+                        "properties": {
+                            "label": {"type": "string"},
+                            "correct": {"type": "boolean"},
+                            "earned": {"type": "integer", "minimum": 0, "maximum": 2},
+                            "max": {"type": "integer", "minimum": 0, "maximum": 2},
+                        },
+                        "required": ["label", "correct", "earned", "max"],
+                        "additionalProperties": False,
+                    }},
+                    "uncertainSymbols": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["score", "verdict", "criteria", "uncertainSymbols"],
+                "additionalProperties": False,
+            },
+        }},
+    }
+    try:
+        timeout = aiohttp.ClientTimeout(total=50)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                "https://api.openai.com/v1/responses",
+                headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+                json=request_payload,
+            ) as response:
+                response_data = await response.json(content_type=None)
+                if response.status >= 400:
+                    return None
+        output_text = response_data.get("output_text")
+        if not output_text:
+            for item in response_data.get("output", []):
+                for part in item.get("content", []):
+                    if part.get("type") == "output_text":
+                        output_text = part.get("text")
+                        break
+        result = json.loads(output_text or "")
+        result["maxScore"] = 2
+        if result.get("uncertainSymbols"):
+            result["verdict"] += " Уточните символы через MathLive: " + ", ".join(result["uncertainSymbols"][:5])
+        return result
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, TypeError, json.JSONDecodeError):
+        return None
+
+
+async def recognize_solution(request):
+    try:
+        _authenticated_user(request)
+        payload = await request.json()
+        image_data = str(payload.get("image") or "")
+        if not image_data.startswith("data:image/") or len(image_data) > 1_000_000:
+            raise CommunityError("Фото для распознавания отсутствует или слишком велико")
+        if not MATHPIX_APP_ID or not MATHPIX_APP_KEY:
+            return web.json_response({
+                "configured": False,
+                "message": "Распознавание фото ещё не подключено. Используйте математическую клавиатуру.",
+            })
+        timeout = aiohttp.ClientTimeout(total=35)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                "https://api.mathpix.com/v3/text",
+                headers={
+                    "app_id": MATHPIX_APP_ID,
+                    "app_key": MATHPIX_APP_KEY,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "src": image_data,
+                    "formats": ["text"],
+                    "math_inline_delimiters": ["$", "$"],
+                    "rm_spaces": False,
+                },
+            ) as response:
+                result = await response.json(content_type=None)
+                if response.status >= 400:
+                    raise CommunityError("Сервис не смог распознать фотографию")
+        confidence = float(result.get("confidence") or result.get("confidence_rate") or 0)
+        return web.json_response({
+            "configured": True,
+            "text": str(result.get("text") or "")[:6000],
+            "confidence": confidence,
+            "needsConfirmation": confidence < 0.82,
+        })
+    except CommunityError as error:
+        return _community_error(error, status=422)
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, TypeError):
+        return _community_error(CommunityError("Распознавание временно недоступно"), status=502)
 def create_app():
-    application = web.Application(client_max_size=2 * 1024 * 1024)
+    application = web.Application(client_max_size=4 * 1024 * 1024)
     application.router.add_get('/', handle_index)
     application.router.add_get('/app.css', handle_styles)
     application.router.add_get('/community.js', handle_community_script)
     application.router.add_get('/characters.js', handle_character_script)
     application.router.add_get('/math-format.js', handle_math_script)
+    application.router.add_get('/adventure.js', handle_adventure_script)
     application.router.add_static('/assets/', 'assets', show_index=False)
     application.router.add_get('/api/questions', get_questions)
     application.router.add_post('/save', save_progress)
     application.router.add_get('/stats', get_stats)
+    application.router.add_get('/api/training-history', get_training_history)
+    application.router.add_get('/api/adventure', get_adventure)
+    application.router.add_post('/api/adventure/start', start_adventure)
+    application.router.add_post('/api/adventure/{session_id}/progress', progress_adventure)
+    application.router.add_post('/api/adventure/{session_id}/draft', save_adventure_draft)
+    application.router.add_post('/api/adventure/{session_id}/submit', submit_adventure)
+    application.router.add_post('/api/adventure/recognize', recognize_solution)
     application.router.add_get('/api/profile', get_profile)
     application.router.add_post('/api/profile', update_profile)
     application.router.add_post('/api/daily-login', claim_daily_login)

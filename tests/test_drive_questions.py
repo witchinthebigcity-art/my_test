@@ -1,6 +1,13 @@
 import unittest
+from unittest.mock import patch
 
-from drive_questions import parse_drive_index, parse_public_folder_html
+from drive_questions import (
+    FOLDER_MIME_TYPE,
+    fetch_public_drive_index,
+    parse_drive_index,
+    parse_extended_drive_index,
+    parse_public_folder_html,
+)
 from questions import QuestionFormatError
 
 
@@ -45,6 +52,51 @@ class DriveQuestionTests(unittest.TestCase):
                 "mimeType": "image/png",
             }]})
 
+
+class _FakeResponse:
+    def __init__(self, value):
+        self.value = value
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        return False
+
+    def raise_for_status(self):
+        return None
+
+    async def text(self):
+        return self.value
+
+
+class _FakeSession:
+    def get(self, url, **_kwargs):
+        folder_id = url.split('/folders/', 1)[1].split('?', 1)[0]
+        return _FakeResponse(folder_id)
+
+
+class DriveFolderSeparationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_second_part_subfolder_never_enters_first_part(self):
+        folders = {
+            "root": [
+                {"id": f"grade-{grade}", "name": f"{grade} класс", "mimeType": FOLDER_MIME_TYPE}
+                for grade in (8, 9, 10, 11)
+            ],
+            "grade-8": [
+                {"id": "first-8", "name": "6 - 12.png", "mimeType": "image/png"},
+                {"id": "second-folder-8", "name": "2 часть", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "grade-9": [{"id": "first-9", "name": "6 - 9.png", "mimeType": "image/png"}],
+            "grade-10": [{"id": "first-10", "name": "6 - 10.png", "mimeType": "image/png"}],
+            "grade-11": [{"id": "first-11", "name": "6 - 11.png", "mimeType": "image/png"}],
+            "second-folder-8": [{"id": "second-8", "name": "1 - 42.png", "mimeType": "image/png"}],
+        }
+        with patch("drive_questions.parse_public_folder_html", side_effect=lambda marker: folders[marker]):
+            payload = await fetch_public_drive_index(_FakeSession(), "root")
+        self.assertEqual({item["id"] for item in payload["files"]}, {"first-8", "first-9", "first-10", "first-11"})
+        self.assertEqual([item["id"] for item in payload["extendedFiles"]], ["second-8"])
+
     def test_rejects_duplicate_number_inside_one_grade(self):
         with self.assertRaisesRegex(QuestionFormatError, "повторяется номер 6"):
             parse_drive_index({"files": [
@@ -73,6 +125,23 @@ class DriveQuestionTests(unittest.TestCase):
         self.assertEqual(parse_public_folder_html(html), [{
             "id": "file_id", "name": "6 - 120", "mimeType": "image/png"
         }])
+
+    def test_builds_second_part_task_only_from_extended_files(self):
+        tasks = parse_extended_drive_index({"extendedFiles": [{
+            "id": "extended_file_1",
+            "name": "1 - (-3).png",
+            "grade": 9,
+            "mimeType": "image/png",
+        }]})
+        self.assertEqual(len(tasks[9]), 1)
+        self.assertEqual(tasks[9][0]["fields"][0]["answers"], ["-3"])
+        self.assertIn("extended_file_1", tasks[9][0]["imageUrl"])
+
+    def test_second_part_rejects_filename_without_answer(self):
+        with self.assertRaisesRegex(QuestionFormatError, "2 часть"):
+            parse_extended_drive_index({"extendedFiles": [{
+                "id": "extended_file_2", "name": "2.png", "grade": 11, "mimeType": "image/png"
+            }]})
 
 
 if __name__ == "__main__":

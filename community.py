@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from urllib.parse import parse_qsl
 from zoneinfo import ZoneInfo
 
+from adventure import ADVENTURE_TASKS, grade_solution, new_session, public_task
+
 
 MOSCOW = ZoneInfo("Europe/Moscow")
 DAILY_AWARDS = {
@@ -251,7 +253,7 @@ def _now_iso():
 
 def _default_data():
     return {
-        "version": 3,
+        "version": 4,
         "profiles": {},
         "attempts": [],
         "awards": [],
@@ -261,6 +263,7 @@ def _default_data():
         "battle_invites": [],
         "coin_transactions": [],
         "enrollments": [],
+        "adventures": {},
     }
 
 
@@ -268,6 +271,7 @@ class CommunityStore:
     def __init__(self, path):
         self.path = path
         self.avatar_directory = os.path.join(os.path.dirname(path) or ".", "avatars")
+        self.solution_directory = os.path.join(os.path.dirname(path) or ".", "solutions")
         self.lock = asyncio.Lock()
 
     def _load(self):
@@ -861,7 +865,11 @@ class CommunityStore:
             profile["grade"] = grade
             is_correct = bool(payload.get("isCorrect"))
             attempt_key = str(payload.get("attemptKey") or uuid.uuid4().hex)
-            if any(item.get("attempt_key") == attempt_key for item in data["attempts"]):
+            if any(
+                item.get("attempt_key") == attempt_key
+                and item.get("question_id") == question_id
+                for item in data["attempts"]
+            ):
                 return {"saved": False, "reason": "duplicate"}
             today = datetime.now(MOSCOW).strftime("%Y-%m-%d")
             if question_id and any(
@@ -884,6 +892,196 @@ class CommunityStore:
             })
             self._save(data)
             return {"saved": True}
+
+    def _store_solution_image(self, data_url, prefix):
+        if not data_url:
+            return ""
+        extension, payload = decode_avatar_data_url(data_url)
+        os.makedirs(self.solution_directory, exist_ok=True)
+        filename = f"{prefix}-{uuid.uuid4().hex}.{extension}"
+        path = os.path.join(self.solution_directory, filename)
+        with open(path, "wb") as target:
+            target.write(payload)
+        return filename
+
+    def _adventure_view(self, session):
+        result = {
+            "id": session["id"],
+            "grade": session["grade"],
+            "stage": session["stage"],
+            "crystals": list(session.get("crystals") or []),
+            "status": session["status"],
+            "updatedAt": session.get("updated_at"),
+            "task": public_task(session.get("task") or session["grade"]),
+        }
+        if session.get("result"):
+            result["result"] = session["result"]
+        if session.get("draft"):
+            result["draft"] = session["draft"]
+        return result
+
+    async def get_adventure(self, user, grade):
+        grade = int(grade)
+        if grade not in ADVENTURE_TASKS:
+            raise CommunityError("Некорректный класс")
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            sessions = [
+                session for session in data["adventures"].values()
+                if session.get("user_id") == user_id
+                and int(session.get("grade") or 0) == grade
+                and session.get("status") == "active"
+            ]
+            if not sessions:
+                return {"active": False}
+            session = max(sessions, key=lambda item: item.get("updated_at") or "")
+            return {"active": True, "session": self._adventure_view(session)}
+
+    async def adventure_history(self, user, grade=None):
+        requested_grade = int(grade or 0)
+        if requested_grade and requested_grade not in ADVENTURE_TASKS:
+            raise CommunityError("Некорректный класс")
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            sessions = [
+                session for session in data["adventures"].values()
+                if session.get("user_id") == user_id
+                and session.get("status") == "complete"
+                and (not requested_grade or int(session.get("grade") or 0) == requested_grade)
+            ]
+            sessions.sort(key=lambda item: item.get("updated_at") or "", reverse=True)
+            return [{
+                "id": f"adventure:{session['id']}",
+                "grade": int(session["grade"]),
+                "createdAt": session.get("updated_at"),
+                "total": int((session.get("result") or {}).get("maxScore") or 2),
+                "correct": int((session.get("result") or {}).get("score") or 0),
+                "topics": ["Вторая часть"],
+                "kind": "extended",
+            } for session in sessions[:30]]
+
+    async def used_adventure_task_ids(self, user, grade, attempt_key):
+        grade = int(grade)
+        if grade not in ADVENTURE_TASKS:
+            raise CommunityError("Некорректный класс")
+        round_key = str(attempt_key or "").strip()
+        if not round_key:
+            return set()
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            return {
+                str((session.get("task") or {}).get("id") or "")
+                for session in data["adventures"].values()
+                if session.get("user_id") == user_id
+                and int(session.get("grade") or 0) == grade
+                and session.get("attempt_key") == round_key
+                and (session.get("task") or {}).get("id")
+            }
+
+    async def start_adventure(self, user, grade, attempt_key, task=None):
+        grade = int(grade)
+        if grade not in ADVENTURE_TASKS:
+            raise CommunityError("Некорректный класс")
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            active = next((
+                session for session in data["adventures"].values()
+                if session.get("user_id") == user_id
+                and int(session.get("grade") or 0) == grade
+                and session.get("status") == "active"
+            ), None)
+            if active:
+                return self._adventure_view(active)
+            session = new_session(user_id, grade, attempt_key, task=task)
+            session["created_at"] = _now_iso()
+            session["updated_at"] = session["created_at"]
+            data["adventures"][session["id"]] = session
+            self._save(data)
+            return self._adventure_view(session)
+
+    async def collect_adventure_crystal(self, user, session_id, crystal):
+        crystal = str(crystal or "")
+        if crystal not in {"logic", "formula", "focus"}:
+            raise CommunityError("Неизвестный кристалл")
+        async with self.lock:
+            data = self._load()
+            session = data["adventures"].get(str(session_id))
+            if not session or session.get("user_id") != self._user_id(user) or session.get("status") != "active":
+                raise CommunityError("Активное приключение не найдено")
+            crystals = session.setdefault("crystals", [])
+            if crystal not in crystals:
+                crystals.append(crystal)
+            if len(crystals) == 3:
+                session["stage"] = "solution"
+            session["updated_at"] = _now_iso()
+            self._save(data)
+            return self._adventure_view(session)
+
+    async def adventure_context(self, user, session_id):
+        async with self.lock:
+            data = self._load()
+            session = data["adventures"].get(str(session_id))
+            if not session or session.get("user_id") != self._user_id(user) or session.get("status") != "active":
+                raise CommunityError("Активное приключение не найдено")
+            return {
+                "grade": int(session["grade"]),
+                "task": session.get("task") or ADVENTURE_TASKS[int(session["grade"])],
+            }
+
+    async def save_adventure_draft(self, user, session_id, payload):
+        async with self.lock:
+            data = self._load()
+            session = data["adventures"].get(str(session_id))
+            if not session or session.get("user_id") != self._user_id(user) or session.get("status") != "active":
+                raise CommunityError("Активное приключение не найдено")
+            answers = {
+                str(key)[:40]: str(value)[:500]
+                for key, value in (payload.get("answers") or {}).items()
+            }
+            explanation = str(payload.get("explanation") or "")[:3000]
+            session["draft"] = {"answers": answers, "explanation": explanation}
+            session["updated_at"] = _now_iso()
+            self._save(data)
+            return {"saved": True, "updatedAt": session["updated_at"]}
+
+    async def submit_adventure(self, user, session_id, payload, expert_result=None):
+        async with self.lock:
+            data = self._load()
+            session = data["adventures"].get(str(session_id))
+            if not session or session.get("user_id") != self._user_id(user) or session.get("status") != "active":
+                raise CommunityError("Активное приключение не найдено")
+            if session.get("stage") != "solution":
+                raise CommunityError("Сначала соберите три кристалла")
+            explanation = str(payload.get("explanation") or "").strip()
+            if len(explanation) > 3000:
+                raise CommunityError("Пояснение слишком длинное")
+            task = session.get("task") or ADVENTURE_TASKS[int(session["grade"])]
+            result = expert_result or grade_solution(task, payload.get("answers") or {}, explanation)
+            result["engine"] = "expert-model" if expert_result else "structured-check"
+            session["condition_image"] = self._store_solution_image(payload.get("conditionImage"), "condition")
+            session["solution_image"] = self._store_solution_image(payload.get("solutionImage"), "solution")
+            session["answers"] = payload.get("answers") or {}
+            session["explanation"] = explanation
+            session["result"] = result
+            session["status"] = "complete"
+            session["stage"] = "complete"
+            session["updated_at"] = _now_iso()
+            data["attempts"].append({
+                "attempt_key": f"adventure:{session['id']}",
+                "user_id": self._user_id(user),
+                "question_id": task["id"],
+                "grade": session["grade"],
+                "correct": result["score"] == result["maxScore"],
+                "points": result["score"],
+                "source": "extended",
+                "created_at": _now_iso(),
+            })
+            self._save(data)
+            return self._adventure_view(session)
 
     @staticmethod
     def _period_key(timestamp, period):

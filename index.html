@@ -8,8 +8,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script type="module" src="https://unpkg.com/mathlive@0.109.0?module"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/math-format.js?v=18"></script>
+    <script defer src="/math-format.js?v=19"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -139,6 +140,7 @@
         </div>
         <div class="menu-actions">
             <button class="action-card" onclick="startPractice()"><span class="action-icon">✏️</span><span><strong>Начать тренировку</strong><small>Новая подборка из таблицы</small></span><span class="action-arrow">›</span></button>
+            <button id="resumeAdventureCard" class="action-card adventure-resume-card" onclick="resumeAdventure()" hidden><span class="action-icon">🏰</span><span><strong>Продолжить Башню решений</strong><small>Прогресс второй части сохранён</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startDiagnostic()"><span class="action-icon">🧭</span><span><strong>Пробное тестирование</strong><small>Определить уровень и получить рекомендации</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openBattle()"><span class="action-icon">⚔️</span><span><strong>Баттлы</strong><small>Пять одинаковых задач против ученика своего класса</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openFriends('mainMenu')"><span class="action-icon">👥</span><span><strong>Мои друзья</strong><small>Сообщения и личные вызовы в баттл</small></span><span class="action-arrow">›</span></button>
@@ -403,6 +405,51 @@
         <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Меню</button>
     </div>
 
+    <div id="adventureScreen" class="screen adventure-screen">
+        <div class="adventure-heading">
+            <div><p class="eyebrow">Мини-игра после первой части</p><h2>Башня решений</h2></div>
+            <span class="soft-pill">Автосохранение</span>
+        </div>
+        <p id="adventureStatus" class="supporting-text">Открываем сохранённую комнату…</p>
+        <div id="adventureWorld" class="adventure-world">
+            <div class="tower-moon"></div>
+            <div class="tower-silhouette"><span>∑</span></div>
+            <div class="adventure-obstacle" aria-hidden="true">✦</div>
+            <div class="adventure-avatar" aria-hidden="true">🧙</div>
+            <div id="crystalButtons" class="crystal-row"></div>
+        </div>
+        <section id="extendedSolutionPanel" class="extended-solution-panel" hidden>
+            <p id="extendedTaskKind" class="eyebrow"></p>
+            <h3 id="extendedTaskTitle"></h3>
+            <div id="extendedTaskQuestion" class="extended-task-question"></div>
+            <img id="extendedTaskImage" class="question-media extended-task-image" alt="Условие задания второй части" hidden>
+            <div class="criteria-note"><strong>Как проверяем</strong><span id="extendedCriteriaSource"></span></div>
+            <div id="extendedMathFields" class="extended-math-fields"></div>
+            <label class="field-label" for="extendedExplanation">Ход решения</label>
+            <textarea id="extendedExplanation" class="extended-explanation" rows="6" placeholder="Кратко запишите ход рассуждений. Верный ответ без решения не получает полный балл."></textarea>
+            <button class="small-link-button math-help-button" type="button" onclick="focusFirstMathField()">⌨️ Непонятный символ — открыть математическую клавиатуру</button>
+            <div class="solution-upload-grid">
+                <label class="solution-upload"><span>📎 Фото условия</span><small>если задача была на бумаге</small><input id="conditionImageInput" type="file" accept="image/*" capture="environment"></label>
+                <label class="solution-upload"><span>✍️ Фото решения</span><small>черновик или полный ответ</small><input id="solutionImageInput" type="file" accept="image/*" capture="environment"></label>
+            </div>
+            <div id="solutionUploadStatus" class="inline-message" hidden></div>
+            <button id="submitExtendedButton" class="btn" type="button" onclick="submitExtendedSolution()">Проверить по критериям</button>
+        </section>
+        <section id="extendedResult" class="extended-result" hidden></section>
+        <div class="adventure-footer-actions">
+            <button class="btn btn-secondary" onclick="loadMyStats()">Моя статистика</button>
+            <button class="btn btn-secondary" onclick="openTrainingHistory()">История тренировок</button>
+            <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
+        </div>
+    </div>
+
+    <div id="trainingHistoryScreen" class="screen">
+        <p class="eyebrow">Личный прогресс</p>
+        <h2>История тренировок</h2>
+        <div id="trainingHistoryList" class="training-history-list"><p class="empty-state">Загружаем историю…</p></div>
+        <button class="btn btn-secondary" onclick="showScreen(currentClass ? 'mainMenu' : 'classSelection')">Назад</button>
+    </div>
+
     <div id="theoryScreen" class="screen">
         <h2>Теория: <span id="theoryClassLabel"></span> класс</h2>
         
@@ -615,6 +662,7 @@
         document.getElementById('gradeDescription').innerText = theme.description;
         document.getElementById('coinsCount').innerText = window.isAdminMode ? '∞' : coins;
         showScreen('mainMenu');
+        if (typeof updateAdventureResume === 'function') updateAdventureResume();
     }
 
     function showScreen(screenId) {
@@ -1029,6 +1077,20 @@ function sendToForm(grade, topic, status) {
             retryButton.textContent = 'Пройти диагностику ещё раз';
             retryButton.addEventListener('click', startDiagnostic);
             resultActions.appendChild(retryButton);
+        } else {
+            const adventureButton = document.createElement('button');
+            adventureButton.className = 'btn adventure-launch-button';
+            adventureButton.textContent = '🎮 Продолжить: Башня решений';
+            adventureButton.addEventListener('click', openAdventureAfterTraining);
+            const statsButton = document.createElement('button');
+            statsButton.className = 'btn btn-secondary';
+            statsButton.textContent = '📊 Моя статистика';
+            statsButton.addEventListener('click', loadMyStats);
+            const historyButton = document.createElement('button');
+            historyButton.className = 'btn btn-secondary';
+            historyButton.textContent = '🗂 История тренировок';
+            historyButton.addEventListener('click', openTrainingHistory);
+            resultActions.append(adventureButton, statsButton, historyButton);
         }
         showScreen('resultScreen');
     }
@@ -1061,7 +1123,8 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=18"></script>
-<script src="/community.js?v=18"></script>
+<script src="/characters.js?v=19"></script>
+<script src="/community.js?v=19"></script>
+<script src="/adventure.js?v=19"></script>
 </body>
 </html>
