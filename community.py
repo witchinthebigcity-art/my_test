@@ -14,7 +14,14 @@ from datetime import datetime, timedelta
 from urllib.parse import parse_qsl
 from zoneinfo import ZoneInfo
 
-from adventure import ADVENTURE_TASKS, grade_solution, new_session, public_task
+from adventure import (
+    ADVENTURE_TASKS,
+    ensure_formula_round,
+    grade_solution,
+    new_session,
+    public_formula_state,
+    public_task,
+)
 
 
 MOSCOW = ZoneInfo("Europe/Moscow")
@@ -905,11 +912,12 @@ class CommunityStore:
         return filename
 
     def _adventure_view(self, session):
+        ensure_formula_round(session)
         result = {
             "id": session["id"],
             "grade": session["grade"],
             "stage": session["stage"],
-            "crystals": list(session.get("crystals") or []),
+            "formula": public_formula_state(session),
             "status": session["status"],
             "updatedAt": session.get("updated_at"),
             "task": public_task(session.get("task") or session["grade"]),
@@ -1003,20 +1011,42 @@ class CommunityStore:
             self._save(data)
             return self._adventure_view(session)
 
-    async def collect_adventure_crystal(self, user, session_id, crystal):
-        crystal = str(crystal or "")
-        if crystal not in {"logic", "formula", "focus"}:
-            raise CommunityError("Неизвестный кристалл")
+    async def answer_adventure_formula(self, user, session_id, option_id):
+        option_id = str(option_id or "").strip()
+        if not option_id:
+            raise CommunityError("Выберите формулу")
         async with self.lock:
             data = self._load()
             session = data["adventures"].get(str(session_id))
             if not session or session.get("user_id") != self._user_id(user) or session.get("status") != "active":
                 raise CommunityError("Активное приключение не найдено")
-            crystals = session.setdefault("crystals", [])
-            if crystal not in crystals:
-                crystals.append(crystal)
-            if len(crystals) == 3:
+            ensure_formula_round(session)
+            if session.get("stage") != "formula":
+                raise CommunityError("Формульная башня уже пройдена")
+            index = int(session.get("formula_index") or 0)
+            formula_round = session["formula_round"]
+            if index >= len(formula_round):
                 session["stage"] = "solution"
+            else:
+                challenge = formula_round[index]
+                valid_ids = {item["id"] for item in challenge["options"]}
+                if option_id not in valid_ids:
+                    raise CommunityError("Неизвестный вариант формулы")
+                session["formula_attempts"] = int(session.get("formula_attempts") or 0) + 1
+                if option_id == challenge["correctOptionId"]:
+                    session["formula_score"] = int(session.get("formula_score") or 0) + 1
+                    session["formula_index"] = index + 1
+                    session["formula_feedback"] = {
+                        "correct": True,
+                        "message": "Верно! Этаж башни открыт.",
+                    }
+                    if session["formula_index"] >= len(formula_round):
+                        session["stage"] = "solution"
+                else:
+                    session["formula_feedback"] = {
+                        "correct": False,
+                        "message": "Пока не совпало. Сопоставьте обозначения в подсказке и попробуйте ещё раз.",
+                    }
             session["updated_at"] = _now_iso()
             self._save(data)
             return self._adventure_view(session)
@@ -1055,7 +1085,7 @@ class CommunityStore:
             if not session or session.get("user_id") != self._user_id(user) or session.get("status") != "active":
                 raise CommunityError("Активное приключение не найдено")
             if session.get("stage") != "solution":
-                raise CommunityError("Сначала соберите три кристалла")
+                raise CommunityError("Сначала пройдите формульную башню")
             explanation = str(payload.get("explanation") or "").strip()
             if len(explanation) > 3000:
                 raise CommunityError("Пояснение слишком длинное")

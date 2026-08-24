@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Прокачать матан</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
@@ -10,7 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <script type="module" src="https://unpkg.com/mathlive@0.109.0?module"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/math-format.js?v=19"></script>
+    <script defer src="/math-format.js?v=20"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=18">
+    <link rel="stylesheet" href="/app.css?v=20">
 </head>
 <body data-grade="8">
 
@@ -407,18 +407,32 @@
 
     <div id="adventureScreen" class="screen adventure-screen">
         <div class="adventure-heading">
-            <div><p class="eyebrow">Мини-игра после первой части</p><h2>Башня решений</h2></div>
+            <div><p class="eyebrow">Игра 1 из 2 · ассоциации</p><h2 id="adventureGameTitle">Башня формул</h2></div>
             <span class="soft-pill">Автосохранение</span>
         </div>
         <p id="adventureStatus" class="supporting-text">Открываем сохранённую комнату…</p>
         <div id="adventureWorld" class="adventure-world">
             <div class="tower-moon"></div>
-            <div class="tower-silhouette"><span>∑</span></div>
-            <div class="adventure-obstacle" aria-hidden="true">✦</div>
-            <div class="adventure-avatar" aria-hidden="true">🧙</div>
-            <div id="crystalButtons" class="crystal-row"></div>
+            <div class="tower-silhouette" aria-hidden="true">
+                <div id="formulaFloors" class="formula-floors"></div><span>∑</span>
+            </div>
+            <div class="formula-hero" aria-hidden="true">
+                <i class="formula-hero-hat"></i><i class="formula-hero-head"></i>
+                <i class="formula-hero-body"></i><i class="formula-hero-book">ƒ</i>
+            </div>
+            <section id="formulaChallenge" class="formula-challenge">
+                <p class="formula-stage-label">Сопоставьте понятие и формулу</p>
+                <h3 id="formulaPrompt"></h3>
+                <p id="formulaHint"></p>
+                <div id="formulaOptions" class="formula-options"></div>
+                <div id="formulaFeedback" class="formula-feedback" aria-live="polite"></div>
+            </section>
         </div>
         <section id="extendedSolutionPanel" class="extended-solution-panel" hidden>
+            <div class="solution-game-heading">
+                <div class="math-investigator" aria-hidden="true"><i></i><span>⌕</span></div>
+                <div><p class="eyebrow">Игра 2 из 2 · лаборатория решения</p><h3>Математическое расследование</h3></div>
+            </div>
             <p id="extendedTaskKind" class="eyebrow"></p>
             <h3 id="extendedTaskTitle"></h3>
             <div id="extendedTaskQuestion" class="extended-task-question"></div>
@@ -427,7 +441,10 @@
             <div id="extendedMathFields" class="extended-math-fields"></div>
             <label class="field-label" for="extendedExplanation">Ход решения</label>
             <textarea id="extendedExplanation" class="extended-explanation" rows="6" placeholder="Кратко запишите ход рассуждений. Верный ответ без решения не получает полный балл."></textarea>
-            <button class="small-link-button math-help-button" type="button" onclick="focusFirstMathField()">⌨️ Непонятный символ — открыть математическую клавиатуру</button>
+            <div class="math-keyboard-actions">
+                <button class="small-link-button math-help-button" type="button" onclick="focusFirstMathField()">⌨️ Открыть математическую клавиатуру</button>
+                <button class="small-link-button math-keyboard-hide" type="button" onclick="closeMathKeyboard()">Скрыть клавиатуру</button>
+            </div>
             <div class="solution-upload-grid">
                 <label class="solution-upload"><span>📎 Фото условия</span><small>если задача была на бумаге</small><input id="conditionImageInput" type="file" accept="image/*" capture="environment"></label>
                 <label class="solution-upload"><span>✍️ Фото решения</span><small>черновик или полный ответ</small><input id="solutionImageInput" type="file" accept="image/*" capture="environment"></label>
@@ -442,6 +459,7 @@
             <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
         </div>
     </div>
+    <button id="mathKeyboardClose" class="math-keyboard-close" type="button" onclick="closeMathKeyboard()" hidden>Скрыть клавиатуру ↓</button>
 
     <div id="trainingHistoryScreen" class="screen">
         <p class="eyebrow">Личный прогресс</p>
@@ -1125,6 +1143,6 @@ function sendToForm(grade, topic, status) {
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=19"></script>
 <script src="/community.js?v=19"></script>
-<script src="/adventure.js?v=19"></script>
+<script src="/adventure.js?v=20"></script>
 </body>
 </html>

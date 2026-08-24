@@ -5,12 +5,6 @@ const adventureState = {
     draftTimer: null,
 };
 
-const CRYSTALS = [
-    {id: 'logic', icon: '◇', name: 'Логика'},
-    {id: 'formula', icon: '△', name: 'Формула'},
-    {id: 'focus', icon: '✦', name: 'Фокус'},
-];
-
 async function updateAdventureResume() {
     const card = document.getElementById('resumeAdventureCard');
     if (!card || !currentClass || !tg.initData) return;
@@ -54,54 +48,79 @@ function renderAdventure(session) {
     adventureState.conditionImage = '';
     adventureState.solutionImage = '';
     showScreen('adventureScreen');
-    const completed = new Set(session.crystals || []);
-    document.getElementById('adventureStatus').textContent = session.stage === 'solution'
-        ? 'Ворота открыты. Решение сохраняется на сервере после проверки.'
-        : `Соберите кристаллы знаний: ${completed.size} из 3.`;
-    const row = document.getElementById('crystalButtons');
-    row.replaceChildren();
-    const avatar = document.querySelector('.adventure-avatar');
-    avatar.style.left = `${8 + completed.size * 17}%`;
-    CRYSTALS.forEach((crystal, index) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'crystal-button';
-        button.classList.toggle('collected', completed.has(crystal.id));
-        button.disabled = completed.has(crystal.id) || index > completed.size;
-        button.hidden = index > completed.size;
-        button.style.setProperty('--crystal-x', `${18 + ((index * 29 + 17) % 64)}%`);
-        button.style.setProperty('--crystal-delay', `${index * -0.45}s`);
-        if (completed.has(crystal.id)) button.style.left = `${12 + index * 84}px`;
-        const icon = document.createElement('strong');
-        icon.textContent = crystal.icon;
-        const label = document.createElement('small');
-        label.textContent = crystal.name;
-        button.append(icon, label);
-        if (!button.disabled) button.addEventListener('click', () => collectCrystal(crystal.id));
-        row.appendChild(button);
-    });
-    document.getElementById('adventureWorld').classList.toggle('gate-open', session.stage !== 'crystals');
+    const isFormulaStage = session.stage === 'formula';
+    const isSolutionStage = session.stage === 'solution';
+    const screen = document.getElementById('adventureScreen');
+    screen.classList.toggle('formula-game-stage', isFormulaStage);
+    screen.classList.toggle('solution-game-stage', isSolutionStage || session.stage === 'complete');
+    document.getElementById('adventureGameTitle').textContent = isFormulaStage
+        ? 'Башня формул'
+        : 'Лаборатория решений';
+    document.getElementById('adventureStatus').textContent = isSolutionStage
+        ? 'Башня пройдена. Теперь восстановите доказательство — черновик сохраняется автоматически.'
+        : session.stage === 'complete'
+            ? 'Проверка завершена. Результат сохранён в статистике.'
+            : `Откройте ${Number(session.formula?.total || 4)} этажа: на каждом выберите верную формулу.`;
+    document.getElementById('adventureWorld').hidden = !isFormulaStage;
+    if (isFormulaStage) renderFormulaChallenge(session.formula || {});
     const panel = document.getElementById('extendedSolutionPanel');
-    panel.hidden = session.stage !== 'solution';
+    panel.hidden = !isSolutionStage;
     document.getElementById('extendedResult').hidden = session.stage !== 'complete';
-    if (session.stage === 'solution') renderExtendedTask(session.task, session.draft || {});
+    if (isSolutionStage) renderExtendedTask(session.task, session.draft || {}, session.verification || {});
     if (session.stage === 'complete' && session.result) renderExtendedResult(session.result);
 }
 
-async function collectCrystal(crystal) {
+function renderFormulaChallenge(formula) {
+    const challenge = formula.challenge;
+    const floors = document.getElementById('formulaFloors');
+    floors.replaceChildren();
+    for (let index = 0; index < Number(formula.total || 4); index += 1) {
+        const floor = document.createElement('i');
+        floor.className = index < Number(formula.index || 0) ? 'opened' : '';
+        floor.setAttribute('aria-label', `Этаж ${index + 1}`);
+        floors.appendChild(floor);
+    }
+    if (!challenge) return;
+    document.getElementById('formulaPrompt').textContent = challenge.prompt;
+    document.getElementById('formulaHint').textContent = challenge.hint || '';
+    const options = document.getElementById('formulaOptions');
+    options.replaceChildren();
+    (challenge.options || []).forEach((option) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'formula-option';
+        button.dataset.optionId = option.id;
+        if (typeof setMathContent === 'function') setMathContent(button, `$${option.formula}$`);
+        else button.textContent = option.formula;
+        button.addEventListener('click', () => answerFormula(option.id, button));
+        options.appendChild(button);
+    });
+    const feedback = document.getElementById('formulaFeedback');
+    feedback.textContent = formula.feedback?.message || `Этаж ${Number(formula.index || 0) + 1} из ${formula.total || 4}`;
+    feedback.className = `formula-feedback${formula.feedback ? (formula.feedback.correct ? ' correct' : ' wrong') : ''}`;
+}
+
+async function answerFormula(optionId, selectedButton) {
+    document.querySelectorAll('#formulaOptions button').forEach((button) => { button.disabled = true; });
+    selectedButton.classList.add('selected');
     try {
-        const session = await communityRequest(`/api/adventure/${adventureState.session.id}/progress`, {
+        const session = await communityRequest(`/api/adventure/${adventureState.session.id}/formula`, {
             method: 'POST',
             headers: telegramHeaders(true),
-            body: JSON.stringify({crystal}),
+            body: JSON.stringify({optionId}),
         });
-        renderAdventure(session);
+        const correct = Boolean(session.formula?.feedback?.correct);
+        selectedButton.classList.add(correct ? 'is-correct' : 'is-wrong');
+        document.getElementById('formulaFeedback').textContent = session.formula?.feedback?.message || '';
+        document.getElementById('formulaFeedback').className = `formula-feedback ${correct ? 'correct' : 'wrong'}`;
+        window.setTimeout(() => renderAdventure(session), correct ? 560 : 820);
     } catch (error) {
         alert(error.message);
+        document.querySelectorAll('#formulaOptions button').forEach((button) => { button.disabled = false; });
     }
 }
 
-function renderExtendedTask(task, draft = {}) {
+function renderExtendedTask(task, draft = {}, verification = {}) {
     document.getElementById('extendedTaskKind').textContent = task.kind;
     document.getElementById('extendedTaskTitle').textContent = task.title;
     const question = document.getElementById('extendedTaskQuestion');
@@ -121,7 +140,7 @@ function renderExtendedTask(task, draft = {}) {
         label.textContent = field.label;
         const mathField = document.createElement('math-field');
         mathField.dataset.fieldId = field.id;
-        mathField.setAttribute('virtual-keyboard-mode', 'manual');
+        mathField.setAttribute('math-virtual-keyboard-policy', 'manual');
         mathField.setAttribute('placeholder', field.hint || 'Введите выражение');
         mathField.setAttribute('aria-label', field.label);
         const draftValue = (draft.answers || {})[field.id] || '';
@@ -132,6 +151,7 @@ function renderExtendedTask(task, draft = {}) {
             });
         }
         mathField.addEventListener('input', scheduleAdventureDraft);
+        mathField.addEventListener('focusin', showCompactMathKeyboard);
         wrapper.append(label, mathField);
         fields.appendChild(wrapper);
     });
@@ -140,7 +160,11 @@ function renderExtendedTask(task, draft = {}) {
     document.getElementById('conditionImageInput').value = '';
     document.getElementById('solutionImageInput').value = '';
     document.getElementById('solutionImageInput').onchange = recognizeSolutionImage;
-    document.getElementById('solutionUploadStatus').hidden = true;
+    const status = document.getElementById('solutionUploadStatus');
+    status.hidden = false;
+    status.textContent = verification.expertCheck
+        ? 'Автопроверка решения и фотографий включена.'
+        : 'Автопроверка ответа и структуры включена. Неясные символы уточняйте через математическую клавиатуру.';
 }
 
 function currentExtendedAnswers() {
@@ -210,7 +234,23 @@ function focusFirstMathField() {
     const field = document.querySelector('#extendedMathFields math-field');
     if (!field) return;
     field.focus();
-    if (window.mathVirtualKeyboard) window.mathVirtualKeyboard.show();
+    showCompactMathKeyboard();
+}
+
+function showCompactMathKeyboard() {
+    if (!window.mathVirtualKeyboard) return;
+    window.mathVirtualKeyboard.layouts = ['numeric', 'symbols'];
+    window.mathVirtualKeyboard.show({animate: true});
+    document.body.classList.add('math-keyboard-open');
+    const closeButton = document.getElementById('mathKeyboardClose');
+    if (closeButton) closeButton.hidden = false;
+}
+
+function closeMathKeyboard() {
+    if (window.mathVirtualKeyboard) window.mathVirtualKeyboard.hide({animate: true});
+    document.body.classList.remove('math-keyboard-open');
+    const closeButton = document.getElementById('mathKeyboardClose');
+    if (closeButton) closeButton.hidden = true;
 }
 
 async function prepareSolutionImage(input) {
@@ -288,7 +328,7 @@ function renderExtendedResult(result) {
     const note = document.createElement('small');
     note.textContent = result.engine === 'expert-model'
         ? 'Фотографии сохранены. Решение проверено математическим экспертным модулем по рубрике задания.'
-        : 'Фотографии сохранены. Пока ключ экспертного модуля не подключён, балл рассчитан по полям MathLive и полноте объяснения.';
+        : 'Автоматическая проверка ответа, обязательных шагов и полноты объяснения выполнена. Фотографии сохранены вместе с попыткой.';
     panel.append(score, verdict, list, note);
     if ((adventureState.session?.task?.id || '').startsWith('drive-extended-')) {
         const next = document.createElement('button');
@@ -299,6 +339,10 @@ function renderExtendedResult(result) {
         panel.appendChild(next);
     }
 }
+
+window.addEventListener('pagehide', () => {
+    if (adventureState.session?.stage === 'solution') saveAdventureDraft();
+});
 
 async function openTrainingHistory() {
     showScreen('trainingHistoryScreen');

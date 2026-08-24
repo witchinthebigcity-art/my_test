@@ -36,7 +36,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "19"
+WEBAPP_VERSION = "20"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -1044,9 +1044,12 @@ async def get_training_history(request):
 
 async def get_adventure(request):
     try:
-        return web.json_response(await community_store.get_adventure(
+        payload = await community_store.get_adventure(
             _authenticated_user(request), int(request.query.get("grade") or 0)
-        ))
+        )
+        if payload.get("active"):
+            payload["session"]["verification"] = _adventure_verification_capabilities()
+        return web.json_response(payload)
     except (CommunityError, TypeError, ValueError) as error:
         return _community_error(error, status=422)
 
@@ -1063,19 +1066,31 @@ async def start_adventure(request):
         fresh_tasks = [task for task in available if task.get("id") not in used_ids]
         # Once every task in the folder has been solved, a new shuffled cycle may begin.
         task = random.choice(fresh_tasks or available) if available else None
-        return web.json_response(await community_store.start_adventure(
+        session = await community_store.start_adventure(
             user, grade, attempt_key, task=task
-        ))
+        )
+        session["verification"] = _adventure_verification_capabilities()
+        return web.json_response(session)
     except (CommunityError, TypeError, ValueError) as error:
         return _community_error(error, status=422)
 
 
-async def progress_adventure(request):
+def _adventure_verification_capabilities():
+    return {
+        "structuredCheck": True,
+        "expertCheck": bool(OPENAI_API_KEY),
+        "photoRecognition": bool(MATHPIX_APP_ID and MATHPIX_APP_KEY),
+    }
+
+
+async def answer_adventure_formula(request):
     try:
         payload = await request.json()
-        return web.json_response(await community_store.collect_adventure_crystal(
-            _authenticated_user(request), request.match_info["session_id"], payload.get("crystal")
-        ))
+        session = await community_store.answer_adventure_formula(
+            _authenticated_user(request), request.match_info["session_id"], payload.get("optionId")
+        )
+        session["verification"] = _adventure_verification_capabilities()
+        return web.json_response(session)
     except CommunityError as error:
         return _community_error(error, status=422)
 
@@ -1096,9 +1111,11 @@ async def submit_adventure(request):
         payload = await request.json()
         context = await community_store.adventure_context(user, request.match_info["session_id"])
         expert_result = await _grade_extended_solution(context, payload)
-        return web.json_response(await community_store.submit_adventure(
+        session = await community_store.submit_adventure(
             user, request.match_info["session_id"], payload, expert_result=expert_result
-        ))
+        )
+        session["verification"] = _adventure_verification_capabilities()
+        return web.json_response(session)
     except CommunityError as error:
         return _community_error(error, status=422)
 
@@ -1204,7 +1221,7 @@ async def recognize_solution(request):
         if not MATHPIX_APP_ID or not MATHPIX_APP_KEY:
             return web.json_response({
                 "configured": False,
-                "message": "Распознавание фото ещё не подключено. Используйте математическую клавиатуру.",
+                "message": "Фото сохранено. Автопроверка введённых ответов работает; неясные символы уточните через математическую клавиатуру.",
             })
         timeout = aiohttp.ClientTimeout(total=35)
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -1251,7 +1268,7 @@ def create_app():
     application.router.add_get('/api/training-history', get_training_history)
     application.router.add_get('/api/adventure', get_adventure)
     application.router.add_post('/api/adventure/start', start_adventure)
-    application.router.add_post('/api/adventure/{session_id}/progress', progress_adventure)
+    application.router.add_post('/api/adventure/{session_id}/formula', answer_adventure_formula)
     application.router.add_post('/api/adventure/{session_id}/draft', save_adventure_draft)
     application.router.add_post('/api/adventure/{session_id}/submit', submit_adventure)
     application.router.add_post('/api/adventure/recognize', recognize_solution)

@@ -475,17 +475,25 @@ body::before {
     font-size: clamp(18px, 4.8vw, 23px);
     line-height: 1.58;
     letter-spacing: .006em;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
+    word-break: normal;
     text-wrap: pretty;
 }
 .katex { font-size: 1.06em; }
 #quizQuestionText .katex,
-#battleQuestion .katex {
+#battleQuestion .katex,
+.extended-task-question .katex,
+.formula-option .katex {
     display: inline-block;
+    max-width: 100%;
     margin-inline: .1em;
+    overflow-x: auto;
+    overflow-y: hidden;
     font-size: 1.1em;
     line-height: 1.2;
+    white-space: nowrap;
     vertical-align: -.08em;
+    scrollbar-width: thin;
 }
 #quizOptions .katex,
 .battle-options .katex { pointer-events: none; }
@@ -509,10 +517,11 @@ body::before {
 .question-media {
     display: block;
     width: 100%;
-    max-height: min(52vh, 520px);
+    height: auto;
+    max-height: none;
     margin: 16px 0 20px;
     border: 1px solid var(--theme-border);
-    border-radius: 18px;
+    border-radius: 10px;
     background: #fff;
     object-fit: contain;
 }
@@ -1118,11 +1127,68 @@ details.theory-section summary { background: transparent !important; }
     100% { transform: translateX(320px) rotate(260deg); opacity: 0; }
 }
 
+/* Formula tower: a real association game with an original, familiar fantasy archetype. */
+.adventure-screen { overflow: visible; }
+.adventure-world {
+    min-height: 520px;
+    background:
+        radial-gradient(circle at 18% 24%, rgba(82, 224, 255, .15), transparent 9rem),
+        linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 100% 46px,
+        linear-gradient(160deg, rgba(75, 49, 148, .66), rgba(7, 19, 41, .98));
+}
+.tower-silhouette { left: 16%; top: 74px; bottom: auto; width: 112px; transform: none; }
+.tower-silhouette span { z-index: 2; font-size: 42px; pointer-events: none; }
+.formula-floors { position: absolute; inset: 18px 16px; display: grid; grid-template-rows: repeat(4, 1fr); gap: 7px; }
+.formula-floors i { border: 1px solid rgba(169, 145, 255, .38); border-radius: 5px; background: rgba(12, 14, 34, .88); box-shadow: inset 0 0 12px rgba(0,0,0,.4); transition: .35s ease; }
+.formula-floors i.opened { border-color: #75f2dc; background: rgba(83, 236, 209, .46); box-shadow: 0 0 18px rgba(83, 236, 209, .58); }
+.formula-hero { position: absolute; left: 34px; top: 270px; width: 92px; height: 128px; filter: drop-shadow(0 12px 12px rgba(0,0,0,.35)); animation: adventureBob 2.1s ease-in-out infinite; }
+.formula-hero-head { position: absolute; left: 22px; top: 27px; width: 51px; height: 46px; border-radius: 48% 48% 44% 44%; background: linear-gradient(145deg, #f8ca9f, #c77c65); box-shadow: inset -8px -5px 12px rgba(92,37,48,.22); }
+.formula-hero-head::before { content: ''; position: absolute; left: 13px; top: 20px; width: 5px; height: 6px; border-radius: 50%; background: #20203e; box-shadow: 20px 0 #20203e; }
+.formula-hero-head::after { content: ''; position: absolute; left: 20px; top: 31px; width: 15px; height: 7px; border-bottom: 2px solid #7e3b56; border-radius: 50%; }
+.formula-hero-hat { position: absolute; z-index: 3; left: 11px; top: 5px; width: 72px; height: 28px; border-radius: 60% 60% 28% 28%; background: linear-gradient(150deg, #8371ff, #34275e); transform: rotate(-4deg); }
+.formula-hero-hat::before { content: ''; position: absolute; left: 21px; top: -29px; border-left: 19px solid transparent; border-right: 10px solid transparent; border-bottom: 38px solid #5d4ab5; transform: rotate(8deg); }
+.formula-hero-body { position: absolute; left: 17px; top: 69px; width: 61px; height: 56px; border: 2px solid #80e4ed; border-radius: 22px 22px 13px 13px; background: linear-gradient(145deg, #3bbbd4, #3542a0); }
+.formula-hero-book { position: absolute; z-index: 4; left: 49px; top: 82px; width: 37px; height: 31px; display: grid; place-items: center; border-radius: 4px 10px 10px 4px; background: #f4d170; color: #503f64; font: 800 17px Georgia, serif; transform: rotate(-10deg); box-shadow: -4px 4px 0 #8c536d; }
+.formula-challenge { position: absolute; z-index: 4; top: 112px; right: 22px; width: min(58%, 370px); padding: 17px; border: 1px solid rgba(177, 162, 255, .56); border-radius: 21px; background: rgba(12, 18, 46, .92); box-shadow: 0 16px 44px rgba(2,7,23,.45); backdrop-filter: blur(14px); }
+.formula-stage-label { margin: 0 0 7px; color: #87eaf2; font-size: 11px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
+.formula-challenge h3 { margin: 0; font-size: clamp(18px, 4vw, 23px); }
+.formula-challenge > p:not(.formula-stage-label) { margin: 7px 0 13px; color: #b9c9df; font-size: 13px; line-height: 1.4; }
+.formula-options { display: grid; gap: 8px; }
+.formula-option { min-height: 48px; padding: 9px 12px; border: 1px solid rgba(171, 154, 255, .45); border-radius: 13px; background: linear-gradient(135deg, rgba(96,73,177,.34), rgba(26,54,91,.62)); color: #f9fbff; text-align: center; cursor: pointer; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.formula-option:active { transform: scale(.985); }
+.formula-option.is-correct { border-color: #69f0c4; background: rgba(34, 155, 117, .5); }
+.formula-option.is-wrong { border-color: #ff8c96; background: rgba(152, 43, 63, .5); animation: formulaShake .3s ease; }
+.formula-option .katex { overflow: visible; font-size: 1.04em; pointer-events: none; }
+.formula-feedback { min-height: 22px; margin-top: 11px; color: #aebed5; font-size: 12px; line-height: 1.4; }
+.formula-feedback.correct { color: #75f2c7; }
+.formula-feedback.wrong { color: #ffadb4; }
+@keyframes formulaShake { 30% { transform: translateX(-5px); } 70% { transform: translateX(5px); } }
+
 .extended-solution-panel, .extended-result {
     padding: 18px; border: 1px solid color-mix(in srgb, var(--theme-accent) 48%, var(--theme-border));
     border-radius: 22px; background: var(--surface-soft); margin-bottom: 16px;
 }
+.solution-game-stage {
+    background:
+        radial-gradient(circle at 12% 8%, rgba(255, 189, 94, .2), transparent 18rem),
+        linear-gradient(155deg, #1d1712, #102a2d 58%, #09222f) !important;
+}
+.solution-game-stage .extended-solution-panel,
+.solution-game-stage .extended-result {
+    border-color: rgba(238, 186, 102, .48);
+    background:
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 24px 100%,
+        linear-gradient(145deg, rgba(58, 45, 32, .94), rgba(14, 48, 52, .94));
+    box-shadow: inset 0 1px rgba(255,255,255,.08), 0 16px 36px rgba(0,0,0,.25);
+}
+.solution-game-heading { display: flex; align-items: center; gap: 13px; margin-bottom: 14px; }
+.solution-game-heading h3 { margin: 2px 0 0; color: #fff4dc; }
+.math-investigator { position: relative; flex: 0 0 62px; width: 62px; height: 62px; border: 1px solid rgba(255,207,125,.55); border-radius: 18px; background: linear-gradient(145deg, #d69b4e, #356c75); box-shadow: 0 10px 24px rgba(0,0,0,.28); }
+.math-investigator i { position: absolute; left: 17px; top: 14px; width: 29px; height: 31px; border-radius: 46% 46% 40% 40%; background: #f0bf96; }
+.math-investigator i::before { content: ''; position: absolute; left: -5px; top: -8px; width: 39px; height: 13px; border-radius: 50% 50% 25% 25%; background: #34414e; transform: rotate(-5deg); }
+.math-investigator span { position: absolute; z-index: 2; right: 5px; bottom: 3px; display: grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; background: #f8d47e; color: #283844; font-size: 17px; font-weight: 900; }
 .extended-task-question { padding: 17px; margin: 12px 0; border-radius: 16px; background: color-mix(in srgb, var(--theme-accent) 9%, var(--surface)); font-size: 18px; line-height: 1.55; }
+.extended-task-question { overflow-wrap: normal; word-break: normal; }
 .extended-task-image { margin: 0 auto 14px; background: #fff; }
 .criteria-note { display: grid; gap: 4px; padding: 12px 14px; margin-bottom: 14px; border-left: 3px solid var(--theme-accent); background: color-mix(in srgb, var(--theme-accent) 7%, transparent); }
 .criteria-note span { color: var(--text-muted); font-size: 13px; line-height: 1.45; }
@@ -1135,6 +1201,11 @@ details.theory-section summary { background: transparent !important; }
 .field-label { display: block; margin: 14px 0 7px; font-weight: 750; }
 .extended-explanation { width: 100%; box-sizing: border-box; resize: vertical; padding: 12px; border: 1px solid var(--theme-border); border-radius: 14px; background: var(--surface); color: var(--text-main); font: inherit; line-height: 1.45; }
 .math-help-button { margin: 8px 0 14px; text-align: left; }
+.math-keyboard-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0 14px; }
+.math-keyboard-actions button { margin: 0; }
+.math-keyboard-hide { flex: 0 0 auto; color: #ffd897; }
+.math-keyboard-close { position: fixed; z-index: 2147483647; right: max(10px, env(safe-area-inset-right)); bottom: min(39dvh, 286px); width: auto; min-height: 38px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.55); border-radius: 12px; background: #17243b; color: #fff; box-shadow: 0 8px 28px rgba(0,0,0,.42); font: 750 13px Inter, sans-serif; }
+body.math-keyboard-open { padding-bottom: min(43dvh, 320px); }
 .solution-upload-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
 .solution-upload { display: grid; gap: 3px; padding: 14px; border: 1px dashed color-mix(in srgb, var(--theme-accent) 55%, var(--theme-border)); border-radius: 15px; background: color-mix(in srgb, var(--theme-accent) 6%, transparent); cursor: pointer; }
 .solution-upload span { font-weight: 800; }
@@ -1175,7 +1246,18 @@ details.theory-section summary { background: transparent !important; }
     .shop-product-book { grid-column: auto; }
     .battle-stats-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .adventure-footer-actions, .solution-upload-grid { grid-template-columns: 1fr; }
-    .adventure-world { min-height: 330px; }
+    .adventure-world { min-height: 650px; }
+    .tower-moon { width: 52px; height: 52px; top: 19px; right: 18px; }
+    .tower-silhouette { left: calc(50% - 56px); top: 68px; }
+    .formula-hero { left: calc(50% - 46px); top: 270px; }
+    .formula-challenge { top: 408px; left: 12px; right: 12px; width: auto; padding: 14px; }
+    .formula-option { min-height: 44px; padding: 8px 9px; }
+    .solution-game-heading { align-items: flex-start; }
+    .math-keyboard-actions { align-items: stretch; flex-direction: column; }
+    .math-keyboard-hide { text-align: left; }
+    body.math-keyboard-open { padding-bottom: min(44dvh, 310px); }
+    .ML__keyboard { max-height: min(38dvh, 270px) !important; overflow: auto !important; }
+    .MLK__plate { max-height: min(38dvh, 270px) !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

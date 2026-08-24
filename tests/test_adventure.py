@@ -2,11 +2,17 @@ import os
 import tempfile
 import unittest
 
-from adventure import ADVENTURE_TASKS, grade_solution
+from adventure import ADVENTURE_TASKS, build_formula_round, grade_solution
 from community import CommunityStore
 
 
 class AdventureRubricTests(unittest.TestCase):
+    def test_formula_round_has_four_unique_grade_appropriate_challenges(self):
+        formula_round = build_formula_round(9, seed="stable")
+        self.assertEqual(len(formula_round), 4)
+        self.assertEqual(len({item["id"] for item in formula_round}), 4)
+        self.assertTrue(all(len(item["options"]) == 4 for item in formula_round))
+
     def test_full_score_requires_correct_fields_and_reasoning(self):
         task = ADVENTURE_TASKS[9]
         full = grade_solution(task, {"step": "D=1", "answer": "3;4"}, "Вычислим дискриминант и найдём оба корня.")
@@ -24,13 +30,19 @@ class AdventureStoreTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.directory.cleanup()
 
-    async def test_adventure_resumes_and_completes_after_three_crystals(self):
+    async def test_adventure_resumes_and_completes_after_formula_tower(self):
         session = await self.store.start_adventure(self.user, 8, "training-1")
         resumed = await self.store.get_adventure(self.user, 8)
         self.assertTrue(resumed["active"])
         self.assertEqual(resumed["session"]["id"], session["id"])
-        for crystal in ("logic", "formula", "focus"):
-            session = await self.store.collect_adventure_crystal(self.user, session["id"], crystal)
+        self.assertEqual(session["stage"], "formula")
+        self.assertNotIn("correctOptionId", session["formula"]["challenge"])
+        for _index in range(4):
+            stored = self.store._load()["adventures"][session["id"]]
+            current = stored["formula_round"][stored["formula_index"]]
+            session = await self.store.answer_adventure_formula(
+                self.user, session["id"], current["correctOptionId"]
+            )
         self.assertEqual(session["stage"], "solution")
         completed = await self.store.submit_adventure(self.user, session["id"], {
             "answers": {"factor": "(x-2)(x-3)=0", "answer": "2;3"},
