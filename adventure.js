@@ -18,12 +18,17 @@ async function updateAdventureResume() {
     }
 }
 
-async function openAdventureAfterTraining() {
+function openGameUniverse() {
+    closeMathKeyboard();
+    showScreen('gameUniverseScreen');
+}
+
+async function startAdventureGame(game = 'tower') {
     try {
         const session = await communityRequest('/api/adventure/start', {
             method: 'POST',
             headers: telegramHeaders(true),
-            body: JSON.stringify({grade: currentClass, attemptKey: currentAttemptKey}),
+            body: JSON.stringify({grade: currentClass, attemptKey: currentAttemptKey, game}),
         });
         renderAdventure(session);
     } catch (error) {
@@ -31,12 +36,16 @@ async function openAdventureAfterTraining() {
     }
 }
 
+function openAdventureAfterTraining() {
+    openGameUniverse();
+}
+
 async function resumeAdventure() {
     try {
         const payload = await communityRequest(`/api/adventure?grade=${currentClass}`, {
             headers: telegramHeaders(),
         });
-        if (!payload.active) return openAdventureAfterTraining();
+        if (!payload.active) return openGameUniverse();
         renderAdventure(payload.session);
     } catch (error) {
         alert(error.message);
@@ -48,18 +57,22 @@ function renderAdventure(session) {
     adventureState.conditionImage = '';
     adventureState.solutionImage = '';
     showScreen('adventureScreen');
-    const isFormulaStage = session.stage === 'formula';
-    const isSolutionStage = session.stage === 'solution';
+    const isTower = session.game === 'tower';
+    const isFormulaStage = isTower && session.stage === 'formula';
+    const isSolutionStage = session.game === 'second_part' && session.stage === 'solution';
     const screen = document.getElementById('adventureScreen');
     screen.classList.toggle('formula-game-stage', isFormulaStage);
     screen.classList.toggle('solution-game-stage', isSolutionStage || session.stage === 'complete');
-    document.getElementById('adventureGameTitle').textContent = isFormulaStage
+    document.getElementById('adventureGameEyebrow').textContent = isTower
+        ? 'Активная игра · ассоциации'
+        : 'Активная игра · развёрнутое решение';
+    document.getElementById('adventureGameTitle').textContent = isTower
         ? 'Башня формул'
-        : 'Лаборатория решений';
+        : 'Математическое расследование';
     document.getElementById('adventureStatus').textContent = isSolutionStage
-        ? 'Башня пройдена. Теперь восстановите доказательство — черновик сохраняется автоматически.'
+        ? 'Решите задание второй части — черновик сохраняется автоматически.'
         : session.stage === 'complete'
-            ? 'Проверка завершена. Результат сохранён в статистике.'
+            ? (isTower ? 'Башня пройдена. Все четыре формулы определены верно.' : 'Проверка завершена. Результат сохранён в статистике.')
             : `Откройте ${Number(session.formula?.total || 4)} этажа: на каждом выберите верную формулу.`;
     document.getElementById('adventureWorld').hidden = !isFormulaStage;
     if (isFormulaStage) renderFormulaChallenge(session.formula || {});
@@ -67,7 +80,10 @@ function renderAdventure(session) {
     panel.hidden = !isSolutionStage;
     document.getElementById('extendedResult').hidden = session.stage !== 'complete';
     if (isSolutionStage) renderExtendedTask(session.task, session.draft || {}, session.verification || {});
-    if (session.stage === 'complete' && session.result) renderExtendedResult(session.result);
+    if (session.stage === 'complete' && session.result) {
+        if (isTower) renderTowerResult(session.result);
+        else renderExtendedResult(session.result);
+    }
 }
 
 function renderFormulaChallenge(formula) {
@@ -82,7 +98,9 @@ function renderFormulaChallenge(formula) {
     }
     if (!challenge) return;
     document.getElementById('formulaPrompt').textContent = challenge.prompt;
-    document.getElementById('formulaHint').textContent = challenge.hint || '';
+    const hint = document.getElementById('formulaHint');
+    hint.textContent = challenge.hint || '';
+    hint.hidden = !challenge.hint;
     const options = document.getElementById('formulaOptions');
     options.replaceChildren();
     (challenge.options || []).forEach((option) => {
@@ -90,14 +108,61 @@ function renderFormulaChallenge(formula) {
         button.type = 'button';
         button.className = 'formula-option';
         button.dataset.optionId = option.id;
-        if (typeof setMathContent === 'function') setMathContent(button, `$${option.formula}$`);
-        else button.textContent = option.formula;
+        if (window.katex && typeof window.katex.render === 'function') {
+            window.katex.render(option.formula, button, {
+                throwOnError: false,
+                strict: false,
+                displayMode: false,
+            });
+        } else button.textContent = option.formula;
         button.addEventListener('click', () => answerFormula(option.id, button));
         options.appendChild(button);
     });
     const feedback = document.getElementById('formulaFeedback');
     feedback.textContent = formula.feedback?.message || `Этаж ${Number(formula.index || 0) + 1} из ${formula.total || 4}`;
     feedback.className = `formula-feedback${formula.feedback ? (formula.feedback.correct ? ' correct' : ' wrong') : ''}`;
+}
+
+function appendGameNavigation(panel, nextGame) {
+    const actions = document.createElement('div');
+    actions.className = 'game-result-actions';
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'btn adventure-launch-button';
+    if (nextGame) {
+        next.textContent = 'Следующая игра';
+        next.addEventListener('click', () => startAdventureGame(nextGame));
+    } else {
+        next.textContent = 'Следующая игра — в проекте';
+        next.disabled = true;
+    }
+    actions.appendChild(next);
+    const universe = document.createElement('button');
+    universe.type = 'button';
+    universe.className = 'btn';
+    universe.textContent = 'Вселенная игр';
+    universe.addEventListener('click', openGameUniverse);
+    const menu = document.createElement('button');
+    menu.type = 'button';
+    menu.className = 'btn btn-secondary';
+    menu.textContent = 'Главное меню';
+    menu.addEventListener('click', () => showScreen('mainMenu'));
+    actions.append(universe, menu);
+    panel.appendChild(actions);
+}
+
+function renderTowerResult(result) {
+    document.getElementById('extendedSolutionPanel').hidden = true;
+    const panel = document.getElementById('extendedResult');
+    panel.replaceChildren();
+    panel.hidden = false;
+    const score = document.createElement('strong');
+    score.className = 'extended-score';
+    score.textContent = `${result.score} / ${result.maxScore} этажей`;
+    const verdict = document.createElement('p');
+    verdict.textContent = result.verdict || 'Башня формул пройдена.';
+    panel.append(score, verdict);
+    appendGameNavigation(panel, 'second_part');
 }
 
 async function answerFormula(optionId, selectedButton) {
@@ -335,9 +400,10 @@ function renderExtendedResult(result) {
         next.type = 'button';
         next.className = 'btn adventure-launch-button';
         next.textContent = 'Следующее задание без повторов';
-        next.addEventListener('click', openAdventureAfterTraining);
+        next.addEventListener('click', () => startAdventureGame('second_part'));
         panel.appendChild(next);
     }
+    appendGameNavigation(panel, null);
 }
 
 window.addEventListener('pagehide', () => {

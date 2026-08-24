@@ -88,15 +88,25 @@ FORMULA_CHALLENGES = {
     },
     "cosine-theorem": {
         "prompt": "Теорема косинусов",
-        "hint": "Сторона c лежит напротив угла C.",
-        "options": [r"c^2=a^2+b^2-2ab\cos C", r"c^2=a^2+b^2", r"\frac{a}{\sin A}=\frac{b}{\sin B}", r"S=\frac{ab\sin C}{2}"],
+        "hint": "",
+        "options": [
+            r"a^2=b^2+c^2-2bc\cos\alpha",
+            r"a^2=b^2-2bc\cos\alpha",
+            r"\cos^2\alpha=1-\sin^2\alpha",
+            r"a^2=b^2+c^2+2bc\cos\alpha",
+        ],
         "correct": 0,
     },
     "sine-theorem": {
         "prompt": "Теорема синусов",
-        "hint": "R — радиус описанной окружности.",
-        "options": [r"a^2=b^2+c^2-2bc\cos A", r"\frac{a}{\sin A}=\frac{b}{\sin B}=\frac{c}{\sin C}=2R", r"S=pr", r"a+b+c=2R"],
-        "correct": 1,
+        "hint": "",
+        "options": [
+            r"\frac{a}{\sin\alpha}=\frac{b}{\sin\beta}=\frac{c}{\sin\gamma}=2R",
+            r"\frac{a}{\cos\alpha}=\frac{b}{\cos\beta}=\frac{c}{\cos\gamma}",
+            r"a^2=b^2+c^2-2bc\cos\alpha",
+            r"\sin^2\alpha+\cos^2\alpha=1",
+        ],
+        "correct": 0,
     },
     "triangle-sine-area": {
         "prompt": "Площадь треугольника через две стороны и угол",
@@ -275,14 +285,18 @@ def public_task(task_or_grade):
     }
 
 
-def new_session(user_id, grade, attempt_key, task=None):
+def new_session(user_id, grade, attempt_key, task=None, game="tower"):
+    game = str(game or "tower")
+    if game not in {"tower", "second_part"}:
+        raise ValueError("Unknown adventure game")
     session = {
         "id": uuid.uuid4().hex,
         "user_id": str(user_id),
         "grade": int(grade),
         "attempt_key": str(attempt_key or uuid.uuid4().hex),
-        "stage": "formula",
+        "game": game,
+        "stage": "formula" if game == "tower" else "solution",
         "status": "active",
         "task": task or ADVENTURE_TASKS[int(grade)],
     }
-    return ensure_formula_round(session)
+    return ensure_formula_round(session) if game == "tower" else session

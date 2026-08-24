@@ -1158,7 +1158,9 @@ details.theory-section summary { background: transparent !important; }
 .formula-option:active { transform: scale(.985); }
 .formula-option.is-correct { border-color: #69f0c4; background: rgba(34, 155, 117, .5); }
 .formula-option.is-wrong { border-color: #ff8c96; background: rgba(152, 43, 63, .5); animation: formulaShake .3s ease; }
-.formula-option .katex { overflow: visible; font-size: 1.04em; pointer-events: none; }
+.formula-option { width: 100%; overflow-x: auto; overflow-y: hidden; }
+.formula-option .katex { display: inline-block; min-width: min-content; max-width: none; padding: 2px 0; font-size: clamp(.82em, 3.25vw, 1.04em); pointer-events: none; }
+.formula-option .katex-html { white-space: nowrap; }
 .formula-feedback { min-height: 22px; margin-top: 11px; color: #aebed5; font-size: 12px; line-height: 1.4; }
 .formula-feedback.correct { color: #75f2c7; }
 .formula-feedback.wrong { color: #ffadb4; }
@@ -1213,6 +1215,64 @@ body.math-keyboard-open { padding-bottom: min(43dvh, 320px); }
 .solution-upload input { width: 100%; margin-top: 7px; color: var(--text-muted); font-size: 11px; }
 .adventure-footer-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .extended-score { display: block; margin-bottom: 7px; color: var(--theme-accent); font-size: 28px; }
+.game-result-actions { display: grid; gap: 8px; margin-top: 16px; }
+
+/* Four visually distinct worlds in one game universe. */
+.game-universe-screen {
+    position: relative; overflow: hidden;
+    background:
+        radial-gradient(circle at 86% 10%, rgba(130, 99, 255, .25), transparent 14rem),
+        radial-gradient(circle at 8% 82%, rgba(58, 224, 208, .17), transparent 17rem),
+        linear-gradient(155deg, #090d22, #15123a 55%, #071929) !important;
+}
+.universe-orbit { position: absolute; inset: -70px -90px auto auto; width: 250px; height: 250px; border: 1px solid rgba(178,165,255,.2); border-radius: 50%; pointer-events: none; }
+.universe-orbit i { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #91f5e4; box-shadow: 0 0 16px #77f1dc; }
+.universe-orbit i:nth-child(1) { left: 18px; top: 116px; }
+.universe-orbit i:nth-child(2) { left: 124px; top: 241px; }
+.universe-orbit i:nth-child(3) { right: 17px; top: 83px; background: #ffd786; }
+.game-world-grid { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 22px 0; }
+.game-world-card {
+    position: relative; min-width: 0; min-height: 0; aspect-ratio: 1; display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+    padding: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.2); border-radius: 21px;
+    color: #fff; text-align: left; font: inherit; box-shadow: inset 0 1px rgba(255,255,255,.12), 0 15px 34px rgba(0,0,0,.24);
+}
+.game-world-card:not(.is-locked) { cursor: pointer; transition: transform .18s ease, border-color .18s ease; }
+.game-world-card:not(.is-locked):active { transform: scale(.985); }
+.tower-world { background: linear-gradient(145deg, #563b9e, #101a3b 70%); }
+.investigation-world { background: linear-gradient(145deg, #9a6031, #173e45 70%); }
+.geometry-world { background: linear-gradient(145deg, #2d6b60, #112c35 70%); }
+.probability-world { background: linear-gradient(145deg, #813d76, #2c183f 70%); }
+.game-world-art { height: 45px; display: flex; align-items: center; justify-content: space-between; color: rgba(255,255,255,.24); }
+.game-world-art b { font: 900 43px/1 Georgia, serif; }
+.game-world-art i { font-size: 28px; font-style: normal; filter: drop-shadow(0 6px 7px rgba(0,0,0,.26)); }
+.game-world-copy { display: grid; gap: 3px; }
+.game-world-copy small { color: rgba(255,255,255,.7); font-size: 8px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.game-world-copy strong { font-size: clamp(14px, 3.8vw, 17px); line-height: 1.08; }
+.game-world-copy em { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: rgba(255,255,255,.72); font-size: 10px; font-style: normal; line-height: 1.25; }
+.game-world-status { align-self: flex-start; margin-top: auto; padding: 5px 8px; border: 1px solid rgba(255,255,255,.24); border-radius: 99px; color: rgba(255,255,255,.73); font-size: 9px; font-weight: 850; }
+.game-world-status.active { border-color: rgba(118,244,217,.56); background: rgba(57,194,164,.2); color: #9bffe8; }
+.game-world-card.is-locked { opacity: .68; filter: saturate(.72); }
+
+.battle-reward-panel { margin: 16px 0; padding: 17px; border: 1px solid rgba(255,211,102,.52); border-radius: 22px; background: linear-gradient(145deg, rgba(255,196,67,.14), var(--surface-soft)); text-align: center; }
+.battle-reward-panel[hidden] { display: none; }
+.battle-reward-panel h3 { margin: 0; }
+.battle-reward-wheel { margin: 18px auto; }
+.battle-reward-buttons { display: grid; gap: 8px; }
+.battle-reward-buttons .btn { margin: 0; }
+
+@media (max-width: 520px) {
+    .game-world-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .game-world-card { padding: 11px; border-radius: 18px; }
+    .game-world-art { height: 37px; }
+    .game-world-art b { font-size: 35px; }
+    .game-world-art i { font-size: 23px; }
+    .game-world-copy strong { font-size: 13px; }
+    .game-world-copy em { font-size: 9px; }
+    .formula-challenge { left: 12px; right: 12px; top: 104px; width: auto; padding: 14px; }
+    .formula-option { min-height: 46px; padding-inline: 8px; }
+    .tower-silhouette { opacity: .28; }
+    .formula-hero { opacity: .5; }
+}
 .criteria-results { display: grid; gap: 7px; margin: 14px 0; }
 .criteria-results > div { padding: 10px; border-radius: 11px; background: rgba(255, 171, 171, .09); }
 .criteria-results > div.passed { background: rgba(96, 230, 182, .12); color: #6fe7b5; }
@@ -1246,7 +1306,7 @@ body.math-keyboard-open { padding-bottom: min(43dvh, 320px); }
     .shop-product-book { grid-column: auto; }
     .battle-stats-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .adventure-footer-actions, .solution-upload-grid { grid-template-columns: 1fr; }
-    .adventure-world { min-height: 650px; }
+    .adventure-world { min-height: 740px; }
     .tower-moon { width: 52px; height: 52px; top: 19px; right: 18px; }
     .tower-silhouette { left: calc(50% - 56px); top: 68px; }
     .formula-hero { left: calc(50% - 46px); top: 270px; }

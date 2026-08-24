@@ -10,7 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <script type="module" src="https://unpkg.com/mathlive@0.109.0?module"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/math-format.js?v=20"></script>
+    <script defer src="/math-format.js?v=21"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=20">
+    <link rel="stylesheet" href="/app.css?v=21">
 </head>
 <body data-grade="8">
 
@@ -140,7 +140,8 @@
         </div>
         <div class="menu-actions">
             <button class="action-card" onclick="startPractice()"><span class="action-icon">✏️</span><span><strong>Начать тренировку</strong><small>Новая подборка из таблицы</small></span><span class="action-arrow">›</span></button>
-            <button id="resumeAdventureCard" class="action-card adventure-resume-card" onclick="resumeAdventure()" hidden><span class="action-icon">🏰</span><span><strong>Продолжить Башню решений</strong><small>Прогресс второй части сохранён</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card game-universe-entry" onclick="openGameUniverse()"><span class="action-icon">🪐</span><span><strong>Вселенная игр</strong><small>Башня формул, вторая часть и будущие миры</small></span><span class="action-arrow">›</span></button>
+            <button id="resumeAdventureCard" class="action-card adventure-resume-card" onclick="resumeAdventure()" hidden><span class="action-icon">↻</span><span><strong>Продолжить мини-игру</strong><small>Ваш прогресс сохранён</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startDiagnostic()"><span class="action-icon">🧭</span><span><strong>Пробное тестирование</strong><small>Определить уровень и получить рекомендации</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openBattle()"><span class="action-icon">⚔️</span><span><strong>Баттлы</strong><small>Пять одинаковых задач против ученика своего класса</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openFriends('mainMenu')"><span class="action-icon">👥</span><span><strong>Мои друзья</strong><small>Сообщения и личные вызовы в баттл</small></span><span class="action-arrow">›</span></button>
@@ -323,6 +324,16 @@
             <button class="btn btn-secondary" onclick="leaveBattleScreen()">Меню</button>
             <button class="btn btn-secondary" onclick="openBattleStats()">Узнать статистику баттлов</button>
         </div>
+        <section id="battleRewardPanel" class="battle-reward-panel" hidden>
+            <p class="eyebrow">Награда за серию побед</p>
+            <h3>Барабан наград открыт</h3>
+            <p id="battleRewardText" class="supporting-text"></p>
+            <div id="battleRewardWheel" class="daily-wheel battle-reward-wheel" aria-hidden="true">
+                <span>🎟️</span><span>🧢</span><span>5%</span><span>⌚</span><span>15%</span><span>🧥</span><span>10%</span><span>🎁</span>
+            </div>
+            <div id="battleRewardButtons" class="battle-reward-buttons"></div>
+            <strong id="battleRewardResult" class="daily-wheel-result" aria-live="polite"></strong>
+        </section>
         <button id="battleBackButton" class="btn btn-secondary" onclick="leaveBattleScreen()">Назад</button>
     </div>
 
@@ -405,9 +416,39 @@
         <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Меню</button>
     </div>
 
+    <div id="gameUniverseScreen" class="screen game-universe-screen">
+        <div class="universe-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="eyebrow">Открывается после тренировки</p>
+        <h1>Вселенная игр</h1>
+        <p class="supporting-text">Выберите любой доступный мир. Результаты и незавершённые решения сохраняются.</p>
+        <div class="game-world-grid">
+            <button class="game-world-card tower-world" type="button" onclick="startAdventureGame('tower')">
+                <span class="game-world-art"><b>∑</b><i>🏰</i></span>
+                <span class="game-world-copy"><small>Игра на ассоциации</small><strong>Башня формул</strong><em>Теоремы, площади и тождества</em></span>
+                <span class="game-world-status active">Играть</span>
+            </button>
+            <button class="game-world-card investigation-world" type="button" onclick="startAdventureGame('second_part')">
+                <span class="game-world-art"><b>⌕</b><i>📐</i></span>
+                <span class="game-world-copy"><small>Развёрнутые решения</small><strong>Математическое расследование</strong><em>Вторая часть и итоговые контрольные</em></span>
+                <span class="game-world-status active">Играть</span>
+            </button>
+            <article class="game-world-card geometry-world is-locked" aria-disabled="true">
+                <span class="game-world-art"><b>△</b><i>🧭</i></span>
+                <span class="game-world-copy"><small>Будущий мир</small><strong>Экспедиция геометров</strong><em>Чертежи, маршруты и доказательства</em></span>
+                <span class="game-world-status">В проекте</span>
+            </article>
+            <article class="game-world-card probability-world is-locked" aria-disabled="true">
+                <span class="game-world-art"><b>?</b><i>🎲</i></span>
+                <span class="game-world-copy"><small>Будущий мир</small><strong>Лаборатория вероятностей</strong><em>Эксперименты, события и стратегии</em></span>
+                <span class="game-world-status">В проекте</span>
+            </article>
+        </div>
+        <button class="btn btn-secondary" type="button" onclick="showScreen('mainMenu')">Вернуться в меню класса</button>
+    </div>
+
     <div id="adventureScreen" class="screen adventure-screen">
         <div class="adventure-heading">
-            <div><p class="eyebrow">Игра 1 из 2 · ассоциации</p><h2 id="adventureGameTitle">Башня формул</h2></div>
+            <div><p id="adventureGameEyebrow" class="eyebrow">Активная игра · ассоциации</p><h2 id="adventureGameTitle">Башня формул</h2></div>
             <span class="soft-pill">Автосохранение</span>
         </div>
         <p id="adventureStatus" class="supporting-text">Открываем сохранённую комнату…</p>
@@ -431,7 +472,7 @@
         <section id="extendedSolutionPanel" class="extended-solution-panel" hidden>
             <div class="solution-game-heading">
                 <div class="math-investigator" aria-hidden="true"><i></i><span>⌕</span></div>
-                <div><p class="eyebrow">Игра 2 из 2 · лаборатория решения</p><h3>Математическое расследование</h3></div>
+                <div><p class="eyebrow">Самостоятельная игра · лаборатория решения</p><h3>Математическое расследование</h3></div>
             </div>
             <p id="extendedTaskKind" class="eyebrow"></p>
             <h3 id="extendedTaskTitle"></h3>
@@ -454,9 +495,9 @@
         </section>
         <section id="extendedResult" class="extended-result" hidden></section>
         <div class="adventure-footer-actions">
+            <button class="btn btn-secondary" onclick="openGameUniverse()">Вселенная игр</button>
             <button class="btn btn-secondary" onclick="loadMyStats()">Моя статистика</button>
             <button class="btn btn-secondary" onclick="openTrainingHistory()">История тренировок</button>
-            <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Главное меню</button>
         </div>
     </div>
     <button id="mathKeyboardClose" class="math-keyboard-close" type="button" onclick="closeMathKeyboard()" hidden>Скрыть клавиатуру ↓</button>
@@ -1098,8 +1139,8 @@ function sendToForm(grade, topic, status) {
         } else {
             const adventureButton = document.createElement('button');
             adventureButton.className = 'btn adventure-launch-button';
-            adventureButton.textContent = '🎮 Продолжить: Башня решений';
-            adventureButton.addEventListener('click', openAdventureAfterTraining);
+            adventureButton.textContent = '🪐 Перейти во Вселенную игр';
+            adventureButton.addEventListener('click', openGameUniverse);
             const statsButton = document.createElement('button');
             statsButton.className = 'btn btn-secondary';
             statsButton.textContent = '📊 Моя статистика';
@@ -1142,7 +1183,7 @@ function sendToForm(grade, topic, status) {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=19"></script>
-<script src="/community.js?v=19"></script>
-<script src="/adventure.js?v=20"></script>
+<script src="/community.js?v=21"></script>
+<script src="/adventure.js?v=21"></script>
 </body>
 </html>

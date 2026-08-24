@@ -36,7 +36,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "20"
+WEBAPP_VERSION = "21"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -912,6 +912,16 @@ async def get_battle_stats(request):
         return _community_error(error, status=401)
 
 
+async def spin_battle_reward(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await community_store.spin_battle_reward(
+            _authenticated_user(request), str(payload.get("tier") or "")
+        ))
+    except (CommunityError, ValueError, TypeError) as error:
+        return _community_error(error, status=422)
+
+
 async def answer_battle(request):
     try:
         user = _authenticated_user(request)
@@ -1058,16 +1068,19 @@ async def start_adventure(request):
     try:
         payload = await request.json()
         grade = int(payload.get("grade") or 0)
+        game = str(payload.get("game") or "tower")
         user = _authenticated_user(request)
         attempt_key = str(payload.get("attemptKey") or "").strip()
-        await _load_questions()
-        available = questions_cache.get("extended", {}).get(grade, [])
-        used_ids = await community_store.used_adventure_task_ids(user, grade, attempt_key)
-        fresh_tasks = [task for task in available if task.get("id") not in used_ids]
-        # Once every task in the folder has been solved, a new shuffled cycle may begin.
-        task = random.choice(fresh_tasks or available) if available else None
+        task = None
+        if game == "second_part":
+            await _load_questions()
+            available = questions_cache.get("extended", {}).get(grade, [])
+            used_ids = await community_store.used_adventure_task_ids(user, grade, attempt_key)
+            fresh_tasks = [task for task in available if task.get("id") not in used_ids]
+            # Once every task in the folder has been solved, a new shuffled cycle may begin.
+            task = random.choice(fresh_tasks or available) if available else None
         session = await community_store.start_adventure(
-            user, grade, attempt_key, task=task
+            user, grade, attempt_key, task=task, game=game
         )
         session["verification"] = _adventure_verification_capabilities()
         return web.json_response(session)
@@ -1301,6 +1314,7 @@ def create_app():
     application.router.add_post('/api/enrollments', create_enrollment)
     application.router.add_post('/api/battles/join', join_battle)
     application.router.add_get('/api/battle-stats', get_battle_stats)
+    application.router.add_post('/api/battle-rewards/spin', spin_battle_reward)
     application.router.add_get('/api/battles/{battle_id}', get_battle)
     application.router.add_post('/api/battles/{battle_id}/answer', answer_battle)
     return application

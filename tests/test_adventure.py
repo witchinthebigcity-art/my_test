@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from adventure import ADVENTURE_TASKS, build_formula_round, grade_solution
+from adventure import ADVENTURE_TASKS, FORMULA_CHALLENGES, build_formula_round, grade_solution
 from community import CommunityStore
 
 
@@ -12,6 +12,12 @@ class AdventureRubricTests(unittest.TestCase):
         self.assertEqual(len(formula_round), 4)
         self.assertEqual(len({item["id"] for item in formula_round}), 4)
         self.assertTrue(all(len(item["options"]) == 4 for item in formula_round))
+        self.assertTrue(all(item["correctOptionId"] in {option["id"] for option in item["options"]} for item in formula_round))
+
+    def test_every_formula_challenge_has_exactly_one_valid_answer_reference(self):
+        for challenge_id, challenge in FORMULA_CHALLENGES.items():
+            self.assertEqual(len(challenge["options"]), 4, challenge_id)
+            self.assertIn(challenge["correct"], range(4), challenge_id)
 
     def test_full_score_requires_correct_fields_and_reasoning(self):
         task = ADVENTURE_TASKS[9]
@@ -43,8 +49,15 @@ class AdventureStoreTests(unittest.IsolatedAsyncioTestCase):
             session = await self.store.answer_adventure_formula(
                 self.user, session["id"], current["correctOptionId"]
             )
-        self.assertEqual(session["stage"], "solution")
-        completed = await self.store.submit_adventure(self.user, session["id"], {
+        self.assertEqual(session["stage"], "complete")
+        self.assertEqual(session["game"], "tower")
+        self.assertEqual(session["result"]["score"], 4)
+
+        solution = await self.store.start_adventure(
+            self.user, 8, "training-1", game="second_part"
+        )
+        self.assertEqual(solution["stage"], "solution")
+        completed = await self.store.submit_adventure(self.user, solution["id"], {
             "answers": {"factor": "(x-2)(x-3)=0", "answer": "2;3"},
             "explanation": "Разложим квадратный трёхчлен на множители и приравняем каждый к нулю.",
         })
@@ -68,6 +81,6 @@ class AdventureStoreTests(unittest.IsolatedAsyncioTestCase):
             "criteriaSource": "Критерии ОГЭ",
             "fields": [{"id": "answer", "label": "Ответ", "hint": "", "answers": ["42"], "points": 2}],
         }
-        session = await self.store.start_adventure(self.user, 9, "training-2", task=task)
+        session = await self.store.start_adventure(self.user, 9, "training-2", task=task, game="second_part")
         self.assertEqual(session["task"]["title"], "Пользовательская задача")
         self.assertNotIn("answers", session["task"]["fields"][0])

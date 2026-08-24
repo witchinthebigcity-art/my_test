@@ -51,6 +51,11 @@ COUPON_VALID_DAYS = 30
 SHOP_OWNERSHIP_DAYS = 30
 SHOP_ALLOW_PERMANENT = False
 BATTLE_WIN_REWARD = 10
+BATTLE_DAILY_REWARD_DAYS = 7
+BATTLE_MONTHLY_ITEM_DAYS = 20
+BATTLE_MONTHLY_COUPON_DAYS = 30
+BATTLE_DAILY_DISCOUNTS = (5, 10, 15)
+BATTLE_MONTHLY_DISCOUNTS = (30, 40, 50)
 SHOP_CATALOG = (
     {"id": "guide-algebra", "name": "Карта алгебры", "description": "Короткие опорные схемы по алгебре.", "price": 1500, "department": "book", "slot": "guide", "icon": "📘"},
     {"id": "guide-geometry", "name": "Атлас геометрии", "description": "Формулы и чертежи в одной коллекции.", "price": 1500, "department": "book", "slot": "guide", "icon": "📐"},
@@ -346,6 +351,8 @@ class CommunityStore:
             "temporary_items": {},
             "discount_coupons": [],
             "wheel_claims": {},
+            "battle_daily_claims": {},
+            "battle_monthly_claims": {},
             "updated_at": _now_iso(),
         })
         profile.setdefault("public_id", uuid.uuid4().hex[:12])
@@ -361,6 +368,8 @@ class CommunityStore:
         profile.setdefault("temporary_items", {})
         profile.setdefault("discount_coupons", [])
         profile.setdefault("wheel_claims", {})
+        profile.setdefault("battle_daily_claims", {})
+        profile.setdefault("battle_monthly_claims", {})
         self._cleanup_inventory(profile)
         self._migrate_global_characters(profile)
         profile["telegram_avatar_url"] = user.get("photo_url", profile.get("telegram_avatar_url", ""))
@@ -912,16 +921,21 @@ class CommunityStore:
         return filename
 
     def _adventure_view(self, session):
-        ensure_formula_round(session)
+        if not session.get("game"):
+            session["game"] = "tower" if session.get("stage") in {"crystals", "formula"} else "second_part"
+        if session["game"] == "tower" and session.get("status") == "active":
+            ensure_formula_round(session)
         result = {
             "id": session["id"],
             "grade": session["grade"],
+            "game": session["game"],
             "stage": session["stage"],
-            "formula": public_formula_state(session),
             "status": session["status"],
             "updatedAt": session.get("updated_at"),
             "task": public_task(session.get("task") or session["grade"]),
         }
+        if session["game"] == "tower":
+            result["formula"] = public_formula_state(session)
         if session.get("result"):
             result["result"] = session["result"]
         if session.get("draft"):
@@ -966,7 +980,7 @@ class CommunityStore:
                 "createdAt": session.get("updated_at"),
                 "total": int((session.get("result") or {}).get("maxScore") or 2),
                 "correct": int((session.get("result") or {}).get("score") or 0),
-                "topics": ["Вторая часть"],
+                "topics": ["Формулы" if session.get("game") == "tower" else "Вторая часть"],
                 "kind": "extended",
             } for session in sessions[:30]]
 
@@ -989,10 +1003,13 @@ class CommunityStore:
                 and (session.get("task") or {}).get("id")
             }
 
-    async def start_adventure(self, user, grade, attempt_key, task=None):
+    async def start_adventure(self, user, grade, attempt_key, task=None, game="tower"):
         grade = int(grade)
         if grade not in ADVENTURE_TASKS:
             raise CommunityError("Некорректный класс")
+        game = str(game or "tower")
+        if game not in {"tower", "second_part"}:
+            raise CommunityError("Неизвестная мини-игра")
         async with self.lock:
             data = self._load()
             user_id = self._user_id(user)
@@ -1000,11 +1017,12 @@ class CommunityStore:
                 session for session in data["adventures"].values()
                 if session.get("user_id") == user_id
                 and int(session.get("grade") or 0) == grade
+                and (session.get("game") or ("tower" if session.get("stage") in {"crystals", "formula"} else "second_part")) == game
                 and session.get("status") == "active"
             ), None)
             if active:
                 return self._adventure_view(active)
-            session = new_session(user_id, grade, attempt_key, task=task)
+            session = new_session(user_id, grade, attempt_key, task=task, game=game)
             session["created_at"] = _now_iso()
             session["updated_at"] = session["created_at"]
             data["adventures"][session["id"]] = session
@@ -1041,7 +1059,25 @@ class CommunityStore:
                         "message": "Верно! Этаж башни открыт.",
                     }
                     if session["formula_index"] >= len(formula_round):
-                        session["stage"] = "solution"
+                        session["status"] = "complete"
+                        session["stage"] = "complete"
+                        session["result"] = {
+                            "score": len(formula_round),
+                            "maxScore": len(formula_round),
+                            "criteria": [],
+                            "verdict": "Башня формул пройдена: все ассоциации найдены.",
+                            "engine": "formula-game",
+                        }
+                        data["attempts"].append({
+                            "attempt_key": f"adventure:{session['id']}",
+                            "user_id": self._user_id(user),
+                            "question_id": f"formula-tower-{session['grade']}",
+                            "grade": session["grade"],
+                            "correct": True,
+                            "points": len(formula_round),
+                            "source": "formula-game",
+                            "created_at": _now_iso(),
+                        })
                 else:
                     session["formula_feedback"] = {
                         "correct": False,
@@ -1788,17 +1824,132 @@ class CommunityStore:
                     if candidate_winners == [winner_id]:
                         wins_today += 1
 
-                cosmetic = DAILY_BATTLE_ITEMS.get(wins_today)
-                if cosmetic:
-                    profile.setdefault("temporary_items", {})[cosmetic["id"]] = self._next_midnight_iso()
                 profile["updated_at"] = _now_iso()
                 battle["rewards"][winner_id] = {
                     "coins": coin_reward,
                     "winsToday": wins_today,
-                    "item": cosmetic,
                 }
         battle["bonus_awarded"] = True
         battle["completed_at"] = battle.get("completed_at") or _now_iso()
+
+    @staticmethod
+    def _battle_winner_id(battle):
+        players = battle.get("players", {})
+        if battle.get("status") != "complete" or len(players) < 2:
+            return None
+        best = max(int(player.get("score") or 0) for player in players.values())
+        winners = [uid for uid, player in players.items() if int(player.get("score") or 0) == best]
+        return winners[0] if len(winners) == 1 else None
+
+    def _battle_reward_status(self, data, profile, user_id):
+        today = datetime.now(MOSCOW).date()
+        win_dates = []
+        recent_win_totals = {}
+        for battle in data["battles"].values():
+            winner_id = self._battle_winner_id(battle)
+            if not winner_id or self._is_bot(winner_id):
+                continue
+            timestamp = battle.get("completed_at") or battle.get("started_at") or battle.get("created_at")
+            try:
+                win_date = datetime.fromisoformat(timestamp).astimezone(MOSCOW).date()
+            except (TypeError, ValueError):
+                continue
+            if 0 <= (today - win_date).days < 30:
+                recent_win_totals[winner_id] = recent_win_totals.get(winner_id, 0) + 1
+            if winner_id == user_id:
+                win_dates.append(win_date)
+        wins_today = sum(day == today for day in win_dates)
+        won_days = set(win_dates)
+        has_thirty_day_streak = all(today - timedelta(days=offset) in won_days for offset in range(30))
+        own_recent_wins = recent_win_totals.get(user_id, 0)
+        is_month_leader = own_recent_wins > 0 and own_recent_wins == max(recent_win_totals.values(), default=0)
+        day_key = today.isoformat()
+        month_key = today.strftime("%Y-%m")
+        daily_claim = profile.setdefault("battle_daily_claims", {}).get(day_key)
+        monthly_claim = profile.setdefault("battle_monthly_claims", {}).get(month_key)
+        return {
+            "winsToday": wins_today,
+            "winningDaysInLast30": sum(today - timedelta(days=offset) in won_days for offset in range(30)),
+            "winsInLast30": own_recent_wins,
+            "monthLeader": is_month_leader,
+            "daily": {
+                "eligible": wins_today >= 3,
+                "available": wins_today >= 3 and not daily_claim,
+                "claimed": bool(daily_claim),
+                "prize": daily_claim,
+            },
+            "monthly": {
+                "eligible": has_thirty_day_streak and is_month_leader,
+                "available": has_thirty_day_streak and is_month_leader and not monthly_claim,
+                "claimed": bool(monthly_claim),
+                "prize": monthly_claim,
+            },
+        }
+
+    async def spin_battle_reward(self, user, tier):
+        if tier not in {"daily", "monthly"}:
+            raise CommunityError("Неизвестный тип награды")
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            profile = self._ensure_profile(data, user)
+            status = self._battle_reward_status(data, profile, user_id)
+            if not status[tier]["eligible"]:
+                requirement = "3 победы за день" if tier == "daily" else "лидерство по победам и по одной победе в каждый из последних 30 дней"
+                raise CommunityError(f"Для этой награды нужны {requirement}")
+            if not status[tier]["available"]:
+                raise CommunityError("Эта награда уже получена")
+
+            now = datetime.now(MOSCOW)
+            rng = random.SystemRandom()
+            if tier == "daily":
+                candidates = [
+                    item for item in SHOP_CATALOG
+                    if item.get("slot") in {"outfit", "accessory"} and int(item.get("price") or 0) <= 2500
+                ]
+                discounts = BATTLE_DAILY_DISCOUNTS
+                item_days = coupon_days = BATTLE_DAILY_REWARD_DAYS
+                claim_key = now.date().isoformat()
+                claim_store = profile["battle_daily_claims"]
+            else:
+                candidates = [
+                    item for item in SHOP_CATALOG
+                    if item.get("slot") in {"outfit", "accessory"} and int(item.get("price") or 0) == 5000
+                ]
+                discounts = BATTLE_MONTHLY_DISCOUNTS
+                item_days = BATTLE_MONTHLY_ITEM_DAYS
+                coupon_days = BATTLE_MONTHLY_COUPON_DAYS
+                claim_key = now.strftime("%Y-%m")
+                claim_store = profile["battle_monthly_claims"]
+
+            prize_kind = rng.choice(("item", "discount"))
+            if prize_kind == "item" and candidates:
+                item = rng.choice(candidates)
+                expires_at = (now + timedelta(days=item_days)).isoformat()
+                profile.setdefault("temporary_items", {})[item["id"]] = expires_at
+                prize = {
+                    "kind": "item", "itemId": item["id"], "label": item["name"],
+                    "icon": item["icon"], "expiresAt": expires_at, "validDays": item_days,
+                }
+            else:
+                percent = int(rng.choice(discounts))
+                expires_at = (now + timedelta(days=coupon_days)).isoformat()
+                coupon = {
+                    "id": uuid.uuid4().hex[:12], "percent": percent, "created_at": _now_iso(),
+                    "expires_at": expires_at, "used": False, "source": f"battle_{tier}",
+                }
+                profile.setdefault("discount_coupons", []).append(coupon)
+                prize = {
+                    "kind": "discount", "couponId": coupon["id"], "value": percent,
+                    "label": f"Скидка {percent}%", "icon": "🎟️",
+                    "expiresAt": expires_at, "validDays": coupon_days,
+                }
+            claim_store[claim_key] = prize
+            profile["updated_at"] = _now_iso()
+            self._save(data)
+            result = self._battle_reward_status(data, profile, user_id)
+            result.update({"spun": True, "tier": tier, "prize": prize})
+            return result
 
     def _battle_view(self, data, battle, user_id, question_map):
         player_ids = list(battle["players"])
@@ -1828,6 +1979,7 @@ class CommunityStore:
             }
 
         questions = [question_map[qid].as_public_dict() for qid in battle["question_ids"] if qid in question_map]
+        reward_status = self._battle_reward_status(data, data["profiles"].get(user_id, {}), user_id)
         return {
             "id": battle["id"],
             "grade": battle["grade"],
@@ -1837,6 +1989,7 @@ class CommunityStore:
             "questions": questions if battle["status"] in {"active", "complete"} else [],
             "myAnswers": battle["players"][user_id]["answers"],
             "reward": (battle.get("rewards") or {}).get(user_id, {"coins": 0}),
+            "battleRewards": reward_status,
             "coins": int((data["profiles"].get(user_id) or {}).get("coins") or 0),
             "admin": self._is_admin({"id": user_id, "username": (data["profiles"].get(user_id) or {}).get("telegram_username", "")}),
         }

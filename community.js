@@ -1043,6 +1043,7 @@ async function openBattleById(battleId) {
     showScreen('battleScreen');
     document.getElementById('battleFinishActions').hidden = true;
     document.getElementById('battleBackButton').hidden = false;
+    document.getElementById('battleRewardPanel').hidden = true;
     setInlineMessage('battleStatus', 'Открываем приглашённый баттл…');
     try {
         const battle = await communityRequest(`/api/battles/${battleId}`, {
@@ -1263,6 +1264,7 @@ function openBattle() {
     document.getElementById('battleGame').hidden = true;
     document.getElementById('battleFinishActions').hidden = true;
     document.getElementById('battleBackButton').hidden = false;
+    document.getElementById('battleRewardPanel').hidden = true;
     setInlineMessage('battleStatus', '');
 }
 
@@ -1308,6 +1310,7 @@ function handleBattleState(battle) {
         document.getElementById('battleGame').hidden = true;
         document.getElementById('battleFinishActions').hidden = true;
         document.getElementById('battleBackButton').hidden = false;
+        document.getElementById('battleRewardPanel').hidden = true;
         setInlineMessage('battleStatus', 'Ищем ученика вашего класса. Если за 20 секунд пара не найдётся, начнётся баттл с Матан-Ботом.');
         return;
     }
@@ -1402,8 +1405,7 @@ function renderBattleFinish(battle) {
     } else if (battle.me.score > battle.opponent.score) {
         const reward = battle.reward || {};
         const coinText = reward.coins ? ` +${reward.coins} монет.` : '';
-        const itemText = reward.item ? ` Награда до конца дня: ${reward.item.name}.` : '';
-        question.textContent = `Победа!${coinText}${itemText}`;
+        question.textContent = `Победа!${coinText}`;
     } else if (battle.me.score < battle.opponent.score) {
         question.textContent = 'В этот раз победил соперник. Можно вызвать нового участника.';
     } else {
@@ -1412,7 +1414,57 @@ function renderBattleFinish(battle) {
     const complete = battle.status === 'complete';
     document.getElementById('battleFinishActions').hidden = !complete;
     document.getElementById('battleBackButton').hidden = complete;
+    renderBattleRewardStatus(complete ? battle.battleRewards : null);
     if (complete) clearInterval(communityState.battlePoll);
+}
+
+function renderBattleRewardStatus(rewards) {
+    const panel = document.getElementById('battleRewardPanel');
+    const buttons = document.getElementById('battleRewardButtons');
+    const result = document.getElementById('battleRewardResult');
+    buttons.replaceChildren();
+    result.textContent = '';
+    if (!rewards || (!rewards.daily?.available && !rewards.monthly?.available)) {
+        panel.hidden = true;
+        return;
+    }
+    panel.hidden = false;
+    const messages = [];
+    if (rewards.daily?.available) messages.push(`Побед сегодня: ${rewards.winsToday}. Дневной приз действует 7 дней.`);
+    if (rewards.monthly?.available) messages.push('30 победных дней подряд: вещь действует 20 дней, купон — 30 дней.');
+    document.getElementById('battleRewardText').textContent = messages.join(' ');
+    [['daily', 'Крутить дневной барабан'], ['monthly', 'Крутить барабан за 30 дней']].forEach(([tier, label]) => {
+        if (!rewards[tier]?.available) return;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn';
+        button.textContent = label;
+        button.addEventListener('click', () => spinBattleReward(tier));
+        buttons.appendChild(button);
+    });
+}
+
+async function spinBattleReward(tier) {
+    const wheel = document.getElementById('battleRewardWheel');
+    const result = document.getElementById('battleRewardResult');
+    document.querySelectorAll('#battleRewardButtons button').forEach((button) => { button.disabled = true; });
+    result.textContent = 'Барабан вращается…';
+    wheel.classList.remove('spinning');
+    void wheel.offsetWidth;
+    wheel.classList.add('spinning');
+    try {
+        const payload = await communityRequest('/api/battle-rewards/spin', {
+            method: 'POST', headers: telegramHeaders(true), body: JSON.stringify({tier}),
+        });
+        window.setTimeout(() => {
+            renderBattleRewardStatus(payload);
+            document.getElementById('battleRewardPanel').hidden = false;
+            document.getElementById('battleRewardResult').textContent = `${payload.prize.icon || '🎁'} ${payload.prize.label}. Действует ${payload.prize.validDays} дней.`;
+        }, 2300);
+    } catch (error) {
+        result.textContent = error.message;
+        document.querySelectorAll('#battleRewardButtons button').forEach((button) => { button.disabled = false; });
+    }
 }
 
 document.getElementById('profileAvatarInput')?.addEventListener('change', handleProfileAvatarFile);

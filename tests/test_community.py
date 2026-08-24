@@ -298,7 +298,7 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(character["admin"])
         self.assertEqual(character["coins"], 0)
 
-    async def test_battle_win_coins_have_no_daily_cap_and_cosmetics_unlock(self):
+    async def test_battle_win_coins_have_no_daily_cap_and_reward_wheel_unlocks(self):
         await self.store.update_profile(self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8})
         await self.store.update_profile(self.user_b, {"nickname": "Геометр8", "leaderboardConsent": True, "grade": 8})
         data = self.store._load()
@@ -322,9 +322,10 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
 
         profile = (await self.store.get_profile(self.user_a))
         self.assertEqual(profile["coins"], 50)
-        stored = self.store._load()["profiles"]["1"]
-        self.assertIn("daily-victor-armor", stored["temporary_items"])
-        self.assertIn("daily-victor-cape", stored["temporary_items"])
+        stored_data = self.store._load()
+        reward_status = self.store._battle_reward_status(stored_data, stored_data["profiles"]["1"], "1")
+        self.assertEqual(reward_status["winsToday"], 5)
+        self.assertTrue(reward_status["daily"]["available"])
         stats = await self.store.battle_stats(self.user_a)
         self.assertEqual(stats["wins"], 5)
         self.assertEqual(stats["winPercent"], 100.0)
@@ -411,6 +412,41 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         duplicate = await self.store.award_training_coins(self.user_a, "attempt:0:valid")
         self.assertEqual(duplicate["awarded"], 0)
         self.assertEqual(duplicate["reason"], "duplicate")
+
+    async def test_three_battle_wins_unlock_one_weekly_daily_reward(self):
+        await self.store.get_profile(self.user_a)
+        data = self.store._load()
+        now = datetime.now().astimezone().isoformat()
+        for index in range(3):
+            data["battles"][f"won-{index}"] = {
+                "id": f"won-{index}", "status": "complete", "created_at": now,
+                "completed_at": now, "players": {"1": {"score": 5}, "2": {"score": 2}},
+            }
+        self.store._save(data)
+
+        status = self.store._battle_reward_status(data, data["profiles"]["1"], "1")
+        self.assertTrue(status["daily"]["available"])
+        reward = await self.store.spin_battle_reward(self.user_a, "daily")
+        self.assertTrue(reward["spun"])
+        self.assertEqual(reward["prize"]["validDays"], 7)
+        self.assertFalse(reward["daily"]["available"])
+        with self.assertRaises(CommunityError):
+            await self.store.spin_battle_reward(self.user_a, "daily")
+
+    async def test_thirty_distinct_winning_days_unlock_monthly_reward(self):
+        await self.store.get_profile(self.user_a)
+        data = self.store._load()
+        today = datetime.now().astimezone().date()
+        for offset in range(30):
+            timestamp = datetime.combine(today - timedelta(days=offset), datetime.min.time()).astimezone().isoformat()
+            data["battles"][f"streak-{offset}"] = {
+                "id": f"streak-{offset}", "status": "complete", "created_at": timestamp,
+                "completed_at": timestamp, "players": {"1": {"score": 4}, "2": {"score": 1}},
+            }
+        self.store._save(data)
+        status = self.store._battle_reward_status(data, data["profiles"]["1"], "1")
+        self.assertEqual(status["winningDaysInLast30"], 30)
+        self.assertTrue(status["monthly"]["available"])
 
 
 if __name__ == "__main__":
