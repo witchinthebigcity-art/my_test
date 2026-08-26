@@ -10,7 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <script type="module" src="https://unpkg.com/mathlive@0.109.0?module"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/math-format.js?v=21"></script>
+    <script defer src="/math-format.js?v=23"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=21">
+    <link rel="stylesheet" href="/app.css?v=23">
 </head>
 <body data-grade="8">
 
@@ -303,21 +303,27 @@
     <div id="battleScreen" class="screen">
         <p class="eyebrow">Одинаковые условия</p>
         <h2>Математический баттл</h2>
-        <p class="supporting-text">Соперники одного класса получают пять одинаковых заданий. За победу начисляется бонус рейтинга.</p>
+        <p class="supporting-text">Соперники получают пять одинаковых заданий. На каждый ответ даётся 30 секунд.</p>
         <div id="battleLobby" class="battle-lobby">
             <div class="battle-versus"><span>Вы</span><b>VS</b><span>Соперник</span></div>
             <button class="btn" onclick="joinBattle()">Найти соперника</button>
             <p id="battleStatus" class="inline-message" hidden></p>
         </div>
-        <div id="battleGame" hidden>
+        <div id="battleGame" class="battle-game-arena" hidden>
             <div id="battlePlayers" class="battle-players"></div>
-            <p id="battleProgress" class="soft-pill"></p>
-            <h3 id="battleTopic"></h3>
-            <h2 id="battleQuestion"></h2>
-            <img id="battleQuestionImage" class="question-media" alt="Изображение задания баттла" hidden>
-            <div id="battleOptions" class="battle-options"></div>
-            <div id="battleFeedback" class="inline-message" hidden></div>
-            <button id="battleNextButton" class="btn" onclick="nextBattleQuestion()" hidden>Следующее задание</button>
+            <div id="battleCountdown" class="battle-countdown" hidden aria-live="assertive">
+                <small>Приготовьтесь</small>
+                <strong id="battleCountdownValue">3</strong>
+            </div>
+            <div id="battleQuestionStage" class="battle-question-stage">
+                <div class="battle-progress-row"><p id="battleProgress" class="soft-pill"></p><strong id="battleTimer" class="battle-timer" aria-live="polite"></strong></div>
+                <h3 id="battleTopic"></h3>
+                <h2 id="battleQuestion"></h2>
+                <img id="battleQuestionImage" class="question-media" alt="Изображение задания баттла" hidden>
+                <div id="battleOptions" class="battle-options"></div>
+                <div id="battleFeedback" class="inline-message" hidden></div>
+                <button id="battleNextButton" class="btn" onclick="nextBattleQuestion()" hidden>Следующее задание</button>
+            </div>
         </div>
         <div id="battleFinishActions" class="battle-finish-actions" hidden>
             <button class="btn" onclick="openShop()">Магазин</button>
@@ -334,7 +340,7 @@
             <div id="battleRewardButtons" class="battle-reward-buttons"></div>
             <strong id="battleRewardResult" class="daily-wheel-result" aria-live="polite"></strong>
         </section>
-        <button id="battleBackButton" class="btn btn-secondary" onclick="leaveBattleScreen()">Назад</button>
+        <button id="battleLeaveButton" class="btn btn-secondary battle-leave-button" onclick="leaveBattleScreen()">Назад</button>
     </div>
 
     <div id="battleStatsScreen" class="screen">
@@ -1183,7 +1189,7 @@ function sendToForm(grade, topic, status) {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=19"></script>
-<script src="/community.js?v=21"></script>
-<script src="/adventure.js?v=21"></script>
+<script src="/community.js?v=23"></script>
+<script src="/adventure.js?v=23"></script>
 </body>
 </html>

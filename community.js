@@ -3,6 +3,12 @@ const communityState = {
     battle: null,
     battleQuestionIndex: 0,
     battlePoll: null,
+    battleTimer: null,
+    battleCountdownTimer: null,
+    battleCountdownCompleteId: null,
+    battleSyncPoll: null,
+    battleRenderedQuestionId: null,
+    battleTimeoutRefreshing: false,
     chatPublicId: null,
     chatPoll: null,
     participantReturnScreen: 'friendsScreen',
@@ -442,9 +448,11 @@ function renderCharacterTumbler() {
 
     const price = document.createElement('p');
     price.className = 'character-tumbler-price';
-    price.textContent = character.owned
-        ? 'Уже куплен'
-        : `🪙 ${character.price} монет`;
+    price.textContent = character.price === 0
+        ? 'Бесплатно'
+        : character.owned
+            ? 'Уже куплен'
+            : `🪙 ${character.price} монет`;
 
     const action = document.createElement('button');
     action.type = 'button';
@@ -1042,7 +1050,10 @@ async function openBattleById(battleId) {
     communityState.battleId = battleId;
     showScreen('battleScreen');
     document.getElementById('battleFinishActions').hidden = true;
-    document.getElementById('battleBackButton').hidden = false;
+    const exitButton = document.getElementById('battleLeaveButton');
+    exitButton.textContent = 'Назад';
+    exitButton.classList.remove('btn-danger', 'active-battle-leave');
+    exitButton.hidden = false;
     document.getElementById('battleRewardPanel').hidden = true;
     setInlineMessage('battleStatus', 'Открываем приглашённый баттл…');
     try {
@@ -1263,7 +1274,10 @@ function openBattle() {
     document.getElementById('battleLobby').hidden = false;
     document.getElementById('battleGame').hidden = true;
     document.getElementById('battleFinishActions').hidden = true;
-    document.getElementById('battleBackButton').hidden = false;
+    const exitButton = document.getElementById('battleLeaveButton');
+    exitButton.textContent = 'Назад';
+    exitButton.classList.remove('btn-danger', 'active-battle-leave');
+    exitButton.hidden = false;
     document.getElementById('battleRewardPanel').hidden = true;
     setInlineMessage('battleStatus', '');
 }
@@ -1286,7 +1300,21 @@ async function joinBattle() {
 
 function startBattlePolling() {
     clearInterval(communityState.battlePoll);
-    communityState.battlePoll = setInterval(refreshBattle, 2500);
+    communityState.battlePoll = setInterval(refreshBattle, 1000);
+}
+
+function clearBattleQuestionTimer() {
+    clearInterval(communityState.battleTimer);
+    communityState.battleTimer = null;
+}
+
+function clearBattleCountdown() {
+    clearInterval(communityState.battleCountdownTimer);
+    communityState.battleCountdownTimer = null;
+    const countdown = document.getElementById('battleCountdown');
+    const game = document.getElementById('battleGame');
+    if (countdown) countdown.hidden = true;
+    if (game) game.classList.remove('is-counting-down');
 }
 
 async function refreshBattle() {
@@ -1306,33 +1334,99 @@ function handleBattleState(battle) {
     communityState.battle = battle;
     if (Number.isFinite(Number(battle.coins))) syncCoinBalance(battle.coins, battle.admin);
     if (battle.status === 'waiting') {
+        clearBattleQuestionTimer();
+        clearBattleCountdown();
+        communityState.battleRenderedQuestionId = null;
         document.getElementById('battleLobby').hidden = false;
         document.getElementById('battleGame').hidden = true;
         document.getElementById('battleFinishActions').hidden = true;
-        document.getElementById('battleBackButton').hidden = false;
+        const exitButton = document.getElementById('battleLeaveButton');
+        exitButton.textContent = 'Назад';
+        exitButton.classList.remove('btn-danger', 'active-battle-leave');
+        exitButton.hidden = false;
         document.getElementById('battleRewardPanel').hidden = true;
         setInlineMessage('battleStatus', 'Ищем ученика вашего класса. Если за 20 секунд пара не найдётся, начнётся баттл с Матан-Ботом.');
         return;
     }
     if (battle.status === 'cancelled') {
+        clearBattleQuestionTimer();
+        clearBattleCountdown();
         clearInterval(communityState.battlePoll);
         setInlineMessage('battleStatus', 'За 10 минут соперник не нашёлся. Попробуйте ещё раз позже.');
         document.getElementById('battleFinishActions').hidden = false;
-        document.getElementById('battleBackButton').hidden = true;
+        document.getElementById('battleLeaveButton').hidden = true;
         return;
     }
 
     document.getElementById('battleLobby').hidden = true;
     document.getElementById('battleGame').hidden = false;
+    const exitButton = document.getElementById('battleLeaveButton');
+    exitButton.textContent = 'Покинуть баттл';
+    exitButton.classList.add('btn-danger', 'active-battle-leave');
+    exitButton.hidden = false;
     renderBattlePlayers(battle);
 
-    const unansweredIndex = battle.questions.findIndex((question) => !(question.id in battle.myAnswers));
-    if (unansweredIndex >= 0 && battle.status === 'active') {
-        communityState.battleQuestionIndex = unansweredIndex;
-        renderBattleQuestion();
+    const countdownDeadline = Date.parse(battle.countdownUntil || '');
+    if (
+        Number.isFinite(countdownDeadline)
+        && countdownDeadline > Date.now()
+        && communityState.battleCountdownCompleteId !== battle.id
+    ) {
+        renderBattleCountdown(countdownDeadline);
         return;
     }
+    clearBattleCountdown();
+    communityState.battleCountdownCompleteId = battle.id;
+
+    const unansweredIndex = Number.isInteger(Number(battle.currentQuestionIndex))
+        ? Number(battle.currentQuestionIndex)
+        : battle.questions.findIndex((question) => !(question.id in battle.myAnswers));
+    if (unansweredIndex >= 0 && unansweredIndex < battle.questions.length && battle.status === 'active') {
+        communityState.battleQuestionIndex = unansweredIndex;
+        const question = battle.questions[unansweredIndex];
+        if (question && communityState.battleRenderedQuestionId !== question.id) renderBattleQuestion();
+        else startBattleQuestionTimer();
+        return;
+    }
+    clearBattleQuestionTimer();
+    communityState.battleRenderedQuestionId = null;
     renderBattleFinish(battle);
+}
+
+function renderBattleCountdown(deadline) {
+    clearBattleQuestionTimer();
+    clearInterval(communityState.battleCountdownTimer);
+    const game = document.getElementById('battleGame');
+    const countdown = document.getElementById('battleCountdown');
+    const value = document.getElementById('battleCountdownValue');
+    if (!game || !countdown || !value) return;
+    game.classList.add('is-counting-down');
+    countdown.hidden = false;
+
+    const update = () => {
+        const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        if (remaining > 0) {
+            value.textContent = String(Math.min(3, remaining));
+            countdown.classList.remove('go');
+            return;
+        }
+        clearInterval(communityState.battleCountdownTimer);
+        communityState.battleCountdownTimer = null;
+        communityState.battleCountdownCompleteId = communityState.battle?.id || null;
+        value.textContent = 'СТАРТ!';
+        countdown.classList.add('go');
+        game.classList.remove('is-counting-down');
+        communityState.battleRenderedQuestionId = null;
+        renderBattleQuestion();
+        window.setTimeout(() => {
+            countdown.hidden = true;
+            countdown.classList.remove('go');
+        }, 520);
+    };
+    update();
+    if (communityState.battleCountdownCompleteId !== communityState.battle?.id) {
+        communityState.battleCountdownTimer = setInterval(update, 100);
+    }
 }
 
 function renderBattlePlayers(battle) {
@@ -1344,7 +1438,8 @@ function renderBattlePlayers(battle) {
         const name = document.createElement('strong');
         name.textContent = player ? `${player.isBot ? '🤖 ' : ''}${player.nickname}` : (index ? 'Ожидание…' : 'Вы');
         const result = document.createElement('small');
-        result.textContent = player ? `${player.score} баллов · ${player.answered}/5` : '—';
+        const completed = player ? Number(player.answered || 0) + Number(player.missed || 0) : 0;
+        result.textContent = player ? `${player.score} баллов · ${completed}/5` : '—';
         card.append(name, result);
         container.appendChild(card);
     });
@@ -1353,6 +1448,9 @@ function renderBattlePlayers(battle) {
 function renderBattleQuestion() {
     const battle = communityState.battle;
     const question = battle.questions[communityState.battleQuestionIndex];
+    if (!question) return;
+    communityState.battleRenderedQuestionId = question.id;
+    communityState.battleTimeoutRefreshing = false;
     document.getElementById('battleProgress').textContent = `Задание ${communityState.battleQuestionIndex + 1} из ${battle.questions.length}`;
     setMathContent(document.getElementById('battleTopic'), question.topic);
     setMathContent(document.getElementById('battleQuestion'), question.question);
@@ -1363,14 +1461,40 @@ function renderBattleQuestion() {
     options.replaceChildren();
     question.options.forEach((option, selectedIndex) => {
         const button = document.createElement('button');
-        button.className = 'btn btn-secondary';
+        button.className = 'battle-option';
         setMathContent(button, option);
         button.addEventListener('click', () => answerBattle(question.id, selectedIndex));
         options.appendChild(button);
     });
+    startBattleQuestionTimer();
+}
+
+function startBattleQuestionTimer() {
+    clearBattleQuestionTimer();
+    const timer = document.getElementById('battleTimer');
+    const deadline = Date.parse(communityState.battle?.questionDeadlineAt || '');
+    if (!timer || !Number.isFinite(deadline)) {
+        if (timer) timer.textContent = '';
+        return;
+    }
+    const update = () => {
+        const remainingMs = deadline - Date.now();
+        const seconds = Math.max(0, Math.ceil(remainingMs / 1000));
+        timer.textContent = `${seconds} сек`;
+        timer.classList.toggle('urgent', seconds <= 10);
+        if (remainingMs > 0 || communityState.battleTimeoutRefreshing) return;
+        communityState.battleTimeoutRefreshing = true;
+        clearBattleQuestionTimer();
+        document.querySelectorAll('#battleOptions button').forEach((button) => { button.disabled = true; });
+        setInlineMessage('battleFeedback', 'Время вышло. Ответ не засчитан.', 'error');
+        window.setTimeout(refreshBattle, 500);
+    };
+    update();
+    if (!communityState.battleTimeoutRefreshing) communityState.battleTimer = setInterval(update, 200);
 }
 
 async function answerBattle(questionId, selectedIndex) {
+    clearBattleQuestionTimer();
     document.querySelectorAll('#battleOptions button').forEach((button) => button.disabled = true);
     try {
         const result = await communityRequest(`/api/battles/${communityState.battleId}/answer`, {
@@ -1385,16 +1509,25 @@ async function answerBattle(questionId, selectedIndex) {
         feedback.dataset.kind = result.correct ? 'success' : 'error';
         feedback.hidden = false;
         document.getElementById('battleNextButton').hidden = false;
+        window.setTimeout(() => {
+            if (communityState.battleRenderedQuestionId === questionId && communityState.battle?.status === 'active') {
+                nextBattleQuestion();
+            }
+        }, 900);
     } catch (error) {
         setInlineMessage('battleFeedback', error.message, 'error');
+        window.setTimeout(refreshBattle, 500);
     }
 }
 
 function nextBattleQuestion() {
+    communityState.battleRenderedQuestionId = null;
     handleBattleState(communityState.battle);
 }
 
 function renderBattleFinish(battle) {
+    clearBattleQuestionTimer();
+    clearBattleCountdown();
     document.getElementById('battleOptions').replaceChildren();
     document.getElementById('battleNextButton').hidden = true;
     document.getElementById('battleQuestionImage').hidden = true;
@@ -1402,6 +1535,12 @@ function renderBattleFinish(battle) {
     const question = document.getElementById('battleQuestion');
     if (battle.status !== 'complete') {
         question.textContent = 'Ожидаем, пока соперник закончит свои пять заданий.';
+    } else if (battle.opponentForfeited) {
+        const reward = battle.reward || {};
+        const coinText = reward.coins ? ` +${reward.coins} монет.` : '';
+        question.textContent = `Соперник покинул баттл. Победа!${coinText}`;
+    } else if (battle.forfeitedByMe) {
+        question.textContent = 'Вы покинули баттл. В статистике зафиксировано поражение, награда не начислена.';
     } else if (battle.me.score > battle.opponent.score) {
         const reward = battle.reward || {};
         const coinText = reward.coins ? ` +${reward.coins} монет.` : '';
@@ -1413,7 +1552,7 @@ function renderBattleFinish(battle) {
     }
     const complete = battle.status === 'complete';
     document.getElementById('battleFinishActions').hidden = !complete;
-    document.getElementById('battleBackButton').hidden = complete;
+    document.getElementById('battleLeaveButton').hidden = complete;
     renderBattleRewardStatus(complete ? battle.battleRewards : null);
     if (complete) clearInterval(communityState.battlePoll);
 }
@@ -1471,6 +1610,26 @@ document.getElementById('profileAvatarInput')?.addEventListener('change', handle
 
 document.addEventListener('DOMContentLoaded', loadDailyLogin);
 
+async function pollActiveBattle() {
+    if (!tg.initData || document.visibilityState === 'hidden') return;
+    try {
+        const payload = await communityRequest('/api/battles/active', {headers: telegramHeaders()});
+        if (payload.battleId && payload.battleId !== communityState.battleId) {
+            await openBattleById(payload.battleId);
+        }
+    } catch (error) {
+        console.warn('Не удалось проверить активный баттл:', error.message);
+    }
+}
+
+function startActiveBattleSync() {
+    clearInterval(communityState.battleSyncPoll);
+    communityState.battleSyncPoll = setInterval(pollActiveBattle, 1000);
+    pollActiveBattle();
+}
+
+document.addEventListener('DOMContentLoaded', startActiveBattleSync);
+
 async function openDeepLinkedView() {
     if (!tg.initData) return;
     const params = new URLSearchParams(window.location.search);
@@ -1502,10 +1661,26 @@ async function openDeepLinkedView() {
 
 document.addEventListener('DOMContentLoaded', () => window.setTimeout(openDeepLinkedView, 0));
 
-function leaveBattleScreen() {
+async function leaveBattleScreen() {
+    const battleId = communityState.battleId;
+    const shouldForfeit = battleId && ['waiting', 'active'].includes(communityState.battle?.status);
+    if (shouldForfeit) {
+        try {
+            await communityRequest(`/api/battles/${battleId}/forfeit`, {
+                method: 'POST', headers: telegramHeaders(true), body: '{}',
+            });
+        } catch (error) {
+            setInlineMessage('battleFeedback', error.message, 'error');
+            return;
+        }
+    }
     clearInterval(communityState.battlePoll);
+    clearBattleQuestionTimer();
+    clearBattleCountdown();
     communityState.battleId = null;
     communityState.battle = null;
+    communityState.battleRenderedQuestionId = null;
+    communityState.battleCountdownCompleteId = null;
     currentClass = null;
     showScreen('classSelection');
 }

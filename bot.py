@@ -36,7 +36,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "21"
+WEBAPP_VERSION = "23"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -905,6 +905,28 @@ async def get_battle(request):
         return _community_error(error, status=502)
 
 
+async def get_active_battle(request):
+    try:
+        return web.json_response(
+            await community_store.active_battle(_authenticated_user(request))
+        )
+    except CommunityError as error:
+        return _community_error(error, status=401)
+
+
+async def forfeit_battle(request):
+    try:
+        questions = await _load_questions()
+        question_map = {question.question_id: question for question in questions}
+        return web.json_response(await community_store.forfeit_battle(
+            _authenticated_user(request), request.match_info["battle_id"], question_map
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
+    except (QuestionFormatError, aiohttp.ClientError, asyncio.TimeoutError) as error:
+        return _community_error(error, status=502)
+
+
 async def get_battle_stats(request):
     try:
         return web.json_response(await community_store.battle_stats(_authenticated_user(request)))
@@ -1313,9 +1335,11 @@ def create_app():
     application.router.add_post('/api/battle-invites/{invite_id}/decline', decline_battle_invite)
     application.router.add_post('/api/enrollments', create_enrollment)
     application.router.add_post('/api/battles/join', join_battle)
+    application.router.add_get('/api/battles/active', get_active_battle)
     application.router.add_get('/api/battle-stats', get_battle_stats)
     application.router.add_post('/api/battle-rewards/spin', spin_battle_reward)
     application.router.add_get('/api/battles/{battle_id}', get_battle)
+    application.router.add_post('/api/battles/{battle_id}/forfeit', forfeit_battle)
     application.router.add_post('/api/battles/{battle_id}/answer', answer_battle)
     return application
 

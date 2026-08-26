@@ -117,12 +117,49 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state["status"], "active")
         self.assertNotIn("id", state["opponent"])
 
+        data = self.store._load()
+        started = (datetime.now().astimezone() - timedelta(seconds=1)).isoformat()
+        for player in data["battles"][battle_id]["players"].values():
+            player["question_started_at"] = started
+        self.store._save(data)
+
         for question in state["questions"]:
             await self.store.answer_battle(self.user_a, battle_id, question["id"], 0, question_map)
             final = await self.store.answer_battle(self.user_b, battle_id, question["id"], 1, question_map)
         self.assertEqual(final["battle"]["status"], "complete")
         self.assertEqual(final["battle"]["me"]["score"], 0)
         self.assertEqual(final["battle"]["opponent"]["score"], 5)
+
+    async def test_battle_players_start_together_and_timeout_is_missed(self):
+        await self.store.update_profile(self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8})
+        await self.store.update_profile(self.user_b, {"nickname": "Геометр8", "leaderboardConsent": True, "grade": 8})
+        battle_id = await self.store.join_battle(self.user_a, 8, self.questions)
+        await self.store.join_battle(self.user_b, 8, self.questions)
+        question_map = {question.question_id: question for question in self.questions}
+        state_a = await self.store.battle_state(self.user_a, battle_id, question_map)
+        state_b = await self.store.battle_state(self.user_b, battle_id, question_map)
+        self.assertEqual(state_a["questionDeadlineAt"], state_b["questionDeadlineAt"])
+        self.assertEqual(state_a["countdownUntil"], state_b["countdownUntil"])
+        self.assertEqual(state_a["questionSeconds"], 30)
+        with self.assertRaisesRegex(CommunityError, "Старт"):
+            await self.store.answer_battle(
+                self.user_a, battle_id, state_a["questions"][0]["id"], 0, question_map
+            )
+
+        data = self.store._load()
+        first_id = data["battles"][battle_id]["question_ids"][0]
+        data["battles"][battle_id]["players"]["1"]["question_started_at"] = (
+            datetime.now().astimezone() - timedelta(seconds=31)
+        ).isoformat()
+        self.store._save(data)
+
+        expired = await self.store.battle_state(self.user_a, battle_id, question_map)
+        self.assertEqual(expired["myAnswers"][first_id], -1)
+        self.assertEqual(expired["currentQuestionIndex"], 1)
+        self.assertEqual(expired["me"]["answered"], 0)
+        self.assertEqual(expired["me"]["missed"], 1)
+        with self.assertRaisesRegex(CommunityError, "30 секунд"):
+            await self.store.answer_battle(self.user_a, battle_id, first_id, 0, question_map)
 
     async def test_starts_server_bot_when_human_opponent_is_not_found(self):
         await self.store.update_profile(self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8})
@@ -139,6 +176,25 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state["status"], "active")
         self.assertEqual(state["opponent"]["nickname"], "Матан-Бот")
         self.assertTrue(state["opponent"]["isBot"])
+
+    async def test_leaving_active_battle_is_loss_without_reward(self):
+        await self.store.update_profile(self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8})
+        await self.store.update_profile(self.user_b, {"nickname": "Геометр8", "leaderboardConsent": True, "grade": 8})
+        battle_id = await self.store.join_battle(self.user_a, 8, self.questions)
+        await self.store.join_battle(self.user_b, 8, self.questions)
+        question_map = {question.question_id: question for question in self.questions}
+
+        result = await self.store.forfeit_battle(self.user_a, battle_id, question_map)
+        self.assertEqual(result["status"], "complete")
+        self.assertTrue(result["forfeitedByMe"])
+        self.assertEqual(result["reward"]["coins"], 0)
+
+        stats_a = await self.store.battle_stats(self.user_a)
+        stats_b = await self.store.battle_stats(self.user_b)
+        self.assertEqual((stats_a["wins"], stats_a["losses"]), (0, 1))
+        self.assertEqual((stats_b["wins"], stats_b["losses"]), (1, 0))
+        self.assertEqual((await self.store.get_profile(self.user_a))["coins"], 0)
+        self.assertEqual((await self.store.get_profile(self.user_b))["coins"], 10)
 
     async def test_stores_custom_avatar_under_random_public_name(self):
         encoded = base64.b64encode(b"\xff\xd8\xffavatar-bytes").decode()
@@ -368,7 +424,10 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         premium = [item for item in catalog["characters"] if item["category"] == "premium"]
         self.assertEqual(len(basic), 9)
         self.assertEqual(len(premium), 8)
-        self.assertEqual(sum(item["owned"] for item in catalog["characters"]), 1)
+        self.assertEqual(sum(item["owned"] for item in catalog["characters"]), 7)
+        self.assertTrue(all(item["price"] == 0 and item["owned"] for item in catalog["characters"][:7]))
+        self.assertEqual(catalog["characters"][15]["name"], "Праздничный кузнец")
+        self.assertEqual(catalog["characters"][15]["style"], "festive-forge")
         self.assertEqual(
             sorted(item["price"] for item in premium),
             [5000, 5000, 5000, 5000, 10000, 10000, 10000, 10000],

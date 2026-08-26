@@ -52,6 +52,46 @@ class ParseQuestionsCsvTests(unittest.TestCase):
         self.assertEqual(normalise_math_source("y = √(x) - 5)"), "y = √(x - 5)")
         self.assertEqual(normalise_math_source("(2√(3)²"), "(2√(3))²")
         self.assertEqual(normalise_math_source("[3; + infty)"), "[3; + ∞)")
+        self.assertEqual(normalise_math_source("углы 34°и 72°"), "углы 34° и 72°")
+        self.assertEqual(normalise_math_source("на 2 - м году"), "на 2-м году")
+        self.assertEqual(normalise_math_source("27^1/3"), "27^(1/3)")
+        self.assertEqual(normalise_math_source("10^ - 1"), "10^(-1)")
+        self.assertEqual(normalise_math_source("5^log_5 7"), "5^(log_5(7))")
+
+    def test_repairs_verified_answer_keys_and_formula_tasks(self):
+        csv_text = """Класс,Тема,Вопрос,Вариант 1,Вариант 2,Вариант 3,Вариант 4,Правильный ответ,Решение
+9,Векторы,Найдите длину вектора вектор c(3; 4),5,7,25,1,4,√(3² + 4²) = 5
+11,Уравнения,Решите уравнение: 2ˣ - 3 = 32,5,8,2,3,3,x - 3 = 5 ⇒ x = 8
+11,Текстовые задачи,Температура $T = T_0 + kt. t при T = 100$,80,20,25,10,2,4t = 80 ⇒ t = 20
+"""
+        questions = parse_questions_csv(csv_text)
+
+        self.assertEqual(questions[0].options[questions[0].correct_index], "5")
+        self.assertEqual(questions[1].question, "Решите уравнение: 2^(x - 3) = 32.")
+        self.assertEqual(questions[1].options[questions[1].correct_index], "8")
+        self.assertIn("T₀ = 20", questions[2].question)
+        self.assertIn("k = 4", questions[2].question)
+
+    def test_rejects_duplicate_options_after_normalisation(self):
+        csv_text = """Класс,Тема,Вопрос,Вариант 1,Вариант 2,Вариант 3,Вариант 4,Правильный ответ,Решение
+8,Алгебра,Вопрос,1,1,2,3,1,Решение
+"""
+        with self.assertRaisesRegex(QuestionFormatError, "не должны повторяться"):
+            parse_questions_csv(csv_text)
+
+    def test_repairs_additional_verified_wrong_answer_keys(self):
+        csv_text = """Класс,Тема,Вопрос,Вариант 1,Вариант 2,Вариант 3,Вариант 4,Правильный ответ,Решение
+9,Вероятность,"Вероятность события А равна 0,4. Вероятность противоположного события?",0.6,0.4,1,0,3,"1 - 0,4 = 0,6"
+10,Степени,Вычислите: 27^1/3,3,9,1,81,3,Корень кубический из 27
+10,Логарифмы,Вычислите: lg 100,2,10,1,100,3,10² = 100
+11,Производная,Точка экстремума y = eˣ - x.,0,1,e,нет,2,e^x = 1 ⇒ x = 0
+"""
+        questions = parse_questions_csv(csv_text)
+        self.assertEqual(
+            [question.options[question.correct_index] for question in questions],
+            ["0.6", "3", "2", "0"],
+        )
+        self.assertEqual(questions[1].question, "Вычислите: 27^(1/3)")
 
 
 if __name__ == "__main__":

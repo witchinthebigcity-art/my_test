@@ -56,6 +56,9 @@ BATTLE_MONTHLY_ITEM_DAYS = 20
 BATTLE_MONTHLY_COUPON_DAYS = 30
 BATTLE_DAILY_DISCOUNTS = (5, 10, 15)
 BATTLE_MONTHLY_DISCOUNTS = (30, 40, 50)
+BATTLE_QUESTION_SECONDS = 30
+BATTLE_COUNTDOWN_SECONDS = 3
+BATTLE_MISSED_ANSWER = -1
 SHOP_CATALOG = (
     {"id": "guide-algebra", "name": "Карта алгебры", "description": "Короткие опорные схемы по алгебре.", "price": 1500, "department": "book", "slot": "guide", "icon": "📘"},
     {"id": "guide-geometry", "name": "Атлас геометрии", "description": "Формулы и чертежи в одной коллекции.", "price": 1500, "department": "book", "slot": "guide", "icon": "📐"},
@@ -115,13 +118,13 @@ DAILY_BATTLE_ITEMS = {
 }
 GLOBAL_CHARACTER_KEY = "global"
 CHARACTER_CATALOG = (
-    {"id": "g8-neon-runner", "name": "Неоновый спринтер", "base_price": 1500, "style": "neon"},
-    {"id": "g8-basket-star", "name": "Баскет-звезда", "base_price": 1500, "style": "basket"},
-    {"id": "g8-pixel-gamer", "name": "Пиксельная геймерша", "base_price": 1500, "style": "pixel"},
-    {"id": "free-cozy-plaid", "name": "Тихий уют", "base_price": 1500, "style": "cozy-plaid"},
-    {"id": "free-pinterest", "name": "Небесный Pinterest", "base_price": 1500, "style": "soft-blue"},
-    {"id": "free-bronze-gent", "name": "Бронзовый джентльмен", "base_price": 2500, "style": "bronze-gent"},
-    {"id": "free-gym-hero", "name": "Герой зала", "base_price": 2500, "style": "gym-hero"},
+    {"id": "g8-neon-runner", "name": "Неоновый спринтер", "base_price": 0, "style": "neon"},
+    {"id": "g8-basket-star", "name": "Баскет-звезда", "base_price": 0, "style": "basket"},
+    {"id": "g8-pixel-gamer", "name": "Пиксельная геймерша", "base_price": 0, "style": "pixel"},
+    {"id": "free-cozy-plaid", "name": "Тихий уют", "base_price": 0, "style": "cozy-plaid"},
+    {"id": "free-pinterest", "name": "Небесный Pinterest", "base_price": 0, "style": "soft-blue"},
+    {"id": "free-bronze-gent", "name": "Бронзовый джентльмен", "base_price": 0, "style": "bronze-gent"},
+    {"id": "free-gym-hero", "name": "Герой зала", "base_price": 0, "style": "gym-hero"},
     {"id": "free-capy-cozy", "name": "Капибара-уют", "base_price": 2500, "style": "capy-cozy"},
     {"id": "g8-pink-wave", "name": "Розовая волна", "base_price": 2500, "style": "pink-wave"},
     {"id": "g8-white-street", "name": "Белый стрит", "base_price": 5000, "style": "white-street"},
@@ -504,15 +507,20 @@ class CommunityStore:
     def _ensure_character_selection(self, profile, catalog):
         grade_key = GLOBAL_CHARACTER_KEY
         available_ids = {item["id"] for item in catalog}
+        free_ids = {item["id"] for item in catalog if int(item.get("base_price") or 0) == 0}
+        unlocked = profile["unlocked_characters"].setdefault(grade_key, [])
+        if not free_ids.issubset(unlocked):
+            unlocked[:] = sorted(set(unlocked) | free_ids)
         selected = profile["selected_characters"].get(grade_key)
         if selected not in available_ids:
             selected = catalog[0]["id"] if catalog else None
             if selected:
                 profile["selected_characters"][grade_key] = selected
-                profile["unlocked_characters"].setdefault(grade_key, []).append(selected)
-        elif selected not in profile["unlocked_characters"].setdefault(grade_key, []):
+                if selected not in unlocked:
+                    unlocked.append(selected)
+        elif selected not in unlocked:
             # Сохраняем уже выбранного персонажа у существующих пользователей после смены цен.
-            profile["unlocked_characters"][grade_key].append(selected)
+            unlocked.append(selected)
         return selected
 
     def _daily_login_payload(self, profile, user):
@@ -798,7 +806,7 @@ class CommunityStore:
                     "style": item["style"],
                     "price": int(item["base_price"]),
                     "category": "basic" if item["base_price"] <= 2500 else "premium",
-                    "owned": item["id"] in unlocked,
+                    "owned": int(item["base_price"]) == 0 or item["id"] in unlocked,
                     "selected": item["id"] == selected,
                 } for item in catalog],
             }
@@ -1599,17 +1607,21 @@ class CommunityStore:
                     raise CommunityError("Один из участников уже находится в активном баттле")
             selected = random.SystemRandom().sample(questions, 5)
             battle_id = uuid.uuid4().hex[:12]
+            started = datetime.now(MOSCOW)
+            started_at = started.isoformat()
+            first_question_at = (started + timedelta(seconds=BATTLE_COUNTDOWN_SECONDS)).isoformat()
             data["battles"][battle_id] = {
                 "id": battle_id,
                 "grade": grade,
                 "status": "active",
                 "question_ids": [question.question_id for question in selected],
                 "players": {
-                    sender_id: {"score": 0, "answers": {}, "finished_at": None},
-                    user_id: {"score": 0, "answers": {}, "finished_at": None},
+                    sender_id: {"score": 0, "answers": {}, "finished_at": None, "question_index": 0, "question_started_at": first_question_at},
+                    user_id: {"score": 0, "answers": {}, "finished_at": None, "question_index": 0, "question_started_at": first_question_at},
                 },
                 "created_at": _now_iso(),
-                "started_at": _now_iso(),
+                "started_at": started_at,
+                "countdown_until": first_question_at,
                 "bonus_awarded": False,
                 "invite_id": invite["id"],
             }
@@ -1684,9 +1696,19 @@ class CommunityStore:
                 if battle["status"] == "waiting" and battle["grade"] == grade and user_id not in battle["players"]
             ), None)
             if waiting:
-                waiting["players"][user_id] = {"score": 0, "answers": {}, "finished_at": None}
+                started = datetime.now(MOSCOW)
+                started_at = started.isoformat()
+                first_question_at = (started + timedelta(seconds=BATTLE_COUNTDOWN_SECONDS)).isoformat()
+                waiting["players"][user_id] = {
+                    "score": 0, "answers": {}, "finished_at": None,
+                    "question_index": 0, "question_started_at": first_question_at,
+                }
+                for player in waiting["players"].values():
+                    player["question_index"] = 0
+                    player["question_started_at"] = first_question_at
                 waiting["status"] = "active"
-                waiting["started_at"] = _now_iso()
+                waiting["started_at"] = started_at
+                waiting["countdown_until"] = first_question_at
                 battle_id = waiting["id"]
             else:
                 if len(questions) < 5:
@@ -1698,9 +1720,10 @@ class CommunityStore:
                     "grade": grade,
                     "status": "waiting",
                     "question_ids": [question.question_id for question in selected],
-                    "players": {user_id: {"score": 0, "answers": {}, "finished_at": None}},
+                    "players": {user_id: {"score": 0, "answers": {}, "finished_at": None, "question_index": 0, "question_started_at": None}},
                     "created_at": _now_iso(),
                     "started_at": None,
+                    "countdown_until": None,
                     "bonus_awarded": False,
                 }
             self._save(data)
@@ -1719,8 +1742,55 @@ class CommunityStore:
             "finished_at": None,
             "is_bot": True,
         }
+        started = datetime.now(MOSCOW)
         battle["status"] = "active"
-        battle["started_at"] = _now_iso()
+        battle["started_at"] = started.isoformat()
+        battle["countdown_until"] = (
+            started + timedelta(seconds=BATTLE_COUNTDOWN_SECONDS)
+        ).isoformat()
+        for user_id, player in battle["players"].items():
+            if not self._is_bot(user_id):
+                player["question_index"] = 0
+                player["question_started_at"] = battle["countdown_until"]
+
+    @staticmethod
+    def _player_question_index(battle, player):
+        question_ids = battle.get("question_ids", [])
+        try:
+            index = int(player.get("question_index"))
+        except (TypeError, ValueError):
+            index = 0
+        while index < len(question_ids) and question_ids[index] in player.get("answers", {}):
+            index += 1
+        return index
+
+    def _expire_player_questions(self, battle, now):
+        """Mark every unanswered 30-second slot as missed on the server."""
+        if battle.get("status") != "active" or not battle.get("started_at"):
+            return
+        question_ids = battle.get("question_ids", [])
+        for user_id, player in battle.get("players", {}).items():
+            if self._is_bot(user_id) or player.get("finished_at"):
+                continue
+            answers = player.setdefault("answers", {})
+            index = self._player_question_index(battle, player)
+            started_raw = player.get("question_started_at") or battle["started_at"]
+            try:
+                started = datetime.fromisoformat(started_raw).astimezone(MOSCOW)
+            except (TypeError, ValueError):
+                started = now
+            while index < len(question_ids):
+                deadline = started + timedelta(seconds=BATTLE_QUESTION_SECONDS)
+                if now < deadline:
+                    break
+                question_id = question_ids[index]
+                answers.setdefault(question_id, BATTLE_MISSED_ANSWER)
+                index += 1
+                started = deadline
+            player["question_index"] = index
+            player["question_started_at"] = started.isoformat() if index < len(question_ids) else None
+            if index >= len(question_ids):
+                player["finished_at"] = player.get("finished_at") or now.isoformat()
 
     def _advance_bot(self, battle, question_map, now):
         bot_player = battle["players"].get(BOT_PLAYER_ID)
@@ -1760,6 +1830,7 @@ class CommunityStore:
             elif battle["status"] == "waiting" and age > timedelta(minutes=10):
                 battle["status"] = "cancelled"
             if battle["status"] == "active":
+                self._expire_player_questions(battle, now)
                 self._advance_bot(battle, question_map, now)
                 if len(battle["players"]) == 2 and all(
                     player.get("finished_at") for player in battle["players"].values()
@@ -1777,8 +1848,12 @@ class CommunityStore:
     def _award_battle_bonus(self, data, battle):
         if battle.get("bonus_awarded") or len(battle["players"]) < 2:
             return
-        best = max(player["score"] for player in battle["players"].values())
-        winners = [uid for uid, player in battle["players"].items() if player["score"] == best]
+        forfeited_by = battle.get("forfeited_by")
+        if forfeited_by in battle["players"]:
+            winners = [uid for uid in battle["players"] if uid != forfeited_by]
+        else:
+            best = max(player["score"] for player in battle["players"].values())
+            winners = [uid for uid, player in battle["players"].items() if player["score"] == best]
         battle["rewards"] = {}
         if len(winners) == 1:
             if self._is_bot(winners[0]):
@@ -1816,12 +1891,7 @@ class CommunityStore:
                     completed_at = candidate.get("completed_at") or candidate.get("started_at") or candidate.get("created_at")
                     if not completed_at or self._period_key(completed_at, "day") != today_key:
                         continue
-                    scores = candidate.get("players", {})
-                    if len(scores) < 2:
-                        continue
-                    highest = max(player.get("score", 0) for player in scores.values())
-                    candidate_winners = [uid for uid, player in scores.items() if player.get("score", 0) == highest]
-                    if candidate_winners == [winner_id]:
+                    if self._battle_winner_id(candidate) == winner_id:
                         wins_today += 1
 
                 profile["updated_at"] = _now_iso()
@@ -1837,6 +1907,9 @@ class CommunityStore:
         players = battle.get("players", {})
         if battle.get("status") != "complete" or len(players) < 2:
             return None
+        forfeited_by = battle.get("forfeited_by")
+        if forfeited_by in players:
+            return next((uid for uid in players if uid != forfeited_by), None)
         best = max(int(player.get("score") or 0) for player in players.values())
         winners = [uid for uid, player in players.items() if int(player.get("score") or 0) == best]
         return winners[0] if len(winners) == 1 else None
@@ -1959,12 +2032,14 @@ class CommunityStore:
             if not uid:
                 return None
             player = battle["players"][uid]
+            answered_values = list(player.get("answers", {}).values())
             if self._is_bot(uid):
                 return {
                     "nickname": "Матан-Бот",
                     "avatarUrl": "",
                     "score": player["score"],
-                    "answered": len(player["answers"]),
+                    "answered": sum(value != BATTLE_MISSED_ANSWER for value in answered_values),
+                    "missed": sum(value == BATTLE_MISSED_ANSWER for value in answered_values),
                     "finished": bool(player.get("finished_at")),
                     "isBot": True,
                 }
@@ -1973,13 +2048,24 @@ class CommunityStore:
                 "nickname": profile.get("nickname", "Участник"),
                 "avatarUrl": profile.get("avatar_url", ""),
                 "score": player["score"],
-                "answered": len(player["answers"]),
+                "answered": sum(value != BATTLE_MISSED_ANSWER for value in answered_values),
+                "missed": sum(value == BATTLE_MISSED_ANSWER for value in answered_values),
                 "finished": bool(player.get("finished_at")),
                 "isBot": False,
             }
 
         questions = [question_map[qid].as_public_dict() for qid in battle["question_ids"] if qid in question_map]
         reward_status = self._battle_reward_status(data, data["profiles"].get(user_id, {}), user_id)
+        player = battle["players"][user_id]
+        current_index = self._player_question_index(battle, player)
+        deadline_at = None
+        if battle["status"] == "active" and current_index < len(battle["question_ids"]):
+            started_raw = player.get("question_started_at") or battle.get("started_at")
+            if started_raw:
+                deadline_at = (
+                    datetime.fromisoformat(started_raw).astimezone(MOSCOW)
+                    + timedelta(seconds=BATTLE_QUESTION_SECONDS)
+                ).isoformat()
         return {
             "id": battle["id"],
             "grade": battle["grade"],
@@ -1988,6 +2074,12 @@ class CommunityStore:
             "opponent": public_player(opponent_id),
             "questions": questions if battle["status"] in {"active", "complete"} else [],
             "myAnswers": battle["players"][user_id]["answers"],
+            "forfeitedByMe": battle.get("forfeited_by") == user_id,
+            "opponentForfeited": bool(battle.get("forfeited_by") and battle.get("forfeited_by") != user_id),
+            "currentQuestionIndex": current_index,
+            "countdownUntil": battle.get("countdown_until"),
+            "questionDeadlineAt": deadline_at,
+            "questionSeconds": BATTLE_QUESTION_SECONDS,
             "reward": (battle.get("rewards") or {}).get(user_id, {"coins": 0}),
             "battleRewards": reward_status,
             "coins": int((data["profiles"].get(user_id) or {}).get("coins") or 0),
@@ -2005,6 +2097,13 @@ class CommunityStore:
                     continue
                 players = battle["players"]
                 if len(players) < 2:
+                    continue
+                forfeited_by = battle.get("forfeited_by")
+                if forfeited_by:
+                    if forfeited_by == user_id:
+                        losses += 1
+                    else:
+                        wins += 1
                     continue
                 own_score = int(players[user_id].get("score") or 0)
                 other_scores = [int(player.get("score") or 0) for uid, player in players.items() if uid != user_id]
@@ -2052,6 +2151,53 @@ class CommunityStore:
             self._save(data)
             return self._battle_view(data, battle, user_id, question_map)
 
+    async def active_battle(self, user):
+        """Return the invited/random battle that should open in an active WebApp."""
+        user_id = self._user_id(user)
+        async with self.lock:
+            data = self._load()
+            self._ensure_profile(data, user)
+            candidates = [
+                battle for battle in data["battles"].values()
+                if battle.get("status") == "active" and user_id in battle.get("players", {})
+            ]
+            candidates.sort(
+                key=lambda battle: battle.get("started_at") or battle.get("created_at") or "",
+                reverse=True,
+            )
+            return {"battleId": candidates[0]["id"] if candidates else None}
+
+    async def forfeit_battle(self, user, battle_id, question_map):
+        """Cancel a search or record a technical loss when a player leaves an active battle."""
+        user_id = self._user_id(user)
+        async with self.lock:
+            data = self._load()
+            self._expire_battles(data, question_map)
+            battle = data["battles"].get(battle_id)
+            if not battle or user_id not in battle.get("players", {}):
+                raise CommunityError("Баттл не найден")
+            if battle.get("status") == "waiting":
+                battle["status"] = "cancelled"
+                battle["completed_at"] = _now_iso()
+            elif battle.get("status") == "active":
+                now = _now_iso()
+                battle["forfeited_by"] = user_id
+                player = battle["players"][user_id]
+                answers = player.setdefault("answers", {})
+                for question_id in battle.get("question_ids", []):
+                    answers.setdefault(question_id, BATTLE_MISSED_ANSWER)
+                player["question_index"] = len(battle.get("question_ids", []))
+                player["question_started_at"] = None
+                player["finished_at"] = now
+                for opponent_id, opponent in battle["players"].items():
+                    if opponent_id != user_id:
+                        opponent["finished_at"] = opponent.get("finished_at") or now
+                battle["status"] = "complete"
+                battle["completed_at"] = now
+                self._award_battle_bonus(data, battle)
+            self._save(data)
+            return self._battle_view(data, battle, user_id, question_map)
+
     async def answer_battle(self, user, battle_id, question_id, selected_index, question_map):
         user_id = self._user_id(user)
         async with self.lock:
@@ -2064,11 +2210,33 @@ class CommunityStore:
                 raise CommunityError("Задание не относится к этому баттлу")
             player = battle["players"][user_id]
             if question_id in player["answers"]:
+                if player["answers"][question_id] == BATTLE_MISSED_ANSWER:
+                    raise CommunityError("30 секунд истекли — ответ на это задание не засчитывается")
                 raise CommunityError("Ответ на это задание уже принят")
 
+            current_index = self._player_question_index(battle, player)
+            if current_index >= len(battle["question_ids"]):
+                raise CommunityError("Все задания баттла уже завершены")
+            if question_id != battle["question_ids"][current_index]:
+                raise CommunityError("Сначала завершите текущее задание")
+            started_raw = player.get("question_started_at")
+            if started_raw:
+                try:
+                    question_started_at = datetime.fromisoformat(started_raw).astimezone(MOSCOW)
+                except ValueError:
+                    question_started_at = None
+                if question_started_at and datetime.now(MOSCOW) < question_started_at:
+                    raise CommunityError("Дождитесь команды «Старт»")
+            try:
+                selected_index = int(selected_index)
+            except (TypeError, ValueError) as error:
+                raise CommunityError("Выберите один из четырёх вариантов") from error
+            if selected_index not in {0, 1, 2, 3}:
+                raise CommunityError("Выберите один из четырёх вариантов")
+
             question = question_map[question_id]
-            is_correct = int(selected_index) == question.correct_index
-            player["answers"][question_id] = int(selected_index)
+            is_correct = selected_index == question.correct_index
+            player["answers"][question_id] = selected_index
             if is_correct:
                 player["score"] += 1
             data["attempts"].append({
@@ -2081,7 +2249,10 @@ class CommunityStore:
                 "source": "battle",
                 "created_at": _now_iso(),
             })
-            if len(player["answers"]) >= len(battle["question_ids"]):
+            next_index = current_index + 1
+            player["question_index"] = next_index
+            player["question_started_at"] = _now_iso() if next_index < len(battle["question_ids"]) else None
+            if next_index >= len(battle["question_ids"]):
                 player["finished_at"] = _now_iso()
             if len(battle["players"]) == 2 and all(p.get("finished_at") for p in battle["players"].values()):
                 battle["status"] = "complete"
