@@ -408,11 +408,22 @@ function renderCharacterTumbler() {
     const index = ((communityState.characterIndex % characters.length) + characters.length) % characters.length;
     communityState.characterIndex = index;
     const character = characters[index];
-    window.characterViewer?.mount(
-        document.getElementById('characterStage'),
-        character.style,
-        Object.values(communityState.equippedItems || {})
-    );
+    const characterStage = document.getElementById('characterStage');
+    try {
+        window.characterViewer?.mount(
+            characterStage,
+            character.style,
+            Object.values(communityState.equippedItems || {})
+        );
+    } catch (error) {
+        window.characterViewer?.dispose();
+        characterStage.replaceChildren();
+        const message = document.createElement('p');
+        message.className = 'empty-state';
+        message.textContent = 'Не удалось показать эту модель. Переключите персонажа и попробуйте снова.';
+        characterStage.appendChild(message);
+        console.error(`Ошибка 3D-модели ${character.id}:`, error);
+    }
 
     const catalog = document.getElementById('characterCatalog');
     catalog.replaceChildren();

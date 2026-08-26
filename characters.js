@@ -26,6 +26,7 @@
     }
 
     function addMesh(group, geometry, color, position, rotation = null, scale = null, options = {}) {
+        options = options || {};
         const mesh = new THREE.Mesh(geometry, material(color, options.roughness, options.metalness));
         mesh.position.set(...position);
         if (rotation) mesh.rotation.set(...rotation);
@@ -330,7 +331,7 @@
             }
             const hammerEnd = [1.98, .74, .34];
             limbBetween(group, pose.rightHand, hammerEnd, .075, .075, 0x493126);
-            box(group, [.62, .3, .34], [2.08, .84, .34], 0xb9c4ca, [0, 0, -.78], null, {roughness: .28, metalness: .66});
+            box(group, [.62, .3, .34], [2.08, .84, .34], 0xb9c4ca, [0, 0, -.78], {roughness: .28, metalness: .66});
             box(group, [.19, .34, .39], [1.98, .74, .34], gold, [0, 0, -.78]);
             const lightColors = [0xffd54a, 0x41d8cb, 0xf34f63];
             for (let index = 0; index < 7; index += 1) {
