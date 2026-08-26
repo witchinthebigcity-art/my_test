@@ -39,7 +39,7 @@ function telegramHeaders(json = false) {
 }
 
 async function communityRequest(url, options = {}) {
-    const response = await fetch(url, options);
+    const response = await fetch(url, {cache: 'no-store', ...options});
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || payload.message || 'Не удалось выполнить запрос');
     return payload;

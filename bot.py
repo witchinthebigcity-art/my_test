@@ -36,7 +36,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "23"
+WEBAPP_VERSION = "24"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -583,9 +583,10 @@ async def award_training_coins(request):
 
 async def get_characters(request):
     try:
-        return web.json_response(await community_store.character_catalog(
-            _authenticated_user(request)
-        ))
+        return web.json_response(
+            await community_store.character_catalog(_authenticated_user(request)),
+            headers={"Cache-Control": "no-store, max-age=0"},
+        )
     except CommunityError as error:
         return _community_error(error, status=422)
 
