@@ -16,6 +16,8 @@ from zoneinfo import ZoneInfo
 
 from adventure import (
     ADVENTURE_TASKS,
+    FORMULA_MAX_MISTAKES,
+    FORMULA_REWARD_PER_CORRECT,
     ensure_formula_round,
     grade_solution,
     new_session,
@@ -1040,57 +1042,123 @@ class CommunityStore:
     async def answer_adventure_formula(self, user, session_id, option_id):
         option_id = str(option_id or "").strip()
         if not option_id:
-            raise CommunityError("Выберите формулу")
+            raise CommunityError("Выберите вариант ответа")
         async with self.lock:
             data = self._load()
             session = data["adventures"].get(str(session_id))
-            if not session or session.get("user_id") != self._user_id(user) or session.get("status") != "active":
+            user_id = self._user_id(user)
+            if not session or session.get("user_id") != user_id or session.get("status") != "active":
                 raise CommunityError("Активное приключение не найдено")
             ensure_formula_round(session)
             if session.get("stage") != "formula":
                 raise CommunityError("Формульная башня уже пройдена")
+
             index = int(session.get("formula_index") or 0)
             formula_round = session["formula_round"]
             if index >= len(formula_round):
-                session["stage"] = "solution"
+                raise CommunityError("Раунд уже завершён")
+
+            challenge = formula_round[index]
+            valid_ids = {item["id"] for item in challenge["options"]}
+            if option_id not in valid_ids:
+                raise CommunityError("Неизвестный вариант ответа")
+
+            is_correct = option_id == challenge["correctOptionId"]
+            session["formula_attempts"] = int(session.get("formula_attempts") or 0) + 1
+            session["formula_index"] = index + 1
+            if is_correct:
+                session["formula_score"] = int(session.get("formula_score") or 0) + 1
+                session["formula_feedback"] = {
+                    "correct": True,
+                    "message": "Верно! Вы заработали 50 монет.",
+                }
             else:
-                challenge = formula_round[index]
-                valid_ids = {item["id"] for item in challenge["options"]}
-                if option_id not in valid_ids:
-                    raise CommunityError("Неизвестный вариант формулы")
-                session["formula_attempts"] = int(session.get("formula_attempts") or 0) + 1
-                if option_id == challenge["correctOptionId"]:
-                    session["formula_score"] = int(session.get("formula_score") or 0) + 1
-                    session["formula_index"] = index + 1
-                    session["formula_feedback"] = {
-                        "correct": True,
-                        "message": "Верно! Этаж башни открыт.",
-                    }
-                    if session["formula_index"] >= len(formula_round):
-                        session["status"] = "complete"
-                        session["stage"] = "complete"
-                        session["result"] = {
-                            "score": len(formula_round),
-                            "maxScore": len(formula_round),
-                            "criteria": [],
-                            "verdict": "Башня формул пройдена: все ассоциации найдены.",
-                            "engine": "formula-game",
-                        }
-                        data["attempts"].append({
-                            "attempt_key": f"adventure:{session['id']}",
-                            "user_id": self._user_id(user),
-                            "question_id": f"formula-tower-{session['grade']}",
-                            "grade": session["grade"],
-                            "correct": True,
-                            "points": len(formula_round),
-                            "source": "formula-game",
-                            "created_at": _now_iso(),
-                        })
+                session["formula_errors"] = int(session.get("formula_errors") or 0) + 1
+                session["formula_feedback"] = {
+                    "correct": False,
+                    "message": "Ошибка {} из 4. Переходим к следующей формуле.".format(
+                        session["formula_errors"]
+                    ),
+                }
+
+            mistakes = int(session.get("formula_errors") or 0)
+            score = int(session.get("formula_score") or 0)
+            finished_by_mistakes = mistakes >= FORMULA_MAX_MISTAKES
+            finished_all_questions = session["formula_index"] >= len(formula_round)
+            if finished_by_mistakes or finished_all_questions:
+                reward = score * FORMULA_REWARD_PER_CORRECT
+                profile = self._ensure_profile(data, user)
+                profile["coins"] = int(profile.get("coins") or 0) + reward
+                profile["updated_at"] = _now_iso()
+                session["status"] = "complete"
+                session["stage"] = "complete"
+                end_reason = "mistakes" if finished_by_mistakes else "completed"
+                if finished_by_mistakes:
+                    verdict = "Раунд завершён после 4 ошибок. Награда начислена за все верные ответы."
                 else:
-                    session["formula_feedback"] = {
-                        "correct": False,
-                        "message": "Пока не совпало. Сопоставьте обозначения в подсказке и попробуйте ещё раз.",
-                    }
+                    verdict = "Все 10 формул проверены. Награда начислена за каждый верный ответ."
+                session["result"] = {
+                    "score": score,
+                    "maxScore": len(formula_round),
+                    "mistakes": mistakes,
+                    "maxMistakes": FORMULA_MAX_MISTAKES,
+                    "rewardCoins": reward,
+                    "coins": int(profile.get("coins") or 0),
+                    "admin": self._is_admin(user),
+                    "endReason": end_reason,
+                    "criteria": [],
+                    "verdict": verdict,
+                    "engine": "formula-game",
+                }
+                data["attempts"].append({
+                    "attempt_key": "adventure:{}".format(session["id"]),
+                    "user_id": user_id,
+                    "question_id": "formula-tower-{}".format(session["grade"]),
+                    "grade": session["grade"],
+                    "correct": score == len(formula_round),
+                    "points": score,
+                    "source": "formula-game",
+                    "created_at": _now_iso(),
+                })
+                data["coin_transactions"].append({
+                    "id": "formula:{}".format(session["id"]),
+                    "user_id": user_id,
+                    "amount": reward,
+                    "kind": "formula_tower",
+                    "created_at": _now_iso(),
+                })
+
+            session["updated_at"] = _now_iso()
+            self._save(data)
+            return self._adventure_view(session)
+
+    async def leave_adventure(self, user, session_id):
+        async with self.lock:
+            data = self._load()
+            session = data["adventures"].get(str(session_id))
+            if (
+                not session
+                or session.get("user_id") != self._user_id(user)
+                or session.get("status") != "active"
+            ):
+                raise CommunityError("Активное приключение не найдено")
+            ensure_formula_round(session)
+            if session.get("game") != "tower" or session.get("stage") != "formula":
+                raise CommunityError("Сейчас нельзя покинуть этот раунд")
+            session["status"] = "abandoned"
+            session["stage"] = "abandoned"
+            session["result"] = {
+                "score": 0,
+                "maxScore": len(session["formula_round"]),
+                "correctAnswers": int(session.get("formula_score") or 0),
+                "mistakes": int(session.get("formula_errors") or 0),
+                "maxMistakes": FORMULA_MAX_MISTAKES,
+                "rewardCoins": 0,
+                "endReason": "left",
+                "criteria": [],
+                "verdict": "Вы покинули раунд. Очки и монеты не начислены.",
+                "engine": "formula-game",
+            }
             session["updated_at"] = _now_iso()
             self._save(data)
             return self._adventure_view(session)

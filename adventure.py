@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 import random
 import re
 import uuid
@@ -55,166 +57,78 @@ ADVENTURE_TASKS = {
 }
 
 
+FORMULA_SOURCE_PATH = Path(__file__).with_name("formula_tower.json")
+FORMULA_ROUND_SIZE = 10
+FORMULA_MAX_MISTAKES = 4
+FORMULA_REWARD_PER_CORRECT = 50
+FORMULA_ROUND_VERSION = 2
+
+
+with FORMULA_SOURCE_PATH.open(encoding="utf-8") as formula_source:
+    FORMULA_CHALLENGES_BY_GRADE = {
+        int(grade): challenges
+        for grade, challenges in json.load(formula_source).items()
+    }
+
+# Flattened index is kept for diagnostics and tests.
 FORMULA_CHALLENGES = {
-    "rectangle-area": {
-        "prompt": "Площадь прямоугольника",
-        "hint": "Выберите формулу через стороны a и b.",
-        "options": [r"S=ab", r"S=2(a+b)", r"S=\frac{ah}{2}", r"S=a^2+b^2"],
-        "correct": 0,
-    },
-    "triangle-height": {
-        "prompt": "Площадь треугольника через основание и высоту",
-        "hint": "Основание — a, проведённая к нему высота — h.",
-        "options": [r"S=ah", r"S=\frac{ah}{2}", r"S=\frac{a+h}{2}", r"S=a^2+h^2"],
-        "correct": 1,
-    },
-    "parallelogram-area": {
-        "prompt": "Площадь параллелограмма",
-        "hint": "Сторона a и проведённая к ней высота h.",
-        "options": [r"S=\frac{ah}{2}", r"S=2(a+h)", r"S=ah", r"S=a+h"],
-        "correct": 2,
-    },
-    "trapezoid-area": {
-        "prompt": "Площадь трапеции",
-        "hint": "Основания — a и b, высота — h.",
-        "options": [r"S=(a+b)h", r"S=\frac{(a+b)h}{2}", r"S=\frac{ab}{2}", r"S=(a-b)h"],
-        "correct": 1,
-    },
-    "rhombus-area": {
-        "prompt": "Площадь ромба через диагонали",
-        "hint": "Диагонали обозначены d₁ и d₂.",
-        "options": [r"S=d_1+d_2", r"S=2d_1d_2", r"S=\frac{d_1d_2}{2}", r"S=(d_1-d_2)^2"],
-        "correct": 2,
-    },
-    "cosine-theorem": {
-        "prompt": "Теорема косинусов",
-        "hint": "",
-        "options": [
-            r"a^2=b^2+c^2-2bc\cos\alpha",
-            r"a^2=b^2-2bc\cos\alpha",
-            r"\cos^2\alpha=1-\sin^2\alpha",
-            r"a^2=b^2+c^2+2bc\cos\alpha",
-        ],
-        "correct": 0,
-    },
-    "sine-theorem": {
-        "prompt": "Теорема синусов",
-        "hint": "",
-        "options": [
-            r"\frac{a}{\sin\alpha}=\frac{b}{\sin\beta}=\frac{c}{\sin\gamma}=2R",
-            r"\frac{a}{\cos\alpha}=\frac{b}{\cos\beta}=\frac{c}{\cos\gamma}",
-            r"a^2=b^2+c^2-2bc\cos\alpha",
-            r"\sin^2\alpha+\cos^2\alpha=1",
-        ],
-        "correct": 0,
-    },
-    "triangle-sine-area": {
-        "prompt": "Площадь треугольника через две стороны и угол",
-        "hint": "Угол C заключён между сторонами a и b.",
-        "options": [r"S=ab\sin C", r"S=\frac{ab\cos C}{2}", r"S=\frac{ab\sin C}{2}", r"S=\frac{a+b}{2}\sin C"],
-        "correct": 2,
-    },
-    "heron": {
-        "prompt": "Формула Герона",
-        "hint": "p — полупериметр треугольника.",
-        "options": [r"S=\sqrt{p(p-a)(p-b)(p-c)}", r"S=p(p-a)(p-b)(p-c)", r"S=\frac{abc}{2p}", r"S=pr^2"],
-        "correct": 0,
-    },
-    "circle-area": {
-        "prompt": "Площадь круга",
-        "hint": "R — радиус круга.",
-        "options": [r"S=2\pi R", r"S=\pi R^2", r"S=\frac{\pi R^2}{2}", r"S=4\pi R^2"],
-        "correct": 1,
-    },
-    "sector-area": {
-        "prompt": "Площадь сектора круга",
-        "hint": "Центральный угол α задан в градусах.",
-        "options": [r"S=\frac{\alpha\pi R^2}{360^\circ}", r"S=\frac{\alpha\pi R}{180^\circ}", r"S=\alpha\pi R^2", r"S=\frac{2\pi R}{\alpha}"],
-        "correct": 0,
-    },
-    "arithmetic-progression": {
-        "prompt": "n-й член арифметической прогрессии",
-        "hint": "a₁ — первый член, d — разность.",
-        "options": [r"a_n=a_1d^{n-1}", r"a_n=a_1+d(n-1)", r"a_n=\frac{a_1+a_n}{2}", r"a_n=a_1+dn"],
-        "correct": 1,
-    },
-    "trig-identity": {
-        "prompt": "Основное тригонометрическое тождество",
-        "hint": "Выберите равенство, верное для любого допустимого x.",
-        "options": [r"\sin x+\cos x=1", r"\sin^2x-\cos^2x=1", r"\sin^2x+\cos^2x=1", r"\tan x\cdot\cos x=1"],
-        "correct": 2,
-    },
-    "power-derivative": {
-        "prompt": "Производная степенной функции",
-        "hint": "Найдите общую формулу для (xⁿ)′.",
-        "options": [r"(x^n)'=nx^{n-1}", r"(x^n)'=x^{n-1}", r"(x^n)'=n^x", r"(x^n)'=(n-1)x^n"],
-        "correct": 0,
-    },
-    "cylinder-volume": {
-        "prompt": "Объём цилиндра",
-        "hint": "R — радиус основания, h — высота.",
-        "options": [r"V=2\pi Rh", r"V=\pi R^2h", r"V=\frac{\pi R^2h}{3}", r"V=\pi Rh^2"],
-        "correct": 1,
-    },
-    "cone-volume": {
-        "prompt": "Объём конуса",
-        "hint": "R — радиус основания, h — высота.",
-        "options": [r"V=\pi R^2h", r"V=\frac{\pi Rh}{3}", r"V=\frac{\pi R^2h}{3}", r"V=\pi Rl"],
-        "correct": 2,
-    },
-    "sphere-volume": {
-        "prompt": "Объём шара",
-        "hint": "R — радиус шара.",
-        "options": [r"V=4\pi R^2", r"V=\frac{4\pi R^3}{3}", r"V=\pi R^3", r"V=\frac{\pi R^3}{3}"],
-        "correct": 1,
-    },
+    challenge["id"]: challenge
+    for challenges in FORMULA_CHALLENGES_BY_GRADE.values()
+    for challenge in challenges
 }
-
-
-FORMULA_POOLS = {
-    8: ["rectangle-area", "triangle-height", "parallelogram-area", "trapezoid-area", "rhombus-area"],
-    9: ["triangle-height", "trapezoid-area", "cosine-theorem", "sine-theorem", "triangle-sine-area", "heron", "circle-area"],
-    10: ["cosine-theorem", "sine-theorem", "triangle-sine-area", "heron", "sector-area", "arithmetic-progression", "trig-identity"],
-    11: ["cosine-theorem", "sine-theorem", "triangle-sine-area", "sector-area", "trig-identity", "power-derivative", "cylinder-volume", "cone-volume", "sphere-volume"],
-}
-
-FORMULA_ROUND_SIZE = 4
 
 
 def build_formula_round(grade, seed=None):
-    """Build a stable, duplicate-free set of formula associations for one run."""
+    # Build ten unique, grade-specific associations from the supplied formula file.
     grade = int(grade)
+    if grade not in FORMULA_CHALLENGES_BY_GRADE:
+        raise ValueError("Некорректный класс")
     generator = random.Random(seed)
-    challenge_ids = generator.sample(FORMULA_POOLS[grade], FORMULA_ROUND_SIZE)
+    selected = generator.sample(FORMULA_CHALLENGES_BY_GRADE[grade], FORMULA_ROUND_SIZE)
     result = []
-    for challenge_id in challenge_ids:
-        source = FORMULA_CHALLENGES[challenge_id]
-        option_rows = [
-            {"id": f"{challenge_id}:{index}", "formula": formula}
-            for index, formula in enumerate(source["options"])
-        ]
+    for source in selected:
+        challenge_id = source["id"]
+        option_rows = [{
+            "id": "{}:correct".format(challenge_id),
+            "text": source["correctInterpretation"],
+        }]
+        option_rows.extend({
+            "id": "{}:wrong:{}".format(challenge_id, index),
+            "text": option_text,
+        } for index, option_text in enumerate(source["wrongInterpretations"], start=1))
         generator.shuffle(option_rows)
         result.append({
             "id": challenge_id,
-            "prompt": source["prompt"],
-            "hint": source["hint"],
+            "prompt": source["title"],
+            "formula": source["formula"],
+            "hint": "Выберите верную интерпретацию формулы.",
             "options": option_rows,
-            "correctOptionId": f"{challenge_id}:{source['correct']}",
+            "correctOptionId": "{}:correct".format(challenge_id),
         })
     return result
 
 
 def ensure_formula_round(session):
-    """Migrate unfinished crystal sessions and initialise formula progress."""
+    # Migrate old tower sessions and initialise the ten-question round.
     if session.get("stage") == "crystals":
         session["stage"] = "formula"
-    if not session.get("formula_round"):
+    if (
+        session.get("formula_round_version") != FORMULA_ROUND_VERSION
+        or not session.get("formula_round")
+    ):
         session["formula_round"] = build_formula_round(
             int(session["grade"]), seed=str(session.get("id") or session.get("attempt_key") or "")
         )
+        session["formula_round_version"] = FORMULA_ROUND_VERSION
+        session["formula_index"] = 0
+        session["formula_score"] = 0
+        session["formula_attempts"] = 0
+        session["formula_errors"] = 0
+        session.pop("formula_feedback", None)
     session.setdefault("formula_index", 0)
     session.setdefault("formula_score", 0)
     session.setdefault("formula_attempts", 0)
+    session.setdefault("formula_errors", 0)
     return session
 
 
@@ -233,6 +147,9 @@ def public_formula_state(session):
         "total": len(formula_round),
         "score": int(session.get("formula_score") or 0),
         "attempts": int(session.get("formula_attempts") or 0),
+        "mistakes": int(session.get("formula_errors") or 0),
+        "maxMistakes": FORMULA_MAX_MISTAKES,
+        "rewardPerCorrect": FORMULA_REWARD_PER_CORRECT,
         "challenge": challenge,
         "feedback": session.get("formula_feedback"),
     }

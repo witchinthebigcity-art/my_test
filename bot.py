@@ -36,7 +36,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "25"
+WEBAPP_VERSION = "26"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -1131,6 +1131,17 @@ async def answer_adventure_formula(request):
         return _community_error(error, status=422)
 
 
+async def leave_adventure(request):
+    try:
+        session = await community_store.leave_adventure(
+            _authenticated_user(request), request.match_info["session_id"]
+        )
+        session["verification"] = _adventure_verification_capabilities()
+        return web.json_response(session)
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
 async def save_adventure_draft(request):
     try:
         payload = await request.json()
@@ -1305,6 +1316,7 @@ def create_app():
     application.router.add_get('/api/adventure', get_adventure)
     application.router.add_post('/api/adventure/start', start_adventure)
     application.router.add_post('/api/adventure/{session_id}/formula', answer_adventure_formula)
+    application.router.add_post('/api/adventure/{session_id}/leave', leave_adventure)
     application.router.add_post('/api/adventure/{session_id}/draft', save_adventure_draft)
     application.router.add_post('/api/adventure/{session_id}/submit', submit_adventure)
     application.router.add_post('/api/adventure/recognize', recognize_solution)

@@ -1373,3 +1373,122 @@ body.math-keyboard-open { padding-bottom: min(43dvh, 320px); }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Formula tower v2: formula on the left, three moving interpretations on the right. */
+.adventure-heading-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.adventure-leave-button {
+    min-height: 34px;
+    padding: 7px 11px;
+    border: 1px solid rgba(255, 139, 151, .58);
+    border-radius: 999px;
+    background: rgba(112, 24, 47, .34);
+    color: #ffd7dc;
+    font-size: 12px;
+    font-weight: 850;
+}
+.adventure-world { min-height: 550px; }
+.formula-floors { grid-template-rows: repeat(10, 1fr); gap: 3px; }
+.formula-challenge {
+    inset: 70px 20px 22px;
+    width: auto;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+    gap: 18px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+.formula-left-card,
+.formula-right-zone {
+    position: relative;
+    z-index: 5;
+    min-width: 0;
+}
+.formula-left-card {
+    align-self: center;
+    padding: clamp(15px, 3.4vw, 24px);
+    border: 1px solid rgba(112, 239, 229, .6);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(8, 31, 58, .96), rgba(30, 24, 72, .94));
+    box-shadow: 0 18px 48px rgba(2, 7, 23, .45), 0 0 30px rgba(84, 224, 211, .12);
+    backdrop-filter: blur(14px);
+}
+.formula-left-card h3 { margin: 0; font-size: clamp(17px, 3.8vw, 24px); line-height: 1.2; }
+.formula-left-card > p:not(.formula-stage-label) { margin: 13px 0 0; color: #b9c9df; font-size: 12px; line-height: 1.45; }
+.formula-expression {
+    margin-top: 14px;
+    padding: 15px 12px;
+    border: 1px solid rgba(171, 154, 255, .45);
+    border-radius: 15px;
+    background: rgba(6, 14, 38, .74);
+    color: #fff6c6;
+    font: 800 clamp(15px, 3.6vw, 22px)/1.45 "Inter", system-ui, sans-serif;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    text-align: center;
+    text-shadow: 0 0 16px rgba(255, 229, 126, .24);
+}
+.formula-right-zone { display: grid; align-content: center; padding: 10px 0; }
+.formula-right-zone > .formula-stage-label { margin: 0 8px 12px; }
+.formula-options { display: grid; gap: 14px; }
+.formula-option {
+    width: calc(100% - 12px);
+    min-height: 92px;
+    padding: 13px 15px;
+    overflow: visible;
+    border: 1px solid rgba(171, 154, 255, .62);
+    border-radius: 17px;
+    background: linear-gradient(135deg, rgba(91, 70, 174, .86), rgba(18, 65, 91, .92));
+    color: #f9fbff;
+    box-shadow: 0 14px 30px rgba(2, 8, 26, .32), inset 0 1px rgba(255,255,255,.1);
+    font: 750 clamp(12px, 2.55vw, 15px)/1.38 "Inter", system-ui, sans-serif;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    animation: formulaFloatOne 4.2s ease-in-out infinite;
+}
+.formula-option:nth-child(2) { justify-self: end; animation: formulaFloatTwo 5s .35s ease-in-out infinite; }
+.formula-option:nth-child(3) { animation: formulaFloatThree 4.6s .7s ease-in-out infinite; }
+.formula-option:disabled { animation-play-state: paused; }
+.formula-option.is-correct { border-color: #69f0c4; background: rgba(34, 155, 117, .88); }
+.formula-option.is-wrong { border-color: #ff8c96; background: rgba(152, 43, 63, .88); animation: formulaShake .3s ease; }
+.formula-feedback { min-height: 34px; margin: 12px 8px 0; font-size: 12px; }
+.formula-result-reward { color: #ffe28a; font-weight: 850; }
+@keyframes formulaFloatOne { 50% { transform: translate(8px, -5px) rotate(.35deg); } }
+@keyframes formulaFloatTwo { 50% { transform: translate(-8px, 5px) rotate(-.35deg); } }
+@keyframes formulaFloatThree { 50% { transform: translate(6px, 6px) rotate(.25deg); } }
+
+@media (max-width: 520px) {
+    .adventure-heading { align-items: flex-start; }
+    .adventure-heading-actions { max-width: 132px; }
+    .adventure-heading-actions .soft-pill { font-size: 9px; }
+    .adventure-leave-button { min-height: 30px; padding: 6px 9px; font-size: 10px; }
+    .adventure-world { min-height: 620px; }
+    .formula-challenge {
+        inset: 58px 9px 14px;
+        grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr);
+        gap: 8px;
+        padding: 0;
+    }
+    .formula-left-card { padding: 12px 9px; border-radius: 17px; }
+    .formula-left-card h3 { font-size: 14px; }
+    .formula-left-card > p:not(.formula-stage-label) { margin-top: 9px; font-size: 9.5px; }
+    .formula-stage-label { font-size: 8px; letter-spacing: .06em; }
+    .formula-expression { margin-top: 10px; padding: 11px 7px; font-size: 13px; line-height: 1.42; }
+    .formula-right-zone { padding: 4px 0; }
+    .formula-right-zone > .formula-stage-label { margin-inline: 4px; }
+    .formula-options { gap: 11px; }
+    .formula-option {
+        width: calc(100% - 5px);
+        min-height: 112px;
+        padding: 10px 8px;
+        border-radius: 14px;
+        font-size: 10px;
+        line-height: 1.34;
+    }
+    .formula-feedback { margin-inline: 4px; font-size: 9.5px; }
+    .tower-silhouette, .formula-hero { opacity: .12; pointer-events: none; }
+}

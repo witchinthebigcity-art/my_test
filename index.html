@@ -10,7 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <script type="module" src="https://unpkg.com/mathlive@0.109.0?module"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/math-format.js?v=25"></script>
+    <script defer src="/math-format.js?v=26"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=25">
+    <link rel="stylesheet" href="/app.css?v=26">
 </head>
 <body data-grade="8">
 
@@ -455,7 +455,10 @@
     <div id="adventureScreen" class="screen adventure-screen">
         <div class="adventure-heading">
             <div><p id="adventureGameEyebrow" class="eyebrow">Активная игра · ассоциации</p><h2 id="adventureGameTitle">Башня формул</h2></div>
-            <span class="soft-pill">Автосохранение</span>
+            <div class="adventure-heading-actions">
+                <span class="soft-pill">Автосохранение</span>
+                <button id="adventureLeaveButton" class="small-link-button adventure-leave-button" type="button" onclick="leaveAdventureGame()" hidden>Покинуть игру</button>
+            </div>
         </div>
         <p id="adventureStatus" class="supporting-text">Открываем сохранённую комнату…</p>
         <div id="adventureWorld" class="adventure-world">
@@ -468,11 +471,17 @@
                 <i class="formula-hero-body"></i><i class="formula-hero-book">ƒ</i>
             </div>
             <section id="formulaChallenge" class="formula-challenge">
-                <p class="formula-stage-label">Сопоставьте понятие и формулу</p>
-                <h3 id="formulaPrompt"></h3>
-                <p id="formulaHint"></p>
-                <div id="formulaOptions" class="formula-options"></div>
-                <div id="formulaFeedback" class="formula-feedback" aria-live="polite"></div>
+                <div class="formula-left-card">
+                    <p class="formula-stage-label">Формула</p>
+                    <h3 id="formulaPrompt"></h3>
+                    <div id="formulaExpression" class="formula-expression"></div>
+                    <p id="formulaHint"></p>
+                </div>
+                <div class="formula-right-zone">
+                    <p class="formula-stage-label">Выберите верную интерпретацию</p>
+                    <div id="formulaOptions" class="formula-options"></div>
+                    <div id="formulaFeedback" class="formula-feedback" aria-live="polite"></div>
+                </div>
             </section>
         </div>
         <section id="extendedSolutionPanel" class="extended-solution-panel" hidden>
@@ -1188,8 +1197,8 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=25"></script>
-<script src="/community.js?v=25"></script>
-<script src="/adventure.js?v=25"></script>
+<script src="/characters.js?v=26"></script>
+<script src="/community.js?v=26"></script>
+<script src="/adventure.js?v=26"></script>
 </body>
 </html>

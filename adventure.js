@@ -60,6 +60,7 @@ function renderAdventure(session) {
     const isTower = session.game === 'tower';
     const isFormulaStage = isTower && session.stage === 'formula';
     const isSolutionStage = session.game === 'second_part' && session.stage === 'solution';
+    const formula = session.formula || {};
     const screen = document.getElementById('adventureScreen');
     screen.classList.toggle('formula-game-stage', isFormulaStage);
     screen.classList.toggle('solution-game-stage', isSolutionStage || session.stage === 'complete');
@@ -72,10 +73,11 @@ function renderAdventure(session) {
     document.getElementById('adventureStatus').textContent = isSolutionStage
         ? 'Решите задание второй части — черновик сохраняется автоматически.'
         : session.stage === 'complete'
-            ? (isTower ? 'Башня пройдена. Все четыре формулы определены верно.' : 'Проверка завершена. Результат сохранён в статистике.')
-            : `Откройте ${Number(session.formula?.total || 4)} этажа: на каждом выберите верную формулу.`;
+            ? (isTower ? 'Раунд завершён. Монеты начислены за каждый верный ответ.' : 'Проверка завершена. Результат сохранён в статистике.')
+            : `Вопрос ${Math.min(Number(formula.index || 0) + 1, Number(formula.total || 10))} из ${Number(formula.total || 10)} · Ошибки ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 4)} · ${Number(formula.rewardPerCorrect || 50)} монет за верный ответ.`;
+    document.getElementById('adventureLeaveButton').hidden = !isFormulaStage;
     document.getElementById('adventureWorld').hidden = !isFormulaStage;
-    if (isFormulaStage) renderFormulaChallenge(session.formula || {});
+    if (isFormulaStage) renderFormulaChallenge(formula);
     const panel = document.getElementById('extendedSolutionPanel');
     panel.hidden = !isSolutionStage;
     document.getElementById('extendedResult').hidden = session.stage !== 'complete';
@@ -90,7 +92,7 @@ function renderFormulaChallenge(formula) {
     const challenge = formula.challenge;
     const floors = document.getElementById('formulaFloors');
     floors.replaceChildren();
-    for (let index = 0; index < Number(formula.total || 4); index += 1) {
+    for (let index = 0; index < Number(formula.total || 10); index += 1) {
         const floor = document.createElement('i');
         floor.className = index < Number(formula.index || 0) ? 'opened' : '';
         floor.setAttribute('aria-label', `Этаж ${index + 1}`);
@@ -98,6 +100,7 @@ function renderFormulaChallenge(formula) {
     }
     if (!challenge) return;
     document.getElementById('formulaPrompt').textContent = challenge.prompt;
+    document.getElementById('formulaExpression').textContent = challenge.formula || '';
     const hint = document.getElementById('formulaHint');
     hint.textContent = challenge.hint || '';
     hint.hidden = !challenge.hint;
@@ -108,18 +111,12 @@ function renderFormulaChallenge(formula) {
         button.type = 'button';
         button.className = 'formula-option';
         button.dataset.optionId = option.id;
-        if (window.katex && typeof window.katex.render === 'function') {
-            window.katex.render(option.formula, button, {
-                throwOnError: false,
-                strict: false,
-                displayMode: false,
-            });
-        } else button.textContent = option.formula;
+        button.textContent = option.text;
         button.addEventListener('click', () => answerFormula(option.id, button));
         options.appendChild(button);
     });
     const feedback = document.getElementById('formulaFeedback');
-    feedback.textContent = formula.feedback?.message || `Этаж ${Number(formula.index || 0) + 1} из ${formula.total || 4}`;
+    feedback.textContent = formula.feedback?.message || `Верных ответов: ${Number(formula.score || 0)} · ошибок: ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 4)}`;
     feedback.className = `formula-feedback${formula.feedback ? (formula.feedback.correct ? ' correct' : ' wrong') : ''}`;
 }
 
@@ -158,11 +155,40 @@ function renderTowerResult(result) {
     panel.hidden = false;
     const score = document.createElement('strong');
     score.className = 'extended-score';
-    score.textContent = `${result.score} / ${result.maxScore} этажей`;
+    score.textContent = `${result.score} / ${result.maxScore} верных ответов`;
     const verdict = document.createElement('p');
     verdict.textContent = result.verdict || 'Башня формул пройдена.';
-    panel.append(score, verdict);
+    const reward = document.createElement('p');
+    reward.className = 'formula-result-reward';
+    reward.textContent = `Награда: ${Number(result.rewardCoins || 0)} монет · ошибок: ${Number(result.mistakes || 0)} из ${Number(result.maxMistakes || 4)}`;
+    panel.append(score, verdict, reward);
+    if (Number.isFinite(Number(result.coins)) && typeof syncCoinBalance === 'function') {
+        syncCoinBalance(Number(result.coins), Boolean(result.admin));
+    }
     appendGameNavigation(panel, 'second_part');
+}
+
+async function leaveAdventureGame() {
+    const session = adventureState.session;
+    if (!session || session.stage !== 'formula') return;
+    const confirmed = await new Promise((resolve) => {
+        const message = 'Покинуть игру? Очки и монеты за этот раунд не сохранятся.';
+        if (tg && typeof tg.showConfirm === 'function') tg.showConfirm(message, resolve);
+        else resolve(window.confirm(message));
+    });
+    if (!confirmed) return;
+    try {
+        await communityRequest(`/api/adventure/${session.id}/leave`, {
+            method: 'POST',
+            headers: telegramHeaders(true),
+            body: JSON.stringify({}),
+        });
+        adventureState.session = null;
+        openGameUniverse();
+        updateAdventureResume();
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 async function answerFormula(optionId, selectedButton) {
@@ -178,7 +204,7 @@ async function answerFormula(optionId, selectedButton) {
         selectedButton.classList.add(correct ? 'is-correct' : 'is-wrong');
         document.getElementById('formulaFeedback').textContent = session.formula?.feedback?.message || '';
         document.getElementById('formulaFeedback').className = `formula-feedback ${correct ? 'correct' : 'wrong'}`;
-        window.setTimeout(() => renderAdventure(session), correct ? 560 : 820);
+        window.setTimeout(() => renderAdventure(session), 680);
     } catch (error) {
         alert(error.message);
         document.querySelectorAll('#formulaOptions button').forEach((button) => { button.disabled = false; });
