@@ -33,6 +33,8 @@ class AdventureRubricTests(unittest.TestCase):
             self.assertTrue(challenge["correctInterpretation"].strip(), challenge_id)
             self.assertEqual(len(challenge["wrongInterpretations"]), 2, challenge_id)
             self.assertTrue(all(item.strip() for item in challenge["wrongInterpretations"]), challenge_id)
+            self.assertNotIn("===", challenge["formula"], challenge_id)
+            self.assertTrue(all("===" not in item for item in challenge["wrongInterpretations"]), challenge_id)
 
     def test_full_score_requires_correct_fields_and_reasoning(self):
         task = ADVENTURE_TASKS[9]
