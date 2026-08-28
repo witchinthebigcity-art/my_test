@@ -65,7 +65,7 @@ function renderAdventure(session) {
     screen.classList.toggle('formula-game-stage', isFormulaStage);
     screen.classList.toggle('solution-game-stage', isSolutionStage || session.stage === 'complete');
     document.getElementById('adventureGameEyebrow').textContent = isTower
-        ? 'Активная игра · ассоциации'
+        ? 'Активная игра · формулы'
         : 'Активная игра · развёрнутое решение';
     document.getElementById('adventureGameTitle').textContent = isTower
         ? 'Башня формул'
@@ -101,7 +101,9 @@ function renderFormulaChallenge(formula) {
     }
     if (!challenge) return;
     document.getElementById('formulaPrompt').textContent = challenge.prompt;
-    setMathContent(document.getElementById('formulaExpression'), challenge.formula || '');
+    const expression = document.getElementById('formulaExpression');
+    expression.hidden = !challenge.formula;
+    setMathContent(expression, challenge.formula || '');
     const hint = document.getElementById('formulaHint');
     hint.textContent = challenge.hint || '';
     hint.hidden = !challenge.hint;

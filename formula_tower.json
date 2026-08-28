@@ -1,280 +1,257 @@
 {
   "8": [
     {
-      "id": "g8-1-1",
-      "title": "Процент от числа",
+      "id": "g8-01",
+      "title": "Процент числа",
       "formula": "p% от A = (p/100)·A",
-      "correctInterpretation": "Чтобы найти p процентов от числа A, нужно A умножить на p/100.",
+      "correctInterpretation": "p% от A = (p/100)·A",
       "wrongInterpretations": [
         "p% от A = A/p",
         "p% от A = A + p"
       ]
     },
     {
-      "id": "g8-1-2",
-      "title": "Увеличение числа на p%",
-      "formula": "Aнов = A·(1 + p/100)",
-      "correctInterpretation": "К исходным 100% добавляется еще p%.",
+      "id": "g8-02",
+      "title": "Произведение степеней",
+      "formula": "a^m·a^n = a^(m+n)",
+      "correctInterpretation": "a^m·a^n = a^(m+n)",
       "wrongInterpretations": [
-        "Aнов = A + p/100",
-        "Aнов = A·p/100"
+        "a^m·a^n = a^(mn)",
+        "a^m·a^n = (2a)^(m+n)"
       ]
     },
     {
-      "id": "g8-1-3",
-      "title": "Уменьшение числа на p%",
-      "formula": "Aнов = A·(1 - p/100)",
-      "correctInterpretation": "После уменьшения остается (100 - p)% исходного числа.",
+      "id": "g8-03",
+      "title": "Частное степеней",
+      "formula": "a^m/a^n = a^(m-n)",
+      "correctInterpretation": "a^m/a^n = a^(m-n)",
       "wrongInterpretations": [
-        "Aнов = A - p",
-        "Aнов = A·(1 + p/100)"
-      ]
+        "a^m/a^n = a^(m+n)",
+        "a^m/a^n = a^(m/n)"
+      ],
+      "conditions": "a ≠ 0"
     },
     {
-      "id": "g8-2-1",
-      "title": "Произведение степеней с одинаковым основанием",
-      "formula": "a^m · a^n = a^(m+n)",
-      "correctInterpretation": "При умножении степеней с одинаковым основанием показатели складываются.",
-      "wrongInterpretations": [
-        "a^m · a^n = a^(mn)",
-        "a^m · a^n = (2a)^(m+n)"
-      ]
-    },
-    {
-      "id": "g8-2-2",
-      "title": "Частное степеней с одинаковым основанием",
-      "formula": "a^m / a^n = a^(m-n), a ≠ 0",
-      "correctInterpretation": "При делении степеней показатели вычитаются: показатель знаменателя вычитается из показателя числителя.",
-      "wrongInterpretations": [
-        "a^m / a^n = a^(m+n)",
-        "a^m / a^n = a^(m/n)"
-      ]
-    },
-    {
-      "id": "g8-2-3",
+      "id": "g8-04",
       "title": "Степень степени",
       "formula": "(a^m)^n = a^(mn)",
-      "correctInterpretation": "При возведении степени в степень показатели перемножаются.",
+      "correctInterpretation": "(a^m)^n = a^(mn)",
       "wrongInterpretations": [
         "(a^m)^n = a^(m+n)",
         "(a^m)^n = a^(m^n)"
       ]
     },
     {
-      "id": "g8-2-4",
+      "id": "g8-05",
       "title": "Степень произведения",
-      "formula": "(ab)^n = a^n b^n",
-      "correctInterpretation": "Степень произведения можно распределить на каждый множитель.",
+      "formula": "(ab)^n = a^n·b^n",
+      "correctInterpretation": "(ab)^n = a^n·b^n",
       "wrongInterpretations": [
         "(ab)^n = a^n + b^n",
         "(ab)^n = ab^n"
       ]
     },
     {
-      "id": "g8-2-5",
+      "id": "g8-06",
       "title": "Нулевая степень",
-      "formula": "a^0 = 1, a ≠ 0",
-      "correctInterpretation": "Любое ненулевое число в нулевой степени равно 1.",
+      "formula": "a^0 = 1",
+      "correctInterpretation": "a^0 = 1",
       "wrongInterpretations": [
         "a^0 = 0",
         "a^0 = a"
-      ]
+      ],
+      "conditions": "a ≠ 0"
     },
     {
-      "id": "g8-2-6",
+      "id": "g8-07",
       "title": "Отрицательная степень",
-      "formula": "a^(-n) = 1/a^n, a ≠ 0",
-      "correctInterpretation": "Отрицательная степень означает переход к обратному числу.",
+      "formula": "a^(-n) = 1/a^n",
+      "correctInterpretation": "a^(-n) = 1/a^n",
       "wrongInterpretations": [
         "a^(-n) = -a^n",
         "a^(-n) = 1/a^(-n)"
-      ]
+      ],
+      "conditions": "a ≠ 0"
     },
     {
-      "id": "g8-3-1",
-      "title": "Квадратный корень из квадрата",
+      "id": "g8-08",
+      "title": "Корень квадрата",
       "formula": "√(a²) = |a|",
-      "correctInterpretation": "Квадратный корень всегда неотрицателен, поэтому результат равен модулю числа.",
+      "correctInterpretation": "√(a²) = |a|",
       "wrongInterpretations": [
-        "√(a²) = a для любого a",
+        "√(a²) = a",
         "√(a²) = ±a"
       ]
     },
     {
-      "id": "g8-3-2",
+      "id": "g8-09",
       "title": "Корень произведения",
-      "formula": "√(ab) = √a · √b, a ≥ 0, b ≥ 0",
-      "correctInterpretation": "Корень произведения неотрицательных чисел можно разложить на произведение корней.",
+      "formula": "√(ab) = √a·√b",
+      "correctInterpretation": "√(ab) = √a·√b",
       "wrongInterpretations": [
-        "√(a + b) = √a + √b",
+        "√(a+b) = √a + √b",
         "√(ab) = a√b"
-      ]
+      ],
+      "conditions": "a ≥ 0, b ≥ 0"
     },
     {
-      "id": "g8-4-1",
+      "id": "g8-10",
       "title": "Определение модуля",
-      "formula": "|x| = x, если x ≥ 0\n|x| = -x, если x < 0",
-      "correctInterpretation": "Модуль числа — его расстояние от нуля, поэтому модуль не может быть отрицательным.",
+      "formula": "|x| = x при x ≥ 0; |x| = -x при x < 0",
+      "correctInterpretation": "|x| = x при x ≥ 0; |x| = -x при x < 0",
       "wrongInterpretations": [
-        "Модуль всегда меняет знак числа.",
-        "|x| = -x при любом x."
+        "|x| = -x при любом x",
+        "|x| всегда меняет знак x"
       ]
     },
     {
-      "id": "g8-4-2",
-      "title": "Простейшее уравнение с модулем",
-      "formula": "|x| = a, a > 0  ⇔  x = a или x = -a",
-      "correctInterpretation": "На расстоянии a от нуля находятся две точки: a и -a.",
-      "wrongInterpretations": [
-        "x = a — единственное решение.",
-        "x = ±√a."
-      ]
-    },
-    {
-      "id": "g8-5-1",
+      "id": "g8-11",
       "title": "Дискриминант",
       "formula": "D = b² - 4ac",
-      "correctInterpretation": "Дискриминант используется для определения количества и нахождения действительных корней квадратного уравнения ax² + bx + c = 0.",
+      "correctInterpretation": "D = b² - 4ac",
       "wrongInterpretations": [
         "D = b² + 4ac",
         "D = b - 4ac"
       ]
     },
     {
-      "id": "g8-5-2",
-      "title": "Корни квадратного уравнения",
-      "formula": "x1,2 = (-b ± √D)/(2a)",
-      "correctInterpretation": "Формула применяется при a ≠ 0; действительные корни существуют при D ≥ 0.",
+      "id": "g8-12",
+      "title": "Формула корней",
+      "formula": "x₁,₂ = (-b ± √D)/(2a)",
+      "correctInterpretation": "x₁,₂ = (-b ± √D)/(2a)",
       "wrongInterpretations": [
-        "x1,2 = (b ± √D)/(2a)",
-        "x1,2 = (-b ± D)/a"
-      ]
+        "x₁,₂ = (b ± √D)/(2a)",
+        "x₁,₂ = (-b ± D)/a"
+      ],
+      "conditions": "a ≠ 0, D ≥ 0"
     },
     {
-      "id": "g8-5-3",
+      "id": "g8-13",
       "title": "Теорема Виета",
-      "formula": "x1 + x2 = -b/a\nx1·x2 = c/a",
-      "correctInterpretation": "Сумма корней связана с коэффициентом b, произведение корней — с коэффициентом c.",
+      "formula": "x₁ + x₂ = -b/a; x₁x₂ = c/a",
+      "correctInterpretation": "x₁ + x₂ = -b/a; x₁x₂ = c/a",
       "wrongInterpretations": [
-        "x1 + x2 = b/a",
-        "x1·x2 = -c/a"
+        "x₁ + x₂ = b/a",
+        "x₁x₂ = -c/a"
       ]
     },
     {
-      "id": "g8-6-1",
-      "title": "Общий вид",
+      "id": "g8-14",
+      "title": "Линейная функция",
       "formula": "y = kx + b",
-      "correctInterpretation": "k задает наклон прямой, b — ординату точки пересечения графика с осью Oy.",
+      "correctInterpretation": "y = kx + b",
       "wrongInterpretations": [
-        "b определяет наклон прямой.",
-        "k всегда является точкой пересечения с осью Oy."
+        "y = k/x + b",
+        "y = kx² + b"
       ]
     },
     {
-      "id": "g8-7-1",
-      "title": "Формула",
-      "formula": "y = k/x, x ≠ 0",
-      "correctInterpretation": "График — гипербола; произведение x·y постоянно и равно k.",
+      "id": "g8-15",
+      "title": "Обратная пропорциональность",
+      "formula": "y = k/x",
+      "correctInterpretation": "y = k/x",
       "wrongInterpretations": [
-        "График является прямой.",
-        "При x = 0 функция равна 0."
-      ]
+        "y = kx",
+        "y = x/k"
+      ],
+      "conditions": "x ≠ 0"
     },
     {
-      "id": "g8-8-1",
-      "title": "Сумма углов треугольника",
+      "id": "g8-16",
+      "title": "Сумма углов",
       "formula": "α + β + γ = 180°",
-      "correctInterpretation": "Сумма внутренних углов любого треугольника равна 180°.",
+      "correctInterpretation": "α + β + γ = 180°",
       "wrongInterpretations": [
-        "Сумма равна 360°.",
-        "Равенство верно только для прямоугольного треугольника."
+        "α + β + γ = 360°",
+        "α + β + γ = 90°"
       ]
     },
     {
-      "id": "g8-8-2",
+      "id": "g8-17",
       "title": "Теорема Пифагора",
       "formula": "c² = a² + b²",
-      "correctInterpretation": "В прямоугольном треугольнике квадрат гипотенузы равен сумме квадратов катетов.",
+      "correctInterpretation": "c² = a² + b²",
       "wrongInterpretations": [
-        "Формула верна для любого треугольника.",
-        "c = a + b"
-      ]
+        "c = a + b",
+        "c² = a² - b²"
+      ],
+      "conditions": "треугольник прямоугольный; c — гипотенуза"
     },
     {
-      "id": "g8-8-3",
+      "id": "g8-18",
       "title": "Площадь треугольника",
       "formula": "S = ah/2",
-      "correctInterpretation": "Площадь равна половине произведения стороны на высоту, проведенную к этой стороне.",
+      "correctInterpretation": "S = ah/2",
       "wrongInterpretations": [
         "S = ah",
-        "Можно взять сторону a и высоту, проведенную к другой стороне."
+        "S = (a+h)/2"
       ]
     },
     {
-      "id": "g8-8-4",
+      "id": "g8-19",
       "title": "Площадь параллелограмма",
       "formula": "S = ah",
-      "correctInterpretation": "Площадь равна произведению основания на соответствующую высоту.",
+      "correctInterpretation": "S = ah",
       "wrongInterpretations": [
-        "S = (a + b)h",
-        "S = ab для любого параллелограмма."
+        "S = (a+h)/2",
+        "S = ab/2"
       ]
     },
     {
-      "id": "g8-8-5",
+      "id": "g8-20",
       "title": "Площадь прямоугольника",
       "formula": "S = ab",
-      "correctInterpretation": "Площадь прямоугольника равна произведению его смежных сторон.",
+      "correctInterpretation": "S = ab",
       "wrongInterpretations": [
-        "S = a + b",
+        "S = a+b",
         "S = 2ab"
       ]
     },
     {
-      "id": "g8-8-6",
-      "title": "Площадь ромба через диагонали",
-      "formula": "S = d1·d2/2",
-      "correctInterpretation": "Площадь ромба равна половине произведения его диагоналей.",
+      "id": "g8-21",
+      "title": "Площадь ромба",
+      "formula": "S = d₁d₂/2",
+      "correctInterpretation": "S = d₁d₂/2",
       "wrongInterpretations": [
-        "S = d1·d2",
-        "S = (d1 + d2)/2"
+        "S = d₁d₂",
+        "S = (d₁+d₂)/2"
       ]
     },
     {
-      "id": "g8-8-7",
+      "id": "g8-22",
       "title": "Площадь трапеции",
-      "formula": "S = (a + b)h/2",
-      "correctInterpretation": "Полусумма оснований умножается на высоту.",
+      "formula": "S = (a+b)h/2",
+      "correctInterpretation": "S = (a+b)h/2",
       "wrongInterpretations": [
-        "S = (a + b)h",
-        "S = (a - b)h/2"
+        "S = (a+b)h",
+        "S = (a-b)h/2"
       ]
     },
     {
-      "id": "g8-8-8",
+      "id": "g8-23",
       "title": "Длина окружности",
       "formula": "L = 2πR",
-      "correctInterpretation": "Это длина границы круга.",
+      "correctInterpretation": "L = 2πR",
       "wrongInterpretations": [
         "L = πR²",
         "L = 2R²"
       ]
     },
     {
-      "id": "g8-8-9",
+      "id": "g8-24",
       "title": "Площадь круга",
       "formula": "S = πR²",
-      "correctInterpretation": "Это площадь области внутри окружности.",
+      "correctInterpretation": "S = πR²",
       "wrongInterpretations": [
         "S = 2πR",
         "S = πR"
       ]
     },
     {
-      "id": "g8-8-10",
-      "title": "Диаметр и радиус",
+      "id": "g8-25",
+      "title": "Диаметр окружности",
       "formula": "d = 2R",
-      "correctInterpretation": "Диаметр равен двум радиусам.",
+      "correctInterpretation": "d = 2R",
       "wrongInterpretations": [
         "d = R/2",
         "R = 2d"
@@ -283,944 +260,873 @@
   ],
   "9": [
     {
-      "id": "g9-1-1",
-      "title": "Общий вид",
-      "formula": "y = ax² + bx + c, a ≠ 0",
-      "correctInterpretation": "График квадратичной функции — парабола.",
+      "id": "g9-01",
+      "title": "Квадратичная функция",
+      "formula": "y = ax² + bx + c",
+      "correctInterpretation": "y = ax² + bx + c",
       "wrongInterpretations": [
-        "График всегда является прямой.",
-        "Любая квадратичная функция проходит через начало координат."
+        "y = ax + bx + c",
+        "y = a/x + bx + c"
+      ],
+      "conditions": "a ≠ 0"
+    },
+    {
+      "id": "g9-02",
+      "title": "Вершина параболы",
+      "formula": "x₀ = -b/(2a)",
+      "correctInterpretation": "x₀ = -b/(2a)",
+      "wrongInterpretations": [
+        "x₀ = b/(2a)",
+        "x₀ = -2a/b"
       ]
     },
     {
-      "id": "g9-1-2",
-      "title": "Направление ветвей",
-      "formula": "a > 0 → ветви вверх\na < 0 → ветви вниз",
-      "correctInterpretation": "Направление ветвей определяется знаком старшего коэффициента a.",
+      "id": "g9-03",
+      "title": "ОДЗ дроби",
+      "formula": "B(x) ≠ 0 для A(x)/B(x)",
+      "correctInterpretation": "B(x) ≠ 0 для A(x)/B(x)",
       "wrongInterpretations": [
-        "Направление ветвей определяется знаком b.",
-        "При a < 0 ветви направлены вверх."
+        "A(x) ≠ 0",
+        "B(x) > 0"
       ]
     },
     {
-      "id": "g9-1-3",
-      "title": "Абсцисса вершины параболы",
-      "formula": "x0 = -b/(2a)",
-      "correctInterpretation": "Это x-координата вершины параболы.",
+      "id": "g9-04",
+      "title": "ОДЗ корня",
+      "formula": "f(x) ≥ 0 для √f(x)",
+      "correctInterpretation": "f(x) ≥ 0 для √f(x)",
       "wrongInterpretations": [
-        "x0 = b/(2a)",
-        "x0 всегда является корнем квадратного уравнения."
+        "f(x) > 0 обязательно",
+        "f(x) ≠ 0"
       ]
     },
     {
-      "id": "g9-2-1",
-      "title": "Дробь",
-      "formula": "A(x)/B(x), B(x) ≠ 0",
-      "correctInterpretation": "Знаменатель дроби не может быть равен нулю.",
-      "wrongInterpretations": [
-        "Числитель не может быть равен нулю.",
-        "Знаменатель обязательно должен быть положительным."
-      ]
-    },
-    {
-      "id": "g9-2-2",
-      "title": "Корень четной степени",
-      "formula": "√(f(x)) определен при f(x) ≥ 0",
-      "correctInterpretation": "Подкоренное выражение квадратного корня должно быть неотрицательным.",
-      "wrongInterpretations": [
-        "f(x) > 0 обязательно.",
-        "Достаточно f(x) ≠ 0."
-      ]
-    },
-    {
-      "id": "g9-3-1",
+      "id": "g9-05",
       "title": "Метод интервалов",
-      "formula": "Найти нули числителя и знаменателя → отметить критические точки → определить знак на каждом промежутке → выбрать нужные интервалы.",
-      "correctInterpretation": "Критические точки делят числовую прямую на промежутки постоянного знака.",
+      "formula": "критические точки → знаки промежутков → выбор интервалов",
+      "correctInterpretation": "критические точки → знаки промежутков → выбор интервалов",
       "wrongInterpretations": [
-        "Ответом являются только найденные корни.",
-        "Между любыми соседними корнями выражение обязательно положительно."
+        "ответ — только критические точки",
+        "между корнями знак всегда положительный"
       ]
     },
     {
-      "id": "g9-4-1",
-      "title": "Тангенс",
-      "formula": "tan α = противолежащий катет / прилежащий катет",
-      "correctInterpretation": "Тангенс острого угла прямоугольного треугольника — отношение противолежащего катета к прилежащему.",
+      "id": "g9-06",
+      "title": "Синус угла",
+      "formula": "sin α = противолежащий/гипотенуза",
+      "correctInterpretation": "sin α = противолежащий/гипотенуза",
       "wrongInterpretations": [
-        "tan α = прилежащий / противолежащий",
-        "tan α = гипотенуза / прилежащий"
+        "sin α = прилежащий/гипотенуза",
+        "sin α = гипотенуза/противолежащий"
       ]
     },
     {
-      "id": "g9-4-2",
-      "title": "Синус",
-      "formula": "sin α = противолежащий катет / гипотенуза",
-      "correctInterpretation": "Синус острого угла — отношение противолежащего катета к гипотенузе.",
+      "id": "g9-07",
+      "title": "Косинус угла",
+      "formula": "cos α = прилежащий/гипотенуза",
+      "correctInterpretation": "cos α = прилежащий/гипотенуза",
       "wrongInterpretations": [
-        "sin α = прилежащий / гипотенуза",
-        "sin α = гипотенуза / противолежащий"
+        "cos α = противолежащий/гипотенуза",
+        "cos α = гипотенуза/прилежащий"
       ]
     },
     {
-      "id": "g9-4-3",
-      "title": "Косинус",
-      "formula": "cos α = прилежащий катет / гипотенуза",
-      "correctInterpretation": "Косинус острого угла — отношение прилежащего катета к гипотенузе.",
+      "id": "g9-08",
+      "title": "Тангенс угла",
+      "formula": "tan α = противолежащий/прилежащий",
+      "correctInterpretation": "tan α = противолежащий/прилежащий",
       "wrongInterpretations": [
-        "cos α = противолежащий / гипотенуза",
-        "cos α = гипотенуза / прилежащий"
+        "tan α = прилежащий/противолежащий",
+        "tan α = гипотенуза/прилежащий"
       ]
     },
     {
-      "id": "g9-5-1",
-      "title": "Площадь по двум сторонам и углу",
-      "formula": "S = ab·sin γ / 2",
-      "correctInterpretation": "γ — угол между сторонами a и b.",
+      "id": "g9-09",
+      "title": "Площадь треугольника",
+      "formula": "S = ab·sinγ/2",
+      "correctInterpretation": "S = ab·sinγ/2",
       "wrongInterpretations": [
-        "Можно использовать любой угол треугольника.",
-        "S = ab·cos γ"
+        "S = ab·cosγ",
+        "S = ab·sinγ"
       ]
     },
     {
-      "id": "g9-5-2",
+      "id": "g9-10",
       "title": "Теорема косинусов",
-      "formula": "c² = a² + b² - 2ab·cos γ",
-      "correctInterpretation": "γ — угол между сторонами a и b, а сторона c лежит напротив него.",
+      "formula": "c² = a² + b² - 2ab·cosγ",
+      "correctInterpretation": "c² = a² + b² - 2ab·cosγ",
       "wrongInterpretations": [
-        "c² = a² + b² + 2ab·cos γ",
-        "Формула применима только к прямоугольным треугольникам."
+        "c² = a² + b² + 2ab·cosγ",
+        "c = a+b-2ab·cosγ"
       ]
     },
     {
-      "id": "g9-5-3",
+      "id": "g9-11",
       "title": "Теорема синусов",
-      "formula": "a/sin α = b/sin β = c/sin γ = 2R",
-      "correctInterpretation": "Каждая сторона сопоставляется углу, лежащему напротив нее.",
+      "formula": "a/sinα = b/sinβ = c/sinγ = 2R",
+      "correctInterpretation": "a/sinα = b/sinβ = c/sinγ = 2R",
       "wrongInterpretations": [
-        "Сторона сопоставляется прилегающему углу.",
-        "Общее отношение равно радиусу вписанной окружности r."
+        "a/cosα = b/cosβ = c/cosγ",
+        "a/sinα = b/sinβ = c/sinγ = R"
       ]
     },
     {
-      "id": "g9-5-4",
-      "title": "Площадь через радиус вписанной окружности",
-      "formula": "S = pr,\nгде p = (a + b + c)/2",
-      "correctInterpretation": "Площадь равна произведению полупериметра на радиус вписанной окружности.",
+      "id": "g9-12",
+      "title": "Вписанная окружность",
+      "formula": "S = pr",
+      "correctInterpretation": "S = pr",
       "wrongInterpretations": [
-        "S = (a + b + c)r",
-        "В этой формуле используется радиус описанной окружности R."
+        "S = (a+b+c)r",
+        "S = pR"
       ]
     },
     {
-      "id": "g9-5-5",
-      "title": "Радиус описанной окружности",
-      "formula": "R = a/(2 sin α)",
-      "correctInterpretation": "Сторона a должна лежать напротив угла α.",
+      "id": "g9-13",
+      "title": "Описанная окружность",
+      "formula": "R = a/(2sinα)",
+      "correctInterpretation": "R = a/(2sinα)",
       "wrongInterpretations": [
-        "R = a/sin α",
-        "R = 2 sin α / a"
+        "R = a/sinα",
+        "R = 2sinα/a"
       ]
     },
     {
-      "id": "g9-6-1",
-      "title": "Сумма внутренних углов выпуклого n-угольника",
-      "formula": "Sуглов = (n - 2)·180°",
-      "correctInterpretation": "Многоугольник можно разбить из одной вершины на n - 2 треугольника.",
+      "id": "g9-14",
+      "title": "Сумма углов",
+      "formula": "Σ = (n-2)·180°",
+      "correctInterpretation": "Σ = (n-2)·180°",
       "wrongInterpretations": [
-        "Sуглов = n·180°",
-        "Sуглов = (n - 1)·180°"
+        "Σ = n·180°",
+        "Σ = (n-1)·180°"
       ]
     },
     {
-      "id": "g9-6-2",
-      "title": "Внутренний угол правильного n-угольника",
-      "formula": "α = ((n - 2)·180°)/n",
-      "correctInterpretation": "Сумму внутренних углов делим на число равных углов n.",
+      "id": "g9-15",
+      "title": "Внутренний угол",
+      "formula": "α = ((n-2)·180°)/n",
+      "correctInterpretation": "α = ((n-2)·180°)/n",
       "wrongInterpretations": [
         "α = 360°/n",
-        "α = (n - 2)·180°"
+        "α = (n-2)·180°"
       ]
     },
     {
-      "id": "g9-6-3",
-      "title": "Центральный угол правильного n-угольника",
+      "id": "g9-16",
+      "title": "Центральный угол",
       "formula": "φ = 360°/n",
-      "correctInterpretation": "Полный оборот вокруг центра делится на n равных частей.",
+      "correctInterpretation": "φ = 360°/n",
       "wrongInterpretations": [
-        "Это всегда внутренний угол многоугольника.",
-        "φ = 180°/n"
+        "φ = 180°/n",
+        "φ = ((n-2)·180°)/n"
       ]
     }
   ],
   "10": [
     {
-      "id": "g10-1-1",
+      "id": "g10-01",
       "title": "Рациональная степень",
-      "formula": "a^(m/n) = n√(a^m)",
-      "correctInterpretation": "Знаменатель показателя задает степень корня, числитель — степень числа.",
+      "formula": "a^(m/n) = ⁿ√(a^m)",
+      "correctInterpretation": "a^(m/n) = ⁿ√(a^m)",
       "wrongInterpretations": [
-        "a^(m/n) = a^m / a^n",
-        "a^(m/n) = m√(a^n)"
+        "a^(m/n) = a^m/a^n",
+        "a^(m/n) = ᵐ√(a^n)"
       ]
     },
     {
-      "id": "g10-2-1",
+      "id": "g10-02",
       "title": "Радианная мера",
       "formula": "180° = π рад",
-      "correctInterpretation": "Полуоборот равен π радиан.",
+      "correctInterpretation": "180° = π рад",
       "wrongInterpretations": [
         "360° = π рад",
         "180° = 2π рад"
       ]
     },
     {
-      "id": "g10-2-2",
-      "title": "Перевод градусов в радианы",
-      "formula": "αрад = αград · π/180",
-      "correctInterpretation": "Чтобы перевести градусы в радианы, умножаем на π/180.",
-      "wrongInterpretations": [
-        "Умножаем на 180/π.",
-        "Делим только на π."
-      ]
-    },
-    {
-      "id": "g10-2-3",
-      "title": "Основное тригонометрическое тождество",
+      "id": "g10-03",
+      "title": "Основное тождество",
       "formula": "sin²x + cos²x = 1",
-      "correctInterpretation": "Сумма квадратов синуса и косинуса одного и того же аргумента равна 1.",
+      "correctInterpretation": "sin²x + cos²x = 1",
       "wrongInterpretations": [
         "sin x + cos x = 1",
         "sin²x - cos²x = 1"
       ]
     },
     {
-      "id": "g10-2-4",
+      "id": "g10-04",
       "title": "Тангенс",
-      "formula": "tan x = sin x / cos x, cos x ≠ 0",
-      "correctInterpretation": "Тангенс — отношение синуса к косинусу.",
+      "formula": "tan x = sin x/cos x",
+      "correctInterpretation": "tan x = sin x/cos x",
       "wrongInterpretations": [
-        "tan x = cos x / sin x",
+        "tan x = cos x/sin x",
         "tan x = sin x·cos x"
-      ]
+      ],
+      "conditions": "cos x ≠ 0"
     },
     {
-      "id": "g10-2-5",
+      "id": "g10-05",
       "title": "Котангенс",
-      "formula": "cot x = cos x / sin x, sin x ≠ 0",
-      "correctInterpretation": "Котангенс — отношение косинуса к синусу.",
+      "formula": "cot x = cos x/sin x",
+      "correctInterpretation": "cot x = cos x/sin x",
       "wrongInterpretations": [
-        "cot x = sin x / cos x",
+        "cot x = sin x/cos x",
         "cot x = tan x"
-      ]
+      ],
+      "conditions": "sin x ≠ 0"
     },
     {
-      "id": "g10-2-6",
+      "id": "g10-06",
       "title": "Синус суммы",
-      "formula": "sin(α + β) = sin α cos β + cos α sin β",
-      "correctInterpretation": "Синус суммы раскрывается перекрестными произведениями с плюсом.",
+      "formula": "sin(α+β) = sinαcosβ + cosαsinβ",
+      "correctInterpretation": "sin(α+β) = sinαcosβ + cosαsinβ",
       "wrongInterpretations": [
-        "sin(α + β) = sin α + sin β",
-        "sin(α + β) = sin α sin β + cos α cos β"
+        "sin(α+β) = sinα + sinβ",
+        "sin(α+β) = sinαsinβ + cosαcosβ"
       ]
     },
     {
-      "id": "g10-2-7",
+      "id": "g10-07",
       "title": "Синус разности",
-      "formula": "sin(α - β) = sin α cos β - cos α sin β",
-      "correctInterpretation": "Структура как у синуса суммы, но между произведениями стоит минус.",
+      "formula": "sin(α-β) = sinαcosβ - cosαsinβ",
+      "correctInterpretation": "sin(α-β) = sinαcosβ - cosαsinβ",
       "wrongInterpretations": [
-        "sin(α - β) = sin α - sin β",
-        "Знак всегда остается плюсом."
+        "sin(α-β) = sinα - sinβ",
+        "sin(α-β) = sinαcosβ + cosαsinβ"
       ]
     },
     {
-      "id": "g10-2-8",
+      "id": "g10-08",
       "title": "Косинус суммы",
-      "formula": "cos(α + β) = cos α cos β - sin α sin β",
-      "correctInterpretation": "Для косинуса суммы между произведениями стоит минус.",
+      "formula": "cos(α+β) = cosαcosβ - sinαsinβ",
+      "correctInterpretation": "cos(α+β) = cosαcosβ - sinαsinβ",
       "wrongInterpretations": [
-        "cos(α + β) = cos α + cos β",
-        "cos(α + β) = cos α cos β + sin α sin β"
+        "cos(α+β) = cosα + cosβ",
+        "cos(α+β) = cosαcosβ + sinαsinβ"
       ]
     },
     {
-      "id": "g10-2-9",
+      "id": "g10-09",
       "title": "Косинус разности",
-      "formula": "cos(α - β) = cos α cos β + sin α sin β",
-      "correctInterpretation": "Для косинуса разности между произведениями стоит плюс.",
+      "formula": "cos(α-β) = cosαcosβ + sinαsinβ",
+      "correctInterpretation": "cos(α-β) = cosαcosβ + sinαsinβ",
       "wrongInterpretations": [
-        "cos(α - β) = cos α - cos β",
-        "Между произведениями обязательно минус."
+        "cos(α-β) = cosα - cosβ",
+        "cos(α-β) = cosαcosβ - sinαsinβ"
       ]
     },
     {
-      "id": "g10-2-10",
-      "title": "Синус двойного угла",
-      "formula": "sin 2x = 2 sin x cos x",
-      "correctInterpretation": "Синус удвоенного угла равен удвоенному произведению синуса и косинуса исходного угла.",
+      "id": "g10-10",
+      "title": "Синус 2x",
+      "formula": "sin2x = 2sinx·cosx",
+      "correctInterpretation": "sin2x = 2sinx·cosx",
       "wrongInterpretations": [
-        "sin 2x = 2 sin x",
-        "sin 2x = sin²x"
+        "sin2x = 2sinx",
+        "sin2x = sin²x"
       ]
     },
     {
-      "id": "g10-2-11",
-      "title": "Косинус двойного угла",
-      "formula": "cos 2x = cos²x - sin²x\ncos 2x = 2cos²x - 1\ncos 2x = 1 - 2sin²x",
-      "correctInterpretation": "Все три формулы равносильны.",
+      "id": "g10-11",
+      "title": "Косинус 2x",
+      "formula": "cos2x = cos²x - sin²x",
+      "correctInterpretation": "cos2x = cos²x - sin²x",
       "wrongInterpretations": [
-        "cos 2x = cos²x + sin²x",
-        "cos 2x = 2cos x"
+        "cos2x = cos²x + sin²x",
+        "cos2x = 2cosx"
       ]
     },
     {
-      "id": "g10-3-1",
+      "id": "g10-12",
       "title": "Определение логарифма",
-      "formula": "log_a b = c  ⇔  a^c = b\n\nУсловия:\na > 0, a ≠ 1, b > 0",
-      "correctInterpretation": "Логарифм показывает, в какую степень нужно возвести основание a, чтобы получить b.",
+      "formula": "log_a b = c ⇔ a^c = b",
+      "correctInterpretation": "log_a b = c ⇔ a^c = b",
       "wrongInterpretations": [
-        "Логарифм показывает, во сколько раз a больше b.",
-        "log_a b = a^b"
-      ]
+        "log_a b = a^b",
+        "log_a b = b/a"
+      ],
+      "conditions": "a > 0, a ≠ 1, b > 0"
     },
     {
-      "id": "g10-3-2",
+      "id": "g10-13",
       "title": "Логарифм произведения",
       "formula": "log_a(xy) = log_a x + log_a y",
-      "correctInterpretation": "Произведение внутри логарифма превращается в сумму логарифмов.",
+      "correctInterpretation": "log_a(xy) = log_a x + log_a y",
       "wrongInterpretations": [
-        "log_a(x + y) = log_a x + log_a y",
-        "log_a(xy) = log_a x · log_a y"
+        "log_a(xy) = log_a x·log_a y",
+        "log_a(x+y) = log_a x + log_a y"
       ]
     },
     {
-      "id": "g10-3-3",
+      "id": "g10-14",
       "title": "Логарифм частного",
       "formula": "log_a(x/y) = log_a x - log_a y",
-      "correctInterpretation": "Деление внутри логарифма превращается в вычитание логарифмов.",
+      "correctInterpretation": "log_a(x/y) = log_a x - log_a y",
       "wrongInterpretations": [
-        "log_a(x/y) = log_a x / log_a y",
+        "log_a(x/y) = log_a x/log_a y",
         "log_a(x/y) = log_a x + log_a y"
       ]
     },
     {
-      "id": "g10-3-4",
+      "id": "g10-15",
       "title": "Логарифм степени",
       "formula": "log_a(x^n) = n·log_a x",
-      "correctInterpretation": "Показатель степени можно вынести перед логарифмом.",
+      "correctInterpretation": "log_a(x^n) = n·log_a x",
       "wrongInterpretations": [
         "log_a(x^n) = (log_a x)^n",
         "log_a(x^n) = (1/n)log_a x"
       ]
     },
     {
-      "id": "g10-3-5",
-      "title": "Базовые значения логарифмов",
-      "formula": "log_a 1 = 0\nlog_a a = 1",
-      "correctInterpretation": "a^0 = 1, а a^1 = a.",
+      "id": "g10-16",
+      "title": "Базовые логарифмы",
+      "formula": "log_a1 = 0; log_a a = 1",
+      "correctInterpretation": "log_a1 = 0; log_a a = 1",
       "wrongInterpretations": [
-        "log_a 1 = 1",
+        "log_a1 = 1",
         "log_a a = 0"
       ]
     },
     {
-      "id": "g10-3-6",
-      "title": "Десятичный и натуральный логарифмы",
-      "formula": "lg x = log_10 x\nln x = log_e x",
-      "correctInterpretation": "lg — логарифм по основанию 10, ln — по основанию e ≈ 2,71828.",
+      "id": "g10-17",
+      "title": "Показательная монотонность",
+      "formula": "a^f > a^g ⇔ f > g при a > 1; f < g при 0 < a < 1",
+      "correctInterpretation": "a^f > a^g ⇔ f > g при a > 1; f < g при 0 < a < 1",
       "wrongInterpretations": [
-        "ln x = log_10 x",
-        "e = 3,14"
+        "знак всегда сохраняется",
+        "знак всегда меняется"
       ]
     },
     {
-      "id": "g10-4-1",
-      "title": "Показательное уравнение с одинаковыми основаниями",
-      "formula": "a^(f(x)) = a^(g(x))  ⇔  f(x) = g(x), a > 0, a ≠ 1",
-      "correctInterpretation": "Одинаковая показательная функция принимает одинаковые значения при одинаковых показателях.",
+      "id": "g10-18",
+      "title": "Логарифмическая монотонность",
+      "formula": "log_a f > log_a g ⇔ f > g при a > 1; f < g при 0 < a < 1",
+      "correctInterpretation": "log_a f > log_a g ⇔ f > g при a > 1; f < g при 0 < a < 1",
       "wrongInterpretations": [
-        "Нужно перемножить показатели.",
-        "f(x) = -g(x)"
-      ]
+        "знак всегда сохраняется",
+        "основание не влияет"
+      ],
+      "conditions": "f > 0, g > 0"
     },
     {
-      "id": "g10-4-2",
-      "title": "Логарифмическое уравнение",
-      "formula": "log_a f(x) = log_a g(x)  ⇔  f(x) = g(x)\n\nУсловия:\nf(x) > 0, g(x) > 0, a > 0, a ≠ 1",
-      "correctInterpretation": "При одинаковом основании можно приравнять аргументы, но ОДЗ обязательно.",
-      "wrongInterpretations": [
-        "ОДЗ не требуется.",
-        "Аргументы могут быть равны нулю."
-      ]
-    },
-    {
-      "id": "g10-5-1",
-      "title": "Показательное неравенство при a > 1",
-      "formula": "a^(f(x)) > a^(g(x))  ⇔  f(x) > g(x)",
-      "correctInterpretation": "Показательная функция с основанием больше 1 возрастает, поэтому знак сохраняется.",
-      "wrongInterpretations": [
-        "Знак всегда меняется.",
-        "Основание можно игнорировать при любом a."
-      ]
-    },
-    {
-      "id": "g10-5-2",
-      "title": "Показательное неравенство при 0 < a < 1",
-      "formula": "a^(f(x)) > a^(g(x))  ⇔  f(x) < g(x)",
-      "correctInterpretation": "Показательная функция убывает, поэтому знак меняется.",
-      "wrongInterpretations": [
-        "Знак сохраняется.",
-        "Чем больше показатель, тем всегда больше значение степени."
-      ]
-    },
-    {
-      "id": "g10-5-3",
-      "title": "Логарифмическое неравенство при a > 1",
-      "formula": "log_a f(x) > log_a g(x)  ⇔  f(x) > g(x)\n\nУсловия:\nf(x) > 0, g(x) > 0",
-      "correctInterpretation": "Логарифмическая функция с основанием больше 1 возрастает.",
-      "wrongInterpretations": [
-        "Знак обязательно меняется.",
-        "Аргументы могут быть отрицательными."
-      ]
-    },
-    {
-      "id": "g10-5-4",
-      "title": "Логарифмическое неравенство при 0 < a < 1",
-      "formula": "log_a f(x) > log_a g(x)  ⇔  f(x) < g(x)",
-      "correctInterpretation": "Логарифмическая функция с таким основанием убывает.",
-      "wrongInterpretations": [
-        "Знак сохраняется.",
-        "Основание логарифма не влияет на решение."
-      ]
-    },
-    {
-      "id": "g10-6-1",
+      "id": "g10-19",
       "title": "Обратная функция",
-      "formula": "f^(-1)(f(x)) = x",
-      "correctInterpretation": "Обратная функция отменяет действие исходной на соответствующих областях.",
+      "formula": "f⁻¹(f(x)) = x",
+      "correctInterpretation": "f⁻¹(f(x)) = x",
       "wrongInterpretations": [
-        "f^(-1)(x) = 1/f(x)",
-        "f^(-1)(x) = -f(x)"
+        "f⁻¹(x) = 1/f(x)",
+        "f⁻¹(x) = -f(x)"
       ]
     },
     {
-      "id": "g10-6-2",
+      "id": "g10-20",
       "title": "Вертикальный перенос",
-      "formula": "y = f(x) + b",
-      "correctInterpretation": "При b > 0 график сдвигается вверх на b.",
+      "formula": "y = f(x)+b",
+      "correctInterpretation": "y = f(x)+b",
       "wrongInterpretations": [
-        "График сдвигается вправо на b.",
-        "При b > 0 график сдвигается вниз."
+        "y = f(x-b)",
+        "y = f(x)-b"
       ]
     },
     {
-      "id": "g10-6-3",
+      "id": "g10-21",
       "title": "Горизонтальный перенос",
-      "formula": "y = f(x - a)",
-      "correctInterpretation": "При a > 0 график сдвигается вправо на a.",
+      "formula": "y = f(x-a)",
+      "correctInterpretation": "y = f(x-a)",
       "wrongInterpretations": [
-        "График сдвигается влево на a.",
-        "График сдвигается вверх на a."
+        "y = f(x+a) для сдвига вправо на a",
+        "y = f(x)+a"
       ]
     },
     {
-      "id": "g10-6-4",
-      "title": "Симметрия относительно Ox",
+      "id": "g10-22",
+      "title": "Симметрия Ox",
       "formula": "y = -f(x)",
-      "correctInterpretation": "Все y-координаты меняют знак.",
+      "correctInterpretation": "y = -f(x)",
       "wrongInterpretations": [
-        "Это симметрия относительно Oy.",
-        "Это обычный вертикальный перенос."
+        "y = f(-x)",
+        "y = f(x)-1"
       ]
     },
     {
-      "id": "g10-6-5",
-      "title": "Симметрия относительно Oy",
+      "id": "g10-23",
+      "title": "Симметрия Oy",
       "formula": "y = f(-x)",
-      "correctInterpretation": "Все x-координаты меняют знак.",
+      "correctInterpretation": "y = f(-x)",
       "wrongInterpretations": [
         "y = -f(x)",
-        "Функция просто становится отрицательной."
+        "y = f(x+1)"
       ]
     },
     {
-      "id": "g10-6-6",
-      "title": "Четная функция",
+      "id": "g10-24",
+      "title": "Чётная функция",
       "formula": "f(-x) = f(x)",
-      "correctInterpretation": "График симметричен относительно оси Oy.",
+      "correctInterpretation": "f(-x) = f(x)",
       "wrongInterpretations": [
-        "График симметричен относительно Ox.",
-        "f(-x) = -f(x)"
+        "f(-x) = -f(x)",
+        "f(x) = -f(x)"
       ]
     },
     {
-      "id": "g10-6-7",
-      "title": "Нечетная функция",
+      "id": "g10-25",
+      "title": "Нечётная функция",
       "formula": "f(-x) = -f(x)",
-      "correctInterpretation": "График симметричен относительно начала координат.",
+      "correctInterpretation": "f(-x) = -f(x)",
       "wrongInterpretations": [
-        "График симметричен относительно Oy.",
-        "Нечетная функция обязательно принимает только отрицательные значения."
+        "f(-x) = f(x)",
+        "f(-x) = 1/f(x)"
       ]
     },
     {
-      "id": "g10-6-8",
-      "title": "Периодичность",
-      "formula": "f(x + T) = f(x)",
-      "correctInterpretation": "Значения функции повторяются через период T.",
+      "id": "g10-26",
+      "title": "Периодическая функция",
+      "formula": "f(x+T) = f(x)",
+      "correctInterpretation": "f(x+T) = f(x)",
       "wrongInterpretations": [
-        "f(x) + T = f(x)",
-        "Периодическая функция обязательно постоянна."
+        "f(x)+T = f(x)",
+        "f(Tx) = f(x)"
       ]
     },
     {
-      "id": "g10-6-9",
-      "title": "Периоды базовых тригонометрических функций",
-      "formula": "T(sin x) = 2π\nT(cos x) = 2π\nT(tan x) = π",
-      "correctInterpretation": "Синус и косинус повторяются через 2π, тангенс — через π.",
+      "id": "g10-27",
+      "title": "Перпендикулярность плоскости",
+      "formula": "a ⟂ b и a ⟂ c, где b,c пересекаются в α ⇒ a ⟂ α",
+      "correctInterpretation": "a ⟂ b и a ⟂ c, где b,c пересекаются в α ⇒ a ⟂ α",
       "wrongInterpretations": [
-        "У всех трех функций период π.",
-        "У тангенса период 2π является наименьшим положительным периодом."
+        "достаточно a ⟂ одной прямой плоскости",
+        "любая пересекающая плоскость прямая перпендикулярна ей"
       ]
     },
     {
-      "id": "g10-7-1",
-      "title": "Признак перпендикулярности прямой и плоскости",
-      "formula": "Если прямая a перпендикулярна двум пересекающимся прямым b и c, лежащим в плоскости α, то a ⟂ α.",
-      "correctInterpretation": "Для доказательства перпендикулярности прямой плоскости достаточно проверить две пересекающиеся прямые этой плоскости.",
+      "id": "g10-28",
+      "title": "Параллельность плоскости",
+      "formula": "a ∥ b, b ⊂ α, a ⊄ α ⇒ a ∥ α",
+      "correctInterpretation": "a ∥ b, b ⊂ α, a ⊄ α ⇒ a ∥ α",
       "wrongInterpretations": [
-        "Достаточно перпендикулярности одной любой прямой плоскости.",
-        "Любая прямая, пересекающая плоскость, перпендикулярна ей."
+        "любая непересекающая одну прямую плоскости прямая параллельна плоскости",
+        "пересекающая плоскость прямая параллельна ей"
       ]
     },
     {
-      "id": "g10-7-2",
-      "title": "Параллельность прямой и плоскости",
-      "formula": "Если a ∥ b, b лежит в плоскости α, а прямая a не лежит в α, то при выполнении признака a ∥ α.",
-      "correctInterpretation": "Параллельность прямой плоскости доказывают через параллельность прямой некоторой прямой, лежащей в этой плоскости.",
-      "wrongInterpretations": [
-        "Достаточно, чтобы a не пересекала одну выбранную прямую плоскости.",
-        "Прямая, пересекающая плоскость, параллельна ей."
-      ]
-    },
-    {
-      "id": "g10-8-1",
-      "title": "Объем призмы",
+      "id": "g10-29",
+      "title": "Объём призмы",
       "formula": "V = Sосн·h",
-      "correctInterpretation": "Объем призмы равен площади основания, умноженной на высоту.",
+      "correctInterpretation": "V = Sосн·h",
       "wrongInterpretations": [
-        "V = (1/3)Sосн·h",
+        "V = Sосн·h/3",
         "V = Sосн + h"
       ]
     },
     {
-      "id": "g10-8-2",
-      "title": "Боковая поверхность прямой призмы",
+      "id": "g10-30",
+      "title": "Боковая поверхность",
       "formula": "Sбок = Pосн·h",
-      "correctInterpretation": "Периметр основания умножается на высоту.",
+      "correctInterpretation": "Sбок = Pосн·h",
       "wrongInterpretations": [
         "Sбок = Sосн·h",
         "Sбок = Pосн·Sосн"
       ]
     },
     {
-      "id": "g10-8-3",
-      "title": "Объем прямоугольного параллелепипеда",
+      "id": "g10-31",
+      "title": "Объём параллелепипеда",
       "formula": "V = abc",
-      "correctInterpretation": "Объем равен произведению трех измерений.",
+      "correctInterpretation": "V = abc",
       "wrongInterpretations": [
-        "V = ab + bc + ac",
+        "V = ab+bc+ac",
         "V = 2abc"
       ]
     },
     {
-      "id": "g10-8-4",
-      "title": "Площадь полной поверхности прямоугольного параллелепипеда",
-      "formula": "Sполн = 2(ab + bc + ac)",
-      "correctInterpretation": "Учитываются все шесть прямоугольных граней.",
+      "id": "g10-32",
+      "title": "Полная поверхность",
+      "formula": "S = 2(ab+bc+ac)",
+      "correctInterpretation": "S = 2(ab+bc+ac)",
       "wrongInterpretations": [
-        "Sполн = ab + bc + ac",
-        "Sполн = abc"
+        "S = ab+bc+ac",
+        "S = abc"
       ]
     },
     {
-      "id": "g10-8-5",
-      "title": "Пространственная диагональ прямоугольного параллелепипеда",
-      "formula": "d = √(a² + b² + c²)",
-      "correctInterpretation": "Это пространственный аналог теоремы Пифагора.",
+      "id": "g10-33",
+      "title": "Диагональ параллелепипеда",
+      "formula": "d = √(a²+b²+c²)",
+      "correctInterpretation": "d = √(a²+b²+c²)",
       "wrongInterpretations": [
-        "d = a + b + c",
-        "d = √(ab + bc + ac)"
+        "d = a+b+c",
+        "d = √(ab+bc+ac)"
       ]
     },
     {
-      "id": "g10-8-6",
-      "title": "Объем куба",
+      "id": "g10-34",
+      "title": "Объём куба",
       "formula": "V = a³",
-      "correctInterpretation": "Все три измерения куба равны a.",
+      "correctInterpretation": "V = a³",
       "wrongInterpretations": [
         "V = a²",
         "V = 6a³"
       ]
     },
     {
-      "id": "g10-8-7",
-      "title": "Полная поверхность куба",
-      "formula": "Sполн = 6a²",
-      "correctInterpretation": "У куба шесть квадратных граней площади a².",
+      "id": "g10-35",
+      "title": "Поверхность куба",
+      "formula": "S = 6a²",
+      "correctInterpretation": "S = 6a²",
       "wrongInterpretations": [
-        "Sполн = 4a²",
-        "Sполн = 6a"
+        "S = 4a²",
+        "S = 6a"
       ]
     },
     {
-      "id": "g10-8-8",
+      "id": "g10-36",
       "title": "Диагональ куба",
       "formula": "d = a√3",
-      "correctInterpretation": "Это диагональ, соединяющая противоположные вершины куба через его внутреннее пространство.",
+      "correctInterpretation": "d = a√3",
       "wrongInterpretations": [
-        "d = a√2 — это диагональ грани.",
+        "d = a√2",
         "d = 3a"
       ]
     },
     {
-      "id": "g10-8-9",
-      "title": "Объем пирамиды",
-      "formula": "V = (1/3)Sосн·h",
-      "correctInterpretation": "Пирамида занимает треть объема призмы с тем же основанием и высотой.",
+      "id": "g10-37",
+      "title": "Объём пирамиды",
+      "formula": "V = Sосн·h/3",
+      "correctInterpretation": "V = Sосн·h/3",
       "wrongInterpretations": [
         "V = Sосн·h",
-        "V = (1/2)Sосн·h"
+        "V = Sосн·h/2"
       ]
     },
     {
-      "id": "g10-8-10",
-      "title": "Боковая поверхность правильной пирамиды",
-      "formula": "Sбок = (1/2)Pосн·l",
-      "correctInterpretation": "l — апофема правильной пирамиды.",
+      "id": "g10-38",
+      "title": "Боковая поверхность",
+      "formula": "Sбок = Pосн·l/2",
+      "correctInterpretation": "Sбок = Pосн·l/2",
       "wrongInterpretations": [
-        "Вместо апофемы всегда можно использовать высоту пирамиды.",
-        "Sбок = Pосн·l"
+        "Sбок = Pосн·l",
+        "Sбок = Pосн·h/2"
       ]
     }
   ],
   "11": [
     {
-      "id": "g11-1-1",
+      "id": "g11-01",
       "title": "Определение производной",
-      "formula": "f'(x) = lim(Δx→0) [f(x + Δx) - f(x)]/Δx",
-      "correctInterpretation": "Производная показывает мгновенную скорость изменения функции.",
+      "formula": "f'(x) = lim(Δx→0)[f(x+Δx)-f(x)]/Δx",
+      "correctInterpretation": "f'(x) = lim(Δx→0)[f(x+Δx)-f(x)]/Δx",
       "wrongInterpretations": [
-        "Производная равна значению самой функции.",
-        "f'(x) = f(x)/x для любой функции."
+        "f'(x) = f(x)/x",
+        "f'(x) = f(x+1)-f(x)"
       ]
     },
     {
-      "id": "g11-1-2",
-      "title": "Геометрический смысл производной",
-      "formula": "f'(x0) = kкас = tan α",
-      "correctInterpretation": "Производная в точке равна угловому коэффициенту касательной и тангенсу угла ее наклона к положительному направлению оси Ox.",
+      "id": "g11-02",
+      "title": "Геометрический смысл",
+      "formula": "f'(x₀) = kкас = tanα",
+      "correctInterpretation": "f'(x₀) = kкас = tanα",
       "wrongInterpretations": [
-        "Производная равна y-координате точки.",
-        "Производная равна самому углу α, а не tan α."
+        "f'(x₀) = α",
+        "f'(x₀) = f(x₀)"
       ]
     },
     {
-      "id": "g11-1-3",
-      "title": "Физический смысл производной",
+      "id": "g11-03",
+      "title": "Физический смысл",
       "formula": "v(t) = s'(t)",
-      "correctInterpretation": "Производная координаты или пути по времени дает мгновенную скорость.",
+      "correctInterpretation": "v(t) = s'(t)",
       "wrongInterpretations": [
-        "v = s·t",
-        "s'(t) всегда является ускорением."
+        "v(t) = s(t)·t",
+        "v(t) = s''(t)"
       ]
     },
     {
-      "id": "g11-1-4",
+      "id": "g11-04",
       "title": "Ускорение",
       "formula": "a(t) = v'(t) = s''(t)",
-      "correctInterpretation": "Ускорение — производная скорости и вторая производная координаты по времени.",
+      "correctInterpretation": "a(t) = v'(t) = s''(t)",
       "wrongInterpretations": [
         "a(t) = s'(t)",
         "a(t) = s²(t)"
       ]
     },
     {
-      "id": "g11-2-1",
+      "id": "g11-05",
       "title": "Уравнение касательной",
-      "formula": "y = f(x0) + f'(x0)(x - x0)",
-      "correctInterpretation": "Касательная проходит через точку (x0; f(x0)) и имеет угловой коэффициент f'(x0).",
+      "formula": "y = f(x₀) + f'(x₀)(x-x₀)",
+      "correctInterpretation": "y = f(x₀) + f'(x₀)(x-x₀)",
       "wrongInterpretations": [
-        "y = f'(x0) + f(x0)(x - x0)",
-        "y = f(x0)(x - x0)"
+        "y = f'(x₀) + f(x₀)(x-x₀)",
+        "y = f(x₀)(x-x₀)"
       ]
     },
     {
-      "id": "g11-3-1",
+      "id": "g11-06",
       "title": "Производная суммы",
-      "formula": "(u + v)' = u' + v'",
-      "correctInterpretation": "Производная суммы равна сумме производных.",
+      "formula": "(u+v)' = u' + v'",
+      "correctInterpretation": "(u+v)' = u' + v'",
       "wrongInterpretations": [
-        "(u + v)' = u'v'",
-        "Берется производная только первого слагаемого."
+        "(u+v)' = u'v'",
+        "(u+v)' = u'"
       ]
     },
     {
-      "id": "g11-3-2",
+      "id": "g11-07",
       "title": "Производная произведения",
       "formula": "(uv)' = u'v + uv'",
-      "correctInterpretation": "Нужно продифференцировать по очереди каждый множитель, оставляя второй неизменным.",
+      "correctInterpretation": "(uv)' = u'v + uv'",
       "wrongInterpretations": [
         "(uv)' = u'v'",
         "(uv)' = u'v"
       ]
     },
     {
-      "id": "g11-3-3",
+      "id": "g11-08",
       "title": "Производная частного",
-      "formula": "(u/v)' = (u'v - uv')/v²",
-      "correctInterpretation": "Производная числителя умножается на знаменатель, затем вычитается числитель, умноженный на производную знаменателя; все делится на квадрат знаменателя.",
+      "formula": "(u/v)' = (u'v-uv')/v²",
+      "correctInterpretation": "(u/v)' = (u'v-uv')/v²",
       "wrongInterpretations": [
         "(u/v)' = u'/v'",
-        "В числителе всегда ставится плюс."
+        "(u/v)' = (u'v+uv')/v²"
       ]
     },
     {
-      "id": "g11-4-1",
-      "title": "Постоянная",
+      "id": "g11-09",
+      "title": "Производная константы",
       "formula": "(C)' = 0",
-      "correctInterpretation": "Постоянная величина не изменяется.",
+      "correctInterpretation": "(C)' = 0",
       "wrongInterpretations": [
         "(C)' = C",
         "(C)' = 1"
       ]
     },
     {
-      "id": "g11-4-2",
-      "title": "Степенная функция",
+      "id": "g11-10",
+      "title": "Степенная производная",
       "formula": "(x^n)' = n·x^(n-1)",
-      "correctInterpretation": "Показатель выносим вперед и уменьшаем степень на 1.",
+      "correctInterpretation": "(x^n)' = n·x^(n-1)",
       "wrongInterpretations": [
         "(x^n)' = x^(n-1)",
         "(x^n)' = n·x^n"
       ]
     },
     {
-      "id": "g11-4-3",
-      "title": "Синус",
+      "id": "g11-11",
+      "title": "Производная синуса",
       "formula": "(sin x)' = cos x",
-      "correctInterpretation": "Производная синуса равна косинусу.",
+      "correctInterpretation": "(sin x)' = cos x",
       "wrongInterpretations": [
         "(sin x)' = -cos x",
         "(sin x)' = sin x"
       ]
     },
     {
-      "id": "g11-4-4",
-      "title": "Косинус",
+      "id": "g11-12",
+      "title": "Производная косинуса",
       "formula": "(cos x)' = -sin x",
-      "correctInterpretation": "При дифференцировании косинуса появляется минус.",
+      "correctInterpretation": "(cos x)' = -sin x",
       "wrongInterpretations": [
         "(cos x)' = sin x",
         "(cos x)' = -cos x"
       ]
     },
     {
-      "id": "g11-4-5",
-      "title": "Экспонента",
+      "id": "g11-13",
+      "title": "Производная экспоненты",
       "formula": "(e^x)' = e^x",
-      "correctInterpretation": "Экспонента с основанием e совпадает со своей производной.",
+      "correctInterpretation": "(e^x)' = e^x",
       "wrongInterpretations": [
         "(e^x)' = x·e^(x-1)",
         "(e^x)' = 1/e^x"
       ]
     },
     {
-      "id": "g11-4-6",
-      "title": "Натуральный логарифм",
-      "formula": "(ln x)' = 1/x, x > 0",
-      "correctInterpretation": "Производная натурального логарифма равна обратной величине аргумента.",
+      "id": "g11-14",
+      "title": "Производная логарифма",
+      "formula": "(ln x)' = 1/x",
+      "correctInterpretation": "(ln x)' = 1/x",
       "wrongInterpretations": [
         "(ln x)' = ln x",
         "(ln x)' = x"
-      ]
+      ],
+      "conditions": "x > 0"
     },
     {
-      "id": "g11-5-1",
-      "title": "Возрастание",
+      "id": "g11-15",
+      "title": "Признак возрастания",
       "formula": "f'(x) > 0",
-      "correctInterpretation": "На таком промежутке функция возрастает.",
+      "correctInterpretation": "f'(x) > 0",
       "wrongInterpretations": [
-        "Функция обязательно положительна.",
-        "Функция убывает."
+        "f'(x) < 0",
+        "f(x) > 0"
       ]
     },
     {
-      "id": "g11-5-2",
-      "title": "Убывание",
+      "id": "g11-16",
+      "title": "Признак убывания",
       "formula": "f'(x) < 0",
-      "correctInterpretation": "На таком промежутке функция убывает.",
+      "correctInterpretation": "f'(x) < 0",
       "wrongInterpretations": [
-        "Функция обязательно отрицательна.",
-        "Функция возрастает."
+        "f'(x) > 0",
+        "f(x) < 0"
       ]
     },
     {
-      "id": "g11-5-3",
-      "title": "Необходимое условие внутреннего экстремума",
-      "formula": "f'(x0) = 0",
-      "correctInterpretation": "Для дифференцируемой функции внутренняя точка экстремума должна быть критической, но не всякая критическая точка является экстремумом.",
+      "id": "g11-17",
+      "title": "Критическая точка",
+      "formula": "f'(x₀) = 0",
+      "correctInterpretation": "f'(x₀) = 0",
       "wrongInterpretations": [
-        "Любое решение f'(x) = 0 автоматически является максимумом или минимумом.",
-        "Экстремум всегда находится из f(x) = 0."
+        "f(x₀) = 0",
+        "f''(x₀) = 0 обязательно"
       ]
     },
     {
-      "id": "g11-5-4",
+      "id": "g11-18",
       "title": "Признак минимума",
-      "formula": "f':  -  →  +",
-      "correctInterpretation": "Функция сначала убывает, затем возрастает, поэтому возникает локальный минимум.",
+      "formula": "f': − → +",
+      "correctInterpretation": "f': − → +",
       "wrongInterpretations": [
-        "Это локальный максимум.",
-        "Знак производной не имеет значения."
+        "f': + → −",
+        "f(x): − → +"
       ]
     },
     {
-      "id": "g11-5-5",
+      "id": "g11-19",
       "title": "Признак максимума",
-      "formula": "f':  +  →  -",
-      "correctInterpretation": "Функция сначала возрастает, затем убывает, поэтому возникает локальный максимум.",
+      "formula": "f': + → −",
+      "correctInterpretation": "f': + → −",
       "wrongInterpretations": [
-        "Это локальный минимум.",
-        "Максимум обязательно находится там, где f(x) = 0."
+        "f': − → +",
+        "f(x): + → −"
       ]
     },
     {
-      "id": "g11-6-1",
+      "id": "g11-20",
       "title": "Определение первообразной",
       "formula": "F'(x) = f(x)",
-      "correctInterpretation": "F является первообразной для f, если производная F равна f.",
+      "correctInterpretation": "F'(x) = f(x)",
       "wrongInterpretations": [
         "F(x) = f'(x)",
-        "Первообразная всегда единственная."
+        "F'(x) = F(x)"
       ]
     },
     {
-      "id": "g11-6-2",
-      "title": "Неопределенный интеграл",
-      "formula": "∫f(x)dx = F(x) + C",
-      "correctInterpretation": "Неопределенный интеграл — семейство всех первообразных.",
+      "id": "g11-21",
+      "title": "Неопределённый интеграл",
+      "formula": "∫f(x)dx = F(x)+C",
+      "correctInterpretation": "∫f(x)dx = F(x)+C",
       "wrongInterpretations": [
-        "Константу C можно всегда опускать.",
-        "Интеграл является производной функции."
+        "∫f(x)dx = F(x)",
+        "∫f(x)dx = f'(x)+C"
       ]
     },
     {
-      "id": "g11-6-3",
-      "title": "Интеграл степенной функции",
-      "formula": "∫x^n dx = x^(n+1)/(n+1) + C, n ≠ -1",
-      "correctInterpretation": "Степень увеличивается на 1, затем выражение делится на новую степень.",
+      "id": "g11-22",
+      "title": "Степенной интеграл",
+      "formula": "∫x^n dx = x^(n+1)/(n+1)+C",
+      "correctInterpretation": "∫x^n dx = x^(n+1)/(n+1)+C",
       "wrongInterpretations": [
-        "∫x^n dx = n·x^(n-1) + C",
-        "∫x^n dx = x^n/n + C"
-      ]
+        "∫x^n dx = n·x^(n-1)+C",
+        "∫x^n dx = x^n/n+C"
+      ],
+      "conditions": "n ≠ -1"
     },
     {
-      "id": "g11-6-4",
-      "title": "Интеграл 1/x",
-      "formula": "∫(1/x)dx = ln|x| + C",
-      "correctInterpretation": "Модуль нужен, потому что первообразная существует как ln|x| на промежутках x > 0 и x < 0.",
+      "id": "g11-23",
+      "title": "Логарифмический интеграл",
+      "formula": "∫dx/x = ln|x|+C",
+      "correctInterpretation": "∫dx/x = ln|x|+C",
       "wrongInterpretations": [
-        "∫(1/x)dx = 1/x² + C",
-        "∫(1/x)dx = x + C"
+        "∫dx/x = 1/x²+C",
+        "∫dx/x = x+C"
       ]
     },
     {
-      "id": "g11-6-5",
-      "title": "Формула Ньютона–Лейбница",
-      "formula": "∫[a;b] f(x)dx = F(b) - F(a)",
-      "correctInterpretation": "Сначала подставляется верхний предел, затем вычитается значение первообразной в нижнем пределе.",
+      "id": "g11-24",
+      "title": "Ньютон—Лейбниц",
+      "formula": "∫[a;b]f(x)dx = F(b)-F(a)",
+      "correctInterpretation": "∫[a;b]f(x)dx = F(b)-F(a)",
       "wrongInterpretations": [
-        "F(a) - F(b)",
-        "F(a) + F(b)"
+        "∫[a;b]f(x)dx = F(a)-F(b)",
+        "∫[a;b]f(x)dx = F(a)+F(b)"
       ]
     },
     {
-      "id": "g11-7-1",
-      "title": "Площадь под графиком неотрицательной функции",
-      "formula": "S = ∫[a;b] f(x)dx, если f(x) ≥ 0 на [a;b]",
-      "correctInterpretation": "Если функция неотрицательна, определенный интеграл равен геометрической площади под графиком.",
+      "id": "g11-25",
+      "title": "Площадь графика",
+      "formula": "S = ∫[a;b]f(x)dx",
+      "correctInterpretation": "S = ∫[a;b]f(x)dx",
       "wrongInterpretations": [
-        "S всегда равно f(b) - f(a).",
-        "Любой определенный интеграл автоматически является положительной площадью."
-      ]
+        "S = f(b)-f(a)",
+        "S = ∫[a;b]|f'(x)|dx"
+      ],
+      "conditions": "f(x) ≥ 0 на [a;b]"
     },
     {
-      "id": "g11-7-2",
-      "title": "Площадь между двумя графиками",
-      "formula": "S = ∫[a;b] (f(x) - g(x))dx, если f(x) ≥ g(x)",
-      "correctInterpretation": "Из верхней функции вычитается нижняя.",
+      "id": "g11-26",
+      "title": "Между графиками",
+      "formula": "S = ∫[a;b](f(x)-g(x))dx",
+      "correctInterpretation": "S = ∫[a;b](f(x)-g(x))dx",
       "wrongInterpretations": [
-        "Всегда нужно вычислять g(x) - f(x).",
-        "Функции необходимо перемножить."
-      ]
+        "S = ∫[a;b](g(x)-f(x))dx всегда",
+        "S = ∫[a;b]f(x)g(x)dx"
+      ],
+      "conditions": "f(x) ≥ g(x) на [a;b]"
     },
     {
-      "id": "g11-8-1",
-      "title": "Объем цилиндра",
+      "id": "g11-27",
+      "title": "Объём цилиндра",
       "formula": "V = πR²h",
-      "correctInterpretation": "Площадь круглого основания умножается на высоту.",
+      "correctInterpretation": "V = πR²h",
       "wrongInterpretations": [
         "V = 2πRh",
-        "V = (1/3)πR²h"
+        "V = πR²h/3"
       ]
     },
     {
-      "id": "g11-8-2",
-      "title": "Боковая поверхность цилиндра",
+      "id": "g11-28",
+      "title": "Боковая поверхность",
       "formula": "Sбок = 2πRh",
-      "correctInterpretation": "Развертка боковой поверхности — прямоугольник со сторонами 2πR и h.",
+      "correctInterpretation": "Sбок = 2πRh",
       "wrongInterpretations": [
         "Sбок = πR²h",
         "Sбок = πRh"
       ]
     },
     {
-      "id": "g11-8-3",
-      "title": "Полная поверхность цилиндра",
+      "id": "g11-29",
+      "title": "Полная поверхность",
       "formula": "Sполн = 2πRh + 2πR²",
-      "correctInterpretation": "Полная поверхность состоит из боковой поверхности и двух круглых оснований.",
+      "correctInterpretation": "Sполн = 2πRh + 2πR²",
       "wrongInterpretations": [
-        "Нужно добавить только одно основание.",
+        "Sполн = 2πRh + πR²",
         "Sполн = 2πRh"
       ]
     },
     {
-      "id": "g11-9-1",
-      "title": "Объем конуса",
-      "formula": "V = (1/3)πR²h",
-      "correctInterpretation": "Объем конуса равен одной трети произведения площади основания на высоту.",
+      "id": "g11-30",
+      "title": "Объём конуса",
+      "formula": "V = πR²h/3",
+      "correctInterpretation": "V = πR²h/3",
       "wrongInterpretations": [
         "V = πR²h",
-        "V = (1/2)πR²h"
+        "V = πR²h/2"
       ]
     },
     {
-      "id": "g11-9-2",
-      "title": "Образующая прямого конуса",
-      "formula": "l = √(R² + h²)",
-      "correctInterpretation": "Радиус основания, высота и образующая образуют прямоугольный треугольник.",
+      "id": "g11-31",
+      "title": "Образующая конуса",
+      "formula": "l = √(R²+h²)",
+      "correctInterpretation": "l = √(R²+h²)",
       "wrongInterpretations": [
-        "l = R + h",
-        "l = √(R² - h²)"
+        "l = R+h",
+        "l = √(R²-h²)"
       ]
     },
     {
-      "id": "g11-9-3",
-      "title": "Боковая поверхность конуса",
+      "id": "g11-32",
+      "title": "Боковая поверхность",
       "formula": "Sбок = πRl",
-      "correctInterpretation": "Используются радиус основания R и образующая l.",
+      "correctInterpretation": "Sбок = πRl",
       "wrongInterpretations": [
         "Sбок = πRh",
         "Sбок = 2πRl"

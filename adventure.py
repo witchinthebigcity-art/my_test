@@ -61,7 +61,7 @@ FORMULA_SOURCE_PATH = Path(__file__).with_name("formula_tower.json")
 FORMULA_ROUND_SIZE = 10
 FORMULA_MAX_MISTAKES = 4
 FORMULA_REWARD_PER_CORRECT = 50
-FORMULA_ROUND_VERSION = 2
+FORMULA_ROUND_VERSION = 3
 
 
 with FORMULA_SOURCE_PATH.open(encoding="utf-8") as formula_source:
@@ -90,7 +90,7 @@ def build_formula_round(grade, seed=None):
         challenge_id = source["id"]
         option_rows = [{
             "id": "{}:correct".format(challenge_id),
-            "text": source["correctInterpretation"],
+            "text": source["formula"],
         }]
         option_rows.extend({
             "id": "{}:wrong:{}".format(challenge_id, index),
@@ -100,8 +100,9 @@ def build_formula_round(grade, seed=None):
         result.append({
             "id": challenge_id,
             "prompt": source["title"],
-            "formula": source["formula"],
-            "hint": "Выберите верную интерпретацию формулы.",
+            "formula": "",
+            "hint": "Условия: {}".format(source["conditions"])
+                if source.get("conditions") else "Выберите правильную формулу.",
             "options": option_rows,
             "correctOptionId": "{}:correct".format(challenge_id),
         })

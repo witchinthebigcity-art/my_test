@@ -23,10 +23,15 @@ class AdventureRubricTests(unittest.TestCase):
         self.assertTrue(all(item["id"].startswith("g9-") for item in formula_round))
         self.assertTrue(all(len(item["options"]) == 3 for item in formula_round))
         self.assertTrue(all(item["correctOptionId"] in {option["id"] for option in item["options"]} for item in formula_round))
+        source_by_id = {row["id"]: row for row in FORMULA_CHALLENGES_BY_GRADE[9]}
+        for item in formula_round:
+            correct = next(option for option in item["options"] if option["id"] == item["correctOptionId"])
+            self.assertEqual(correct["text"], source_by_id[item["id"]]["formula"])
+            self.assertEqual(item["formula"], "")
 
     def test_every_source_formula_has_one_correct_and_two_wrong_interpretations(self):
         self.assertEqual({grade: len(rows) for grade, rows in FORMULA_CHALLENGES_BY_GRADE.items()}, {
-            8: 28, 9: 17, 10: 45, 11: 32,
+            8: 25, 9: 16, 10: 38, 11: 32,
         })
         for challenge_id, challenge in FORMULA_CHALLENGES.items():
             self.assertTrue(challenge["formula"].strip(), challenge_id)
