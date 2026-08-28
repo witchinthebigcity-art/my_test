@@ -26,6 +26,8 @@ const communityState = {
     shopPage: 0,
     shopSwipeReady: false,
     shopReturnScreen: 'mainMenu',
+    characterReturnScreen: 'classSelection',
+    wardrobeReturnScreen: 'characterProfileScreen',
     wardrobeTab: 'outfit',
     equippedItems: {},
 };
@@ -50,7 +52,7 @@ function syncCoinBalance(balance, isAdmin) {
     window.isAdminMode = adminMode;
     coins = Number(balance || 0);
     localStorage.setItem('mathCoins', coins);
-    ['quizCoins', 'shopCoins', 'characterCoins', 'dailyCoins'].forEach((id) => {
+    ['quizCoins', 'shopCoins', 'characterCoins', 'dailyCoins', 'homeCoins'].forEach((id) => {
         const element = document.getElementById(id);
         if (element) element.textContent = adminMode ? '∞' : coins;
     });
@@ -65,11 +67,15 @@ function syncCoinBalance(balance, isAdmin) {
     }
 }
 
-function renderDailyLogin(payload) {
+function renderDailyLogin(payload, forceVisible = false) {
     const banner = document.getElementById('dailyRewardBanner');
     if (!banner) return;
-    banner.hidden = false;
     syncCoinBalance(payload.coins, payload.admin);
+    const rewardFinished = payload.claimedToday && (
+        payload.activeKind !== 'wheel' || payload.wheelClaimed
+    );
+    banner.hidden = rewardFinished && !forceVisible;
+    if (banner.hidden) return;
     const days = document.getElementById('dailyRewardDays');
     days.replaceChildren();
     (payload.schedule || []).forEach(({day, reward, kind}) => {
@@ -129,13 +135,16 @@ async function claimDailyLogin() {
             headers: telegramHeaders(true),
             body: '{}',
         });
-        renderDailyLogin(payload);
+        renderDailyLogin(payload, true);
         if (payload.claimed) {
             const animation = document.getElementById('dailyRewardAnimation');
             animation.textContent = payload.activeKind === 'wheel' ? '🎡' : `+${payload.reward} 🪙`;
             animation.classList.remove('play');
             void animation.offsetWidth;
             animation.classList.add('play');
+            if (payload.activeKind !== 'wheel') {
+                window.setTimeout(() => renderDailyLogin(payload), 1250);
+            }
         }
     } catch (error) {
         console.warn('Не удалось начислить награду за вход:', error.message);
@@ -156,7 +165,7 @@ async function spinDailyWheel() {
             method: 'POST', headers: telegramHeaders(true), body: '{}',
         });
         window.setTimeout(() => {
-            renderDailyLogin(payload);
+            renderDailyLogin(payload, true);
             document.getElementById('dailyWheelResult').textContent = `Вы выиграли: ${payload.prize.label}`;
             if (payload.prize.kind === 'coins') {
                 const animation = document.getElementById('dailyRewardAnimation');
@@ -165,6 +174,7 @@ async function spinDailyWheel() {
                 void animation.offsetWidth;
                 animation.classList.add('play');
             }
+            window.setTimeout(() => renderDailyLogin(payload), 1750);
         }, 2300);
     } catch (error) {
         wheel.classList.remove('spinning');
@@ -288,13 +298,43 @@ async function openProfile(returnScreen = null) {
             profile.avatar_url
         );
         renderAwards(profile.awards || []);
-        await loadWardrobe();
-        await loadCharacterCatalog();
         await loadProfileBattleInvites();
         setInlineMessage('profileMessage', '');
     } catch (error) {
         setInlineMessage('profileMessage', error.message, 'error');
     }
+}
+
+async function openCharacterProfile(returnScreen = null) {
+    communityState.characterReturnScreen = returnScreen || document.querySelector('.screen.active')?.id || 'classSelection';
+    showScreen('characterProfileScreen');
+    setInlineMessage('characterCatalogMessage', 'Загружаем ваш образ…');
+    await loadWardrobe();
+    await loadCharacterCatalog();
+    setInlineMessage('characterCatalogMessage', '');
+}
+
+async function openWardrobe() {
+    communityState.wardrobeReturnScreen = 'characterProfileScreen';
+    window.characterViewer?.dispose();
+    showScreen('wardrobeScreen');
+    closeWardrobeCatalog();
+    if (!communityState.shop) await loadWardrobe();
+}
+
+function openWardrobeCatalog(tab) {
+    setWardrobeTab(tab);
+    const panel = document.getElementById('wardrobeCatalogPanel');
+    const title = document.getElementById('wardrobeCatalogTitle');
+    if (title) title.textContent = tab === 'outfit' ? 'Каталог одежды' : 'Аксессуары и гаджеты';
+    if (panel) panel.hidden = false;
+    renderWardrobe();
+    panel?.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+function closeWardrobeCatalog() {
+    const panel = document.getElementById('wardrobeCatalogPanel');
+    if (panel) panel.hidden = true;
 }
 
 function returnFromProfile() {
@@ -1148,8 +1188,8 @@ function closeChat() {
 
 async function openShop() {
     const activeScreen = document.querySelector('.screen.active');
-    communityState.shopReturnScreen = activeScreen?.id === 'profileScreen'
-        ? 'profileScreen'
+    communityState.shopReturnScreen = ['profileScreen', 'characterProfileScreen', 'wardrobeScreen'].includes(activeScreen?.id)
+        ? activeScreen.id
         : (currentClass ? 'mainMenu' : 'classSelection');
     showScreen('shopScreen');
     closeShopDepartment();
@@ -1172,6 +1212,8 @@ async function openShop() {
 function returnFromShop() {
     closeShopDepartment();
     if (communityState.shopReturnScreen === 'profileScreen') openProfile(communityState.profileReturnScreen);
+    else if (communityState.shopReturnScreen === 'characterProfileScreen') openCharacterProfile(communityState.characterReturnScreen);
+    else if (communityState.shopReturnScreen === 'wardrobeScreen') openWardrobe();
     else showScreen(communityState.shopReturnScreen || (currentClass ? 'mainMenu' : 'classSelection'));
 }
 

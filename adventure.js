@@ -76,6 +76,7 @@ function renderAdventure(session) {
             ? (isTower ? 'Раунд завершён. Монеты начислены за каждый верный ответ.' : 'Проверка завершена. Результат сохранён в статистике.')
             : `Вопрос ${Math.min(Number(formula.index || 0) + 1, Number(formula.total || 10))} из ${Number(formula.total || 10)} · Ошибки ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 4)} · ${Number(formula.rewardPerCorrect || 50)} монет за верный ответ.`;
     document.getElementById('adventureLeaveButton').hidden = !isFormulaStage;
+    if (typeof syncPageNavigationControls === 'function') syncPageNavigationControls();
     document.getElementById('adventureWorld').hidden = !isFormulaStage;
     if (isFormulaStage) renderFormulaChallenge(formula);
     const panel = document.getElementById('extendedSolutionPanel');
@@ -100,7 +101,7 @@ function renderFormulaChallenge(formula) {
     }
     if (!challenge) return;
     document.getElementById('formulaPrompt').textContent = challenge.prompt;
-    document.getElementById('formulaExpression').textContent = challenge.formula || '';
+    setMathContent(document.getElementById('formulaExpression'), challenge.formula || '');
     const hint = document.getElementById('formulaHint');
     hint.textContent = challenge.hint || '';
     hint.hidden = !challenge.hint;
@@ -111,7 +112,7 @@ function renderFormulaChallenge(formula) {
         button.type = 'button';
         button.className = 'formula-option';
         button.dataset.optionId = option.id;
-        button.textContent = option.text;
+        setMathContent(button, option.text);
         button.addEventListener('click', () => answerFormula(option.id, button));
         options.appendChild(button);
     });

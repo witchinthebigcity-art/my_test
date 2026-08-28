@@ -10,7 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <script type="module" src="https://unpkg.com/mathlive@0.109.0?module"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/math-format.js?v=26"></script>
+    <script defer src="/math-format.js?v=27"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -63,23 +63,18 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=26">
+    <link rel="stylesheet" href="/app.css?v=27">
 </head>
 <body data-grade="8">
 
-    <div id="classSelection" class="screen active">
-        <div class="brand-row">
-            <div class="brand"><span class="brand-mark">∑</span><span>Прокачать матан</span></div>
-            <span class="soft-pill">8–11 классы</span>
-        </div>
-        <div class="hero">
-            <p class="eyebrow">Персональная тренировка</p>
-            <h1 id="greetingText">Выбери свой класс</h1>
-            <p>Задания, теория и прогресс — в одном понятном пространстве.</p>
+    <div id="classSelection" class="screen active hybrid-home-screen">
+        <div class="hybrid-brand-panel">
+            <div class="brand"><span class="brand-mark">∑</span><span>Математическая<br><b>Вселенная</b></span></div>
+            <strong class="hybrid-balance">🪙 <span id="homeCoins">0</span></strong>
         </div>
         <div class="start-account-actions">
-            <button class="btn btn-secondary" onclick="openProfile('classSelection')">👤 Личный кабинет</button>
-            <button class="btn btn-secondary" onclick="openFriends('classSelection')">👥 Мои друзья</button>
+            <button class="hybrid-shortcut" onclick="openProfile('classSelection')"><span>💼</span><strong>Кабинет</strong></button>
+            <button class="hybrid-shortcut" onclick="openFriends('classSelection')"><span>👥</span><strong>Друзья</strong></button>
         </div>
         <div id="dailyRewardBanner" class="daily-reward-panel" hidden>
             <div class="daily-reward-heading">
@@ -96,12 +91,15 @@
             </div>
             <div id="dailyRewardAnimation" class="daily-coin-animation" aria-hidden="true">🪙</div>
         </div>
-        <div id="classButtons" class="grade-grid"></div>
-        <div class="secondary-actions">
-            <button class="btn btn-secondary" onclick="loadMyStats()">📊 Мой прогресс</button>
-            <button class="btn btn-secondary" onclick="goToChat()">💬 Служба поддержки</button>
-        </div>
+        <div class="hybrid-class-heading"><span></span><h1 id="greetingText">Выберите класс</h1><span></span></div>
+        <div id="classButtons" class="grade-grid hybrid-grade-grid"></div>
+        <nav class="hybrid-bottom-nav" aria-label="Основная навигация">
+            <button class="active" type="button" onclick="showScreen('classSelection')"><span>⌂</span><small>Главная</small></button>
+            <button type="button" onclick="loadMyStats()"><span>📊</span><small>Прогресс</small></button>
+            <button type="button" onclick="openCharacterProfile('classSelection')"><span>👤</span><small>Профиль</small></button>
+        </nav>
     </div>
+    <button id="globalBackButton" class="global-back-button" type="button" onclick="navigateBack()" aria-label="Назад" hidden>←</button>
 <div id="statsScreen" class="screen matrix-screen">
     
     <div class="tutor-container">
@@ -140,8 +138,6 @@
         </div>
         <div class="menu-actions">
             <button class="action-card" onclick="startPractice()"><span class="action-icon">✏️</span><span><strong>Начать тренировку</strong><small>Новая подборка из таблицы</small></span><span class="action-arrow">›</span></button>
-            <button class="action-card game-universe-entry" onclick="openGameUniverse()"><span class="action-icon">🪐</span><span><strong>Вселенная игр</strong><small>Башня формул, вторая часть и будущие миры</small></span><span class="action-arrow">›</span></button>
-            <button id="resumeAdventureCard" class="action-card adventure-resume-card" onclick="resumeAdventure()" hidden><span class="action-icon">↻</span><span><strong>Продолжить мини-игру</strong><small>Ваш прогресс сохранён</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startDiagnostic()"><span class="action-icon">🧭</span><span><strong>Пробное тестирование</strong><small>Определить уровень и получить рекомендации</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openBattle()"><span class="action-icon">⚔️</span><span><strong>Баттлы</strong><small>Пять одинаковых задач против ученика своего класса</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openFriends('mainMenu')"><span class="action-icon">👥</span><span><strong>Мои друзья</strong><small>Сообщения и личные вызовы в баттл</small></span><span class="action-arrow">›</span></button>
@@ -172,8 +168,8 @@
     </div>
 
     <div id="profileScreen" class="screen">
-        <p class="eyebrow">Личный кабинет</p>
-        <h2>Профиль участника</h2>
+        <p class="eyebrow">Личное пространство</p>
+        <h2>Кабинет участника</h2>
         <div class="profile-card">
             <img id="profileAvatar" class="profile-avatar" alt="Аватар участника" hidden>
             <div class="avatar-placeholder" id="profileAvatarPlaceholder">∑</div>
@@ -193,22 +189,7 @@
         </label>
         <div id="profileMessage" class="inline-message" hidden></div>
         <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
-        <section class="character-section">
-            <div class="section-heading"><h3>Мой персонаж</h3><strong class="character-balance">🪙 <span id="characterCoins">0</span></strong></div>
-            <p class="supporting-text">Общая коллекция для всех классов. Модель вращается пальцем, а персонажи переключаются стрелками или свайпом по тумблеру.</p>
-            <div id="characterStage" class="character-stage"><p class="empty-state">Загружаем 3D-модель…</p></div>
-            <div id="characterCatalogMessage" class="inline-message" hidden></div>
-            <div id="characterCatalog" class="character-catalog"></div>
-        </section>
-        <section class="wardrobe-section">
-            <div class="section-heading"><h3>Гардероб и аксессуары</h3><button class="small-link-button" type="button" onclick="openShop()">В магазин</button></div>
-            <div id="wardrobeTabs" class="segmented-control wardrobe-tabs">
-                <button class="segment active" type="button" data-wardrobe="outfit" onclick="setWardrobeTab('outfit')">Одежда</button>
-                <button class="segment" type="button" data-wardrobe="accessory" onclick="setWardrobeTab('accessory')">Аксессуары</button>
-                <button class="segment" type="button" data-wardrobe="interior" onclick="setWardrobeTab('interior')">Интерьер</button>
-            </div>
-            <div id="wardrobeList" class="wardrobe-grid"><p class="empty-state">Приобретённые предметы появятся здесь.</p></div>
-        </section>
+        <button class="profile-character-link" type="button" onclick="openCharacterProfile('profileScreen')"><span>✦</span><span><strong>Профиль персонажа</strong><small>Выбор героя, одежды и аксессуаров</small></span><b>›</b></button>
         <section id="profileBattleInvitesSection" class="social-section" hidden>
             <div class="section-heading"><h3>Вызовы в баттл</h3></div>
             <p class="supporting-text">Друг выбрал класс заданий. Можно принять вызов или отклонить его.</p>
@@ -217,6 +198,46 @@
         <div class="section-heading"><h3>Мои награды</h3></div>
         <div id="awardShelf" class="award-grid"><p class="empty-state">Награды появятся после попадания в тройку лучших.</p></div>
         <button class="btn btn-secondary" onclick="returnFromProfile()">Назад</button>
+    </div>
+
+    <div id="characterProfileScreen" class="screen character-profile-screen">
+        <div class="section-heading">
+            <div><p class="eyebrow">Игровой образ</p><h2>Профиль персонажа</h2></div>
+            <strong class="character-balance">🪙 <span id="characterCoins">0</span></strong>
+        </div>
+        <p class="supporting-text">Вращайте модель пальцем, персонажей листайте свайпом или стрелками.</p>
+        <section class="character-section">
+            <div id="characterStage" class="character-stage"><p class="empty-state">Загружаем 3D-модель…</p></div>
+            <div id="characterCatalogMessage" class="inline-message" hidden></div>
+            <div id="characterCatalog" class="character-catalog"></div>
+        </section>
+        <button class="btn wardrobe-open-button" type="button" onclick="openWardrobe()">🚪 Открыть гардероб</button>
+    </div>
+
+    <div id="wardrobeScreen" class="screen wardrobe-screen">
+        <div class="wardrobe-heading"><div><p class="eyebrow">Моя коллекция</p><h2>Гардероб</h2></div><strong>✦</strong></div>
+        <p class="supporting-text">Выберите ярлык внутри шкафа, чтобы открыть нужный каталог.</p>
+        <div class="neon-wardrobe" aria-label="Открытый шкаф с одеждой и аксессуарами">
+            <div class="wardrobe-crown"><i></i><i></i><i></i></div>
+            <div class="wardrobe-left-bay">
+                <div class="wardrobe-rail"></div>
+                <i class="wardrobe-coat coat-one"></i><i class="wardrobe-coat coat-two"></i><i class="wardrobe-coat coat-three"></i>
+                <button class="wardrobe-tag" type="button" data-wardrobe="outfit" onclick="openWardrobeCatalog('outfit')">Одежда</button>
+            </div>
+            <div class="wardrobe-right-bay">
+                <div class="wardrobe-shelf shelf-one"><span>⌚</span><span>📱</span><span>👓</span></div>
+                <div class="wardrobe-shelf shelf-two"><span>🧢</span><span>🎮</span><span>📷</span></div>
+                <button class="wardrobe-tag" type="button" data-wardrobe="accessory" onclick="openWardrobeCatalog('accessory')">Аксессуары и гаджеты</button>
+            </div>
+        </div>
+        <section id="wardrobeCatalogPanel" class="wardrobe-catalog-panel" hidden>
+            <div class="section-heading"><h3 id="wardrobeCatalogTitle">Одежда</h3><button class="small-link-button" type="button" onclick="closeWardrobeCatalog()">Закрыть</button></div>
+            <div id="wardrobeList" class="wardrobe-grid"><p class="empty-state">Приобретённые предметы появятся здесь.</p></div>
+        </section>
+        <div class="wardrobe-actions">
+            <button class="btn btn-secondary" type="button" onclick="navigateBack()">Назад</button>
+            <button class="btn" type="button" onclick="openShop()">Магазин</button>
+        </div>
     </div>
 
     <div id="leaderboardScreen" class="screen">
@@ -327,6 +348,7 @@
         </div>
         <div id="battleFinishActions" class="battle-finish-actions" hidden>
             <button class="btn" onclick="openShop()">Магазин</button>
+            <button class="btn adventure-launch-button" onclick="openGameUniverse()">🪐 Вселенная игр</button>
             <button class="btn btn-secondary" onclick="leaveBattleScreen()">Меню</button>
             <button class="btn btn-secondary" onclick="openBattleStats()">Узнать статистику баттлов</button>
         </div>
@@ -721,7 +743,8 @@
     Object.entries(classThemes).forEach(([grade, theme]) => {
         let btn = document.createElement('button');
         btn.className = `grade-card grade-${grade}`;
-        btn.innerHTML = `<span class="grade-number">${grade}</span><span class="grade-label">класс</span><span class="grade-note">${theme.note}</span>`;
+        const gradeIcons = {8: '◇', 9: '∩', 10: '△', 11: 'π'};
+        btn.innerHTML = `<span class="grade-symbol">${gradeIcons[grade]}</span><span class="grade-number">${grade}</span><span class="grade-label">класс</span><span class="grade-note">${theme.note}</span>`;
         btn.onclick = () => selectClass(Number(grade));
         classContainer.appendChild(btn);
     });
@@ -739,9 +762,53 @@
         if (typeof updateAdventureResume === 'function') updateAdventureResume();
     }
 
-    function showScreen(screenId) {
+    const screenHistory = [];
+    let currentScreenId = 'classSelection';
+
+    function showScreen(screenId, options = {}) {
+        const nextScreen = document.getElementById(screenId);
+        if (!nextScreen) return;
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen && activeScreen.id !== screenId && !options.fromBack && !options.replace) {
+            screenHistory.push(activeScreen.id);
+        }
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(screenId).classList.add('active');
+        nextScreen.classList.add('active');
+        currentScreenId = screenId;
+        window.scrollTo({top: 0, behavior: 'auto'});
+        syncPageNavigationControls();
+    }
+
+    function navigateBack() {
+        let target = screenHistory.pop();
+        while (target === currentScreenId) target = screenHistory.pop();
+        if (!target) target = currentClass && currentScreenId !== 'mainMenu' ? 'mainMenu' : 'classSelection';
+        showScreen(target, {fromBack: true});
+        if (target === 'characterProfileScreen' && typeof loadWardrobe === 'function' && typeof loadCharacterCatalog === 'function') {
+            loadWardrobe().then(loadCharacterCatalog);
+        }
+    }
+
+    function syncPageNavigationControls() {
+        const button = document.getElementById('globalBackButton');
+        if (!button) return;
+        const battleExit = document.getElementById('battleLeaveButton');
+        const battleHasLeave = currentScreenId === 'battleScreen'
+            && battleExit && !battleExit.hidden && battleExit.textContent.includes('Покинуть');
+        const adventureExit = currentScreenId === 'adventureScreen'
+            && !document.getElementById('adventureLeaveButton')?.hidden;
+        button.hidden = currentScreenId === 'classSelection' || battleHasLeave || adventureExit;
+
+        document.querySelectorAll('.screen button').forEach((candidate) => {
+            const label = candidate.textContent.trim().toLowerCase();
+            if (candidate.id === 'adventureLeaveButton') return;
+            if (candidate.id === 'battleLeaveButton') {
+                candidate.classList.toggle('legacy-back-control', !label.includes('покинуть'));
+                return;
+            }
+            const isLegacyBack = label.startsWith('назад') || label.startsWith('вернуть') || label === '← классы';
+            candidate.classList.toggle('legacy-back-control', isLegacyBack);
+        });
     }
 
     function openTheory() {
@@ -873,6 +940,7 @@ function goToChat() {
 function updateUI() {
     document.getElementById('coinsCount').innerText = window.isAdminMode ? '∞' : coins;
     document.getElementById('shopCoins').innerText = window.isAdminMode ? '∞' : coins;
+    document.getElementById('homeCoins').innerText = window.isAdminMode ? '∞' : coins;
     // Также обновляем жизни, если нужно
     document.getElementById('livesCount').innerText = window.isAdminMode ? '∞' : lives;
 }
@@ -1194,11 +1262,14 @@ function sendToForm(grade, topic, status) {
     // Рендер при первой загрузке
     document.addEventListener("DOMContentLoaded", function() {
         renderMathInElement(document.body, { delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ], throwOnError: false });
+        syncPageNavigationControls();
+        const battleExit = document.getElementById('battleLeaveButton');
+        if (battleExit) new MutationObserver(syncPageNavigationControls).observe(battleExit, {attributes: true, childList: true, characterData: true, subtree: true});
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=26"></script>
-<script src="/community.js?v=26"></script>
-<script src="/adventure.js?v=26"></script>
+<script src="/characters.js?v=27"></script>
+<script src="/community.js?v=27"></script>
+<script src="/adventure.js?v=27"></script>
 </body>
 </html>
