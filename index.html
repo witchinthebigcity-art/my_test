@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=28">
+    <link rel="stylesheet" href="/app.css?v=29">
 </head>
 <body data-grade="8">
 
@@ -99,7 +99,7 @@
             <button type="button" onclick="openCharacterProfile('classSelection')"><span>👤</span><small>Профиль</small></button>
         </nav>
     </div>
-    <button id="globalBackButton" class="global-back-button" type="button" onclick="navigateBack()" aria-label="Назад" hidden>←</button>
+    <button id="globalBackButton" class="global-back-button" type="button" onclick="handleGlobalNavigation()" aria-label="Назад" hidden>←</button>
 <div id="statsScreen" class="screen matrix-screen">
     
     <div class="tutor-container">
@@ -743,7 +743,12 @@
     Object.entries(classThemes).forEach(([grade, theme]) => {
         let btn = document.createElement('button');
         btn.className = `grade-card grade-${grade}`;
-        const gradeIcons = {8: '◇', 9: '∩', 10: '△', 11: 'π'};
+        const gradeIcons = {
+            8: `<svg viewBox="0 0 120 92" aria-hidden="true"><path d="M34 24 77 16 98 34 55 43Zm0 0v39l21 14V43m43-9v38L55 77m-21-14 43-9 21 18M77 16v38"/></svg>`,
+            9: `<svg viewBox="0 0 120 92" aria-hidden="true"><path d="M14 73h95M31 84V9M25 17l6-8 6 8M101 67l8 6-8 6M42 72c7-37 18-53 31-53s21 18 31 53M45 64l52-38"/><circle cx="83" cy="49" r="3"/></svg>`,
+            10: `<svg viewBox="0 0 120 92" aria-hidden="true"><circle cx="60" cy="47" r="34"/><path d="m25 65 37-50 34 51Zm35-18L25 65m35-18 36 19"/><circle cx="60" cy="47" r="3"/></svg>`,
+            11: `<svg viewBox="0 0 120 92" aria-hidden="true"><circle cx="60" cy="47" r="33"/><path d="M14 47h93M60 87V7m0 40 27-24m-27 24h27V23M73 47a13 13 0 0 0-4-9"/><circle cx="60" cy="47" r="3"/></svg>`,
+        };
         btn.innerHTML = `<span class="grade-symbol">${gradeIcons[grade]}</span><span class="grade-number">${grade}</span><span class="grade-label">класс</span><span class="grade-note">${theme.note}</span>`;
         btn.onclick = () => selectClass(Number(grade));
         classContainer.appendChild(btn);
@@ -789,6 +794,16 @@
         }
     }
 
+    function returnToRootMenu() {
+        screenHistory.length = 0;
+        showScreen('classSelection', {fromBack: true, replace: true});
+    }
+
+    function handleGlobalNavigation() {
+        if (currentScreenId === 'mainMenu') returnToRootMenu();
+        else navigateBack();
+    }
+
     function syncPageNavigationControls() {
         const button = document.getElementById('globalBackButton');
         if (!button) return;
@@ -798,6 +813,10 @@
         const adventureExit = currentScreenId === 'adventureScreen'
             && !document.getElementById('adventureLeaveButton')?.hidden;
         button.hidden = currentScreenId === 'classSelection' || battleHasLeave || adventureExit;
+        const isClassMenu = currentScreenId === 'mainMenu';
+        button.textContent = isClassMenu ? 'Меню' : '←';
+        button.setAttribute('aria-label', isClassMenu ? 'Главное меню' : 'Назад');
+        button.classList.toggle('root-menu-button', isClassMenu);
 
         document.querySelectorAll('.screen button').forEach((candidate) => {
             const label = candidate.textContent.trim().toLowerCase();
@@ -1268,8 +1287,8 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=28"></script>
-<script src="/community.js?v=28"></script>
-<script src="/adventure.js?v=28"></script>
+<script src="/characters.js?v=29"></script>
+<script src="/community.js?v=29"></script>
+<script src="/adventure.js?v=29"></script>
 </body>
 </html>
