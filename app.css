@@ -1689,7 +1689,7 @@ body { min-height: var(--app-stable-height); }
 .wardrobe-character-preview.is-floating { position: fixed; z-index: 1000; width: 112px; height: 142px; margin: 0; box-shadow: 0 18px 48px rgba(0, 0, 0, .46), 0 0 28px rgba(79, 222, 235, .25); }
 .wardrobe-character-preview.is-dragging { cursor: grabbing; }
 .wardrobe-character-stage { position: absolute; inset: 0 0 19px; }
-.wardrobe-character-stage canvas { pointer-events: none !important; }
+.wardrobe-character-stage canvas { display: block; width: 100% !important; height: 100% !important; pointer-events: none !important; }
 .wardrobe-character-preview small { position: absolute; inset: auto 0 4px; color: #b9d5e9; font-size: 8px; line-height: 1; text-align: center; }
 .wardrobe-character-fallback { display: grid; height: 100%; place-items: center; font-size: 40px; }
 

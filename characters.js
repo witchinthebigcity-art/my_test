@@ -874,8 +874,12 @@
         renderer.domElement.addEventListener('pointercancel', () => { dragging = false; });
 
         const resize = () => {
-            const width = Math.max(container.clientWidth, 280);
-            const height = Math.max(container.clientHeight, 300);
+            // The same viewer is used both by the large profile stage and by
+            // the compact draggable wardrobe preview. Using the old 280x300
+            // minimum pushed the centred character outside the clipped
+            // 92x99 preview, so only an empty corner of the canvas was shown.
+            const width = Math.max(container.clientWidth, 1);
+            const height = Math.max(container.clientHeight, 1);
             renderer.setSize(width, height, false);
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
