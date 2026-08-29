@@ -746,21 +746,44 @@ function renderAwards(awards) {
         shelf.appendChild(empty);
         return;
     }
-    awards.slice().reverse().forEach((award) => {
-        const card = document.createElement('div');
-        card.className = `award-card award-${award.period}`;
-        const icon = document.createElement('span');
-        icon.className = 'award-icon';
-        icon.textContent = award.icon;
-        const text = document.createElement('div');
-        const name = document.createElement('strong');
-        name.textContent = award.name;
-        const period = document.createElement('small');
-        period.textContent = award.period_key;
-        text.append(name, period);
-        card.append(icon, text);
-        shelf.appendChild(card);
+    groupAwards(awards).forEach((award) => shelf.appendChild(createAwardCard(award)));
+}
+
+function groupAwards(awards) {
+    const grouped = new Map();
+    awards.forEach((award) => {
+        const key = `${award.period || ''}:${award.rank || ''}:${award.name || ''}:${award.icon || ''}`;
+        const existing = grouped.get(key);
+        if (existing) {
+            existing.count += 1;
+            if (String(award.period_key || '') > String(existing.latestPeriodKey || '')) {
+                existing.latestPeriodKey = award.period_key;
+            }
+            return;
+        }
+        grouped.set(key, {...award, count: 1, latestPeriodKey: award.period_key});
     });
+    return [...grouped.values()].sort((first, second) => {
+        const periodOrder = {month: 0, day: 1};
+        return (periodOrder[first.period] ?? 2) - (periodOrder[second.period] ?? 2)
+            || Number(first.rank || 99) - Number(second.rank || 99)
+            || String(second.latestPeriodKey || '').localeCompare(String(first.latestPeriodKey || ''));
+    });
+}
+
+function createAwardCard(award) {
+    const card = document.createElement('article');
+    card.className = `award-card award-${award.period}`;
+    const icon = document.createElement('span');
+    icon.className = 'award-icon';
+    icon.textContent = award.icon;
+    const name = document.createElement('strong');
+    name.textContent = award.name;
+    const count = document.createElement('small');
+    count.className = 'award-count';
+    count.textContent = `Получено ×${award.count}`;
+    card.append(icon, name, count);
+    return card;
 }
 
 async function loadProfileBattleInvites() {
@@ -1102,21 +1125,7 @@ function renderParticipant(participant) {
     const awards = document.getElementById('participantAwards');
     awards.replaceChildren();
     if (participant.awards?.length) {
-        participant.awards.slice().reverse().forEach((award) => {
-            const item = document.createElement('article');
-            item.className = `award-card award-${award.period}`;
-            const icon = document.createElement('span');
-            icon.className = 'award-icon';
-            icon.textContent = award.icon;
-            const label = document.createElement('div');
-            const name = document.createElement('strong');
-            name.textContent = award.name;
-            const period = document.createElement('small');
-            period.textContent = award.period_key;
-            label.append(name, period);
-            item.append(icon, label);
-            awards.appendChild(item);
-        });
+        groupAwards(participant.awards).forEach((award) => awards.appendChild(createAwardCard(award)));
     }
 
     const actions = document.getElementById('participantActions');

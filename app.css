@@ -823,11 +823,13 @@ details.theory-section summary { background: transparent !important; }
 .rank-2 { background: linear-gradient(100deg, rgba(200, 218, 239, .13), var(--surface-soft)); }
 .rank-3 { background: linear-gradient(100deg, rgba(207, 133, 82, .13), var(--surface-soft)); }
 .award-legend p { margin: 8px 0; color: var(--text-muted); font-size: 13px; }
-.award-grid { display: grid; gap: 9px; }
-.award-card { display: flex; gap: 12px; align-items: center; padding: 13px; border: 1px solid var(--theme-border); border-radius: 17px; }
+.award-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 9px; }
+.award-card { display: flex; min-width: 0; flex-direction: column; gap: 7px; align-items: center; justify-content: center; padding: 14px 10px; border: 1px solid var(--theme-border); border-radius: 17px; text-align: center; }
+.award-card strong { font-size: 12px; line-height: 1.25; }
+.award-card .award-count { color: var(--text-muted); font-size: 10px; font-weight: 800; }
 .award-day { background: linear-gradient(120deg, rgba(255, 205, 91, .13), var(--surface-soft)); }
 .award-month { background: linear-gradient(120deg, rgba(169, 156, 255, .18), var(--surface-soft)); }
-.award-icon { font-size: 28px; }
+.award-icon { font-size: 34px; line-height: 1; }
 
 .battle-lobby { margin: 22px 0; }
 .battle-versus { justify-content: space-between; margin-bottom: 18px; }
