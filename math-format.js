@@ -83,6 +83,11 @@
 
     function prepareMathText(value) {
         let text = String(value || '')
+            .replace(/\u00a0/g, ' ')
+            .replace(/([:;!?])(?=\S)/g, '$1 ')
+            .replace(/,([А-Яа-яЁё])/g, ', $1')
+            .replace(/\.([А-Яа-яЁё])/g, '. $1')
+            .replace(/[ \t]{2,}/g, ' ')
             .replace(/≥q/g, '≥')
             .replace(/≤q/g, '≤')
             .replace(/=\s*>/g, '⇒')

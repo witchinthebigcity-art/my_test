@@ -36,7 +36,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "26"
+WEBAPP_VERSION = "30"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -551,10 +551,36 @@ async def get_shop(request):
 
 async def purchase_shop_item(request):
     try:
+        user = _authenticated_user(request)
         payload = await request.json()
-        return web.json_response(await community_store.purchase_shop_item(
-            _authenticated_user(request), str(payload.get("itemId") or "")
-        ))
+        result = await community_store.purchase_shop_item(user, str(payload.get("itemId") or ""))
+        purchased_item = result.get("purchasedItem") or {}
+        if purchased_item.get("slot") == "guide" and ADMIN_ID:
+            profile = await community_store.get_profile(user)
+            telegram_username = str(user.get("username") or "").strip().lstrip("@")
+            buyer_contact = f"@{telegram_username}" if telegram_username else f"Telegram ID {user.get('id')}"
+            try:
+                await bot.send_message(
+                    int(ADMIN_ID),
+                    "📚 Куплен учебный материал\n"
+                    f"Покупатель: {buyer_contact}\n"
+                    f"Ник в приложении: {profile.get('nickname', 'Участник')}\n"
+                    f"Материал: {purchased_item.get('name', 'Без названия')}\n"
+                    f"Списано: {result.get('paid', 0)} монет\n"
+                    "Нужно отправить покупателю соответствующий файл.",
+                )
+            except (
+                TelegramBadRequest,
+                TelegramForbiddenError,
+                TelegramNetworkError,
+                TelegramRetryAfter,
+                TelegramServerError,
+                ValueError,
+            ):
+                # Покупка уже сохранена: недоступность служебного уведомления
+                # не должна отнимать материал или повторно списывать монеты.
+                pass
+        return web.json_response(result)
     except CommunityError as error:
         return _community_error(error, status=422)
 

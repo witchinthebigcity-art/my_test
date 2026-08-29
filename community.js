@@ -9,6 +9,8 @@ const communityState = {
     battleSyncPoll: null,
     battleRenderedQuestionId: null,
     battleTimeoutRefreshing: false,
+    battleServerClockOffsetMs: 0,
+    battleStateReceivedAtMs: 0,
     chatPublicId: null,
     chatPoll: null,
     participantReturnScreen: 'friendsScreen',
@@ -29,10 +31,12 @@ const communityState = {
     characterReturnScreen: 'classSelection',
     wardrobeReturnScreen: 'characterProfileScreen',
     wardrobeTab: 'outfit',
+    wardrobePreviewDragReady: false,
     equippedItems: {},
 };
 let pendingAvatarDataUrl = null;
 let adminMode = false;
+const MATERIAL_ADMIN_CHAT = 'https://t.me/supertutor15';
 
 function telegramHeaders(json = false) {
     const headers = { 'X-Telegram-Init-Data': tg.initData || '' };
@@ -298,11 +302,29 @@ async function openProfile(returnScreen = null) {
             profile.avatar_url
         );
         renderAwards(profile.awards || []);
+        renderProfileMaterials(profile.materials || []);
         await loadProfileBattleInvites();
         setInlineMessage('profileMessage', '');
     } catch (error) {
         setInlineMessage('profileMessage', error.message, 'error');
     }
+}
+
+function renderProfileMaterials(materials) {
+    const section = document.getElementById('profileMaterialsSection');
+    const list = document.getElementById('profileMaterialsList');
+    if (!section || !list) return;
+    section.hidden = !materials.length;
+    list.replaceChildren();
+    materials.forEach((material) => {
+        const card = document.createElement('article');
+        const expiry = material.ownedUntil
+            ? new Date(material.ownedUntil).toLocaleDateString('ru-RU')
+            : '';
+        card.className = 'profile-material-card';
+        card.innerHTML = `<span>${material.icon || '📘'}</span><div><strong>${material.name}</strong><small>Доступ в профиле до ${expiry}</small></div>`;
+        list.appendChild(card);
+    });
 }
 
 async function openCharacterProfile(returnScreen = null) {
@@ -320,13 +342,21 @@ async function openWardrobe() {
     showScreen('wardrobeScreen');
     closeWardrobeCatalog();
     if (!communityState.shop) await loadWardrobe();
+    await ensureWardrobeCharacterCatalog();
+    renderWardrobeCharacterPreview();
+    ensureWardrobeCharacterDrag();
 }
 
 function openWardrobeCatalog(tab) {
     setWardrobeTab(tab);
     const panel = document.getElementById('wardrobeCatalogPanel');
     const title = document.getElementById('wardrobeCatalogTitle');
-    if (title) title.textContent = tab === 'outfit' ? 'Каталог одежды' : 'Аксессуары и гаджеты';
+    const titles = {
+        outfit: 'Каталог одежды',
+        accessory: 'Аксессуары и гаджеты',
+        interior: 'Лампы, стулья и интерьер',
+    };
+    if (title) title.textContent = titles[tab] || 'Моя коллекция';
     if (panel) panel.hidden = false;
     renderWardrobe();
     panel?.scrollIntoView({behavior: 'smooth', block: 'nearest'});
@@ -398,10 +428,104 @@ async function equipWardrobeItem(item) {
         communityState.shop = payload;
         communityState.equippedItems = payload.equippedItems || {};
         renderWardrobe();
-        renderCharacterTumbler();
+        if (document.getElementById('wardrobeScreen')?.classList.contains('active')) {
+            renderWardrobeCharacterPreview();
+        } else {
+            renderCharacterTumbler();
+        }
     } catch (error) {
         setInlineMessage('profileMessage', error.message, 'error');
     }
+}
+
+async function ensureWardrobeCharacterCatalog() {
+    if (communityState.characterCatalog.length) return;
+    try {
+        const payload = await communityRequest('/api/characters', {headers: telegramHeaders()});
+        communityState.characterCatalog = payload.characters || [];
+        const selectedIndex = communityState.characterCatalog.findIndex(
+            (character) => character.selected || character.id === payload.selectedId
+        );
+        communityState.characterIndex = selectedIndex >= 0 ? selectedIndex : 0;
+        syncCoinBalance(payload.coins, payload.admin);
+    } catch (error) {
+        console.warn('Не удалось загрузить персонажа для гардероба:', error.message);
+    }
+}
+
+function renderWardrobeCharacterPreview() {
+    const stage = document.getElementById('wardrobeCharacterStage');
+    if (!stage) return;
+    const characters = communityState.characterCatalog;
+    if (!characters.length) {
+        stage.innerHTML = '<span class="wardrobe-character-fallback">🧍</span>';
+        return;
+    }
+    const selected = characters.find((character) => character.selected)
+        || characters[communityState.characterIndex]
+        || characters[0];
+    try {
+        window.characterViewer?.mount(
+            stage,
+            selected.style,
+            Object.values(communityState.equippedItems || {})
+        );
+    } catch (error) {
+        stage.innerHTML = '<span class="wardrobe-character-fallback">🧍</span>';
+        console.error('Ошибка предпросмотра персонажа в гардеробе:', error);
+    }
+}
+
+function ensureWardrobeCharacterDrag() {
+    if (communityState.wardrobePreviewDragReady) return;
+    const preview = document.getElementById('wardrobeCharacterPreview');
+    if (!preview) return;
+    let pointerId = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    const move = (event) => {
+        if (event.pointerId !== pointerId) return;
+        const width = preview.offsetWidth;
+        const height = preview.offsetHeight;
+        const viewportWidth = Math.min(
+            window.innerWidth,
+            document.documentElement.clientWidth || window.innerWidth,
+            window.visualViewport?.width || window.innerWidth
+        );
+        const viewportHeight = Math.min(
+            window.innerHeight,
+            document.documentElement.clientHeight || window.innerHeight,
+            window.visualViewport?.height || window.innerHeight
+        );
+        const left = Math.min(Math.max(8, event.clientX - offsetX), Math.max(8, viewportWidth - width - 8));
+        const top = Math.min(Math.max(8, event.clientY - offsetY), Math.max(8, viewportHeight - height - 8));
+        preview.style.left = `${left}px`;
+        preview.style.top = `${top}px`;
+        event.preventDefault();
+    };
+    const finish = (event) => {
+        if (event.pointerId !== pointerId) return;
+        pointerId = null;
+        preview.classList.remove('is-dragging');
+        try { preview.releasePointerCapture(event.pointerId); } catch (_error) { /* capture may already be released */ }
+    };
+    preview.addEventListener('pointerdown', (event) => {
+        if (pointerId !== null) return;
+        const rect = preview.getBoundingClientRect();
+        pointerId = event.pointerId;
+        offsetX = event.clientX - rect.left;
+        offsetY = event.clientY - rect.top;
+        preview.style.left = `${rect.left}px`;
+        preview.style.top = `${rect.top}px`;
+        preview.classList.add('is-floating', 'is-dragging');
+        preview.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    });
+    preview.addEventListener('pointermove', move);
+    preview.addEventListener('pointerup', finish);
+    preview.addEventListener('pointercancel', finish);
+    communityState.wardrobePreviewDragReady = true;
 }
 
 async function loadCharacterCatalog() {
@@ -1317,6 +1441,12 @@ async function purchaseShopItem(item) {
         const discountText = payload.discountApplied ? ` Купон −${payload.discountApplied}% применён.` : '';
         setInlineMessage('shopMessage', `«${item.name}» доступен 30 дней и добавлен в личный кабинет.${discountText}`, 'success');
         renderShopPage();
+        if (item.slot === 'guide') {
+            window.setTimeout(() => {
+                if (typeof tg.openTelegramLink === 'function') tg.openTelegramLink(MATERIAL_ADMIN_CHAT);
+                else window.open(MATERIAL_ADMIN_CHAT, '_blank', 'noopener');
+            }, 650);
+        }
     } catch (error) {
         setInlineMessage('shopMessage', error.message, 'error');
     }
@@ -1384,6 +1514,11 @@ async function refreshBattle() {
 }
 
 function handleBattleState(battle) {
+    communityState.battleStateReceivedAtMs = Date.now();
+    const serverNow = Date.parse(battle.serverNowAt || '');
+    if (Number.isFinite(serverNow)) {
+        communityState.battleServerClockOffsetMs = serverNow - Date.now();
+    }
     communityState.battle = battle;
     if (Number.isFinite(Number(battle.coins))) syncCoinBalance(battle.coins, battle.admin);
     if (battle.status === 'waiting') {
@@ -1419,7 +1554,9 @@ function handleBattleState(battle) {
     exitButton.hidden = false;
     renderBattlePlayers(battle);
 
-    const countdownDeadline = Date.parse(battle.countdownUntil || '');
+    const countdownDeadline = Number.isFinite(Number(battle.countdownRemainingMs))
+        ? communityState.battleStateReceivedAtMs + Math.max(0, Number(battle.countdownRemainingMs))
+        : Date.parse(battle.countdownUntil || '') - communityState.battleServerClockOffsetMs;
     if (
         Number.isFinite(countdownDeadline)
         && countdownDeadline > Date.now()
@@ -1525,7 +1662,10 @@ function renderBattleQuestion() {
 function startBattleQuestionTimer() {
     clearBattleQuestionTimer();
     const timer = document.getElementById('battleTimer');
-    const deadline = Date.parse(communityState.battle?.questionDeadlineAt || '');
+    const remainingFromServer = Number(communityState.battle?.questionRemainingMs);
+    const deadline = Number.isFinite(remainingFromServer)
+        ? communityState.battleStateReceivedAtMs + Math.max(0, remainingFromServer)
+        : Date.parse(communityState.battle?.questionDeadlineAt || '') - communityState.battleServerClockOffsetMs;
     if (!timer || !Number.isFinite(deadline)) {
         if (timer) timer.textContent = '';
         return;
@@ -1583,6 +1723,8 @@ function renderBattleFinish(battle) {
     clearBattleCountdown();
     document.getElementById('battleOptions').replaceChildren();
     document.getElementById('battleNextButton').hidden = true;
+    setInlineMessage('battleFeedback', '');
+    document.getElementById('battleFeedback').hidden = true;
     document.getElementById('battleQuestionImage').hidden = true;
     document.getElementById('battleTopic').textContent = battle.status === 'complete' ? 'Баттл завершён' : 'Ответы приняты';
     const question = document.getElementById('battleQuestion');

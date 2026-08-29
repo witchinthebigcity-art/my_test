@@ -10,7 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <script type="module" src="https://unpkg.com/mathlive@0.109.0?module"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/math-format.js?v=28"></script>
+    <script defer src="/math-format.js?v=30"></script>
 
     <style>
         :root { --bg-color: #ffffff; --text-color: #000000; --font-family: 'Inter', sans-serif; --accent-color: #007bff; }
@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=29">
+    <link rel="stylesheet" href="/app.css?v=30">
 </head>
 <body data-grade="8">
 
@@ -195,6 +195,11 @@
             <p class="supporting-text">Друг выбрал класс заданий. Можно принять вызов или отклонить его.</p>
             <div id="profileBattleInvitesList" class="social-list"></div>
         </section>
+        <section id="profileMaterialsSection" class="social-section" hidden>
+            <div class="section-heading"><h3>Мои материалы</h3></div>
+            <p class="supporting-text">Приобретённые пособия. Файл отправляет преподаватель в Telegram.</p>
+            <div id="profileMaterialsList" class="social-list"></div>
+        </section>
         <div class="section-heading"><h3>Мои награды</h3></div>
         <div id="awardShelf" class="award-grid"><p class="empty-state">Награды появятся после попадания в тройку лучших.</p></div>
         <button class="btn btn-secondary" onclick="returnFromProfile()">Назад</button>
@@ -229,6 +234,10 @@
                 <div class="wardrobe-shelf shelf-two"><span>🧢</span><span>🎮</span><span>📷</span></div>
                 <button class="wardrobe-tag" type="button" data-wardrobe="accessory" onclick="openWardrobeCatalog('accessory')">Аксессуары и гаджеты</button>
             </div>
+            <div class="wardrobe-interior-bay">
+                <span>🏮</span><span>🪑</span><span>🌍</span><span>🫖</span>
+                <button class="wardrobe-tag" type="button" data-wardrobe="interior" onclick="openWardrobeCatalog('interior')">Интерьер</button>
+            </div>
         </div>
         <section id="wardrobeCatalogPanel" class="wardrobe-catalog-panel" hidden>
             <div class="section-heading"><h3 id="wardrobeCatalogTitle">Одежда</h3><button class="small-link-button" type="button" onclick="closeWardrobeCatalog()">Закрыть</button></div>
@@ -237,6 +246,10 @@
         <div class="wardrobe-actions">
             <button class="btn btn-secondary" type="button" onclick="navigateBack()">Назад</button>
             <button class="btn" type="button" onclick="openShop()">Магазин</button>
+            <div id="wardrobeCharacterPreview" class="wardrobe-character-preview" role="img" aria-label="Перетащите персонажа по экрану">
+                <div id="wardrobeCharacterStage" class="wardrobe-character-stage"></div>
+                <small>Перетащить</small>
+            </div>
         </div>
     </div>
 
@@ -430,7 +443,7 @@
             <p id="feedbackText"></p>
             <img id="quizSolutionImage" class="question-media" alt="Иллюстрация к решению" hidden>
             <button class="btn" onclick="nextQuestion()">Далее</button>
-            <button class="btn btn-danger" onclick="handleErrorReport()">Сообщить об ошибке</button>
+            <button class="btn error-report-button" onclick="handleErrorReport()">Сообщить об ошибке</button>
         </div>
     </div>
 
@@ -1287,8 +1300,8 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=29"></script>
-<script src="/community.js?v=29"></script>
-<script src="/adventure.js?v=29"></script>
+<script src="/characters.js?v=30"></script>
+<script src="/community.js?v=30"></script>
+<script src="/adventure.js?v=30"></script>
 </body>
 </html>

@@ -389,6 +389,20 @@ class CommunityStore:
             "admin": self._is_admin(user),
         }
 
+    def _profile_materials(self, profile):
+        purchases = profile.get("shop_purchases", {})
+        return [
+            {
+                "id": item["id"],
+                "name": item["name"],
+                "description": item["description"],
+                "icon": item["icon"],
+                "ownedUntil": purchases[item["id"]],
+            }
+            for item in SHOP_CATALOG
+            if item.get("slot") == "guide" and item["id"] in purchases
+        ]
+
     @staticmethod
     def _next_midnight_iso():
         now = datetime.now(MOSCOW)
@@ -460,6 +474,7 @@ class CommunityStore:
             result = {
                 **profile,
                 "awards": [award for award in data["awards"] if award["user_id"] == self._user_id(user)],
+                "materials": self._profile_materials(profile),
             }
             result.update(self._balance_payload(profile, user))
             return result
@@ -485,7 +500,11 @@ class CommunityStore:
                 profile["avatar_url"] = user.get("photo_url", "")
             profile["updated_at"] = _now_iso()
             self._save(data)
-            result = {**profile, "awards": [a for a in data["awards"] if a["user_id"] == self._user_id(user)]}
+            result = {
+                **profile,
+                "awards": [a for a in data["awards"] if a["user_id"] == self._user_id(user)],
+                "materials": self._profile_materials(profile),
+            }
             result.update(self._balance_payload(profile, user))
             return result
 
@@ -740,7 +759,19 @@ class CommunityStore:
                 "created_at": _now_iso(),
             })
             payload = self._shop_payload(profile, user)
-            payload.update({"purchased": True, "itemId": item_id, "paid": 0 if is_admin else price, "discountApplied": discount})
+            payload.update({
+                "purchased": True,
+                "itemId": item_id,
+                "paid": 0 if is_admin else price,
+                "discountApplied": discount,
+                "purchasedItem": {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "slot": item["slot"],
+                    "icon": item["icon"],
+                    "ownedUntil": expires_at,
+                },
+            })
             self._save(data)
             return payload
 
@@ -2093,6 +2124,7 @@ class CommunityStore:
             return result
 
     def _battle_view(self, data, battle, user_id, question_map):
+        server_now = datetime.now(MOSCOW)
         player_ids = list(battle["players"])
         opponent_id = next((uid for uid in player_ids if uid != user_id), None)
 
@@ -2134,6 +2166,25 @@ class CommunityStore:
                     datetime.fromisoformat(started_raw).astimezone(MOSCOW)
                     + timedelta(seconds=BATTLE_QUESTION_SECONDS)
                 ).isoformat()
+        countdown_remaining_ms = 0
+        countdown_raw = battle.get("countdown_until")
+        if countdown_raw:
+            try:
+                countdown_remaining_ms = max(
+                    0,
+                    round((datetime.fromisoformat(countdown_raw).astimezone(MOSCOW) - server_now).total_seconds() * 1000),
+                )
+            except (TypeError, ValueError):
+                countdown_remaining_ms = 0
+        question_remaining_ms = 0
+        if deadline_at:
+            try:
+                question_remaining_ms = max(
+                    0,
+                    round((datetime.fromisoformat(deadline_at).astimezone(MOSCOW) - server_now).total_seconds() * 1000),
+                )
+            except (TypeError, ValueError):
+                question_remaining_ms = 0
         return {
             "id": battle["id"],
             "grade": battle["grade"],
@@ -2145,8 +2196,11 @@ class CommunityStore:
             "forfeitedByMe": battle.get("forfeited_by") == user_id,
             "opponentForfeited": bool(battle.get("forfeited_by") and battle.get("forfeited_by") != user_id),
             "currentQuestionIndex": current_index,
+            "serverNowAt": server_now.isoformat(),
             "countdownUntil": battle.get("countdown_until"),
+            "countdownRemainingMs": countdown_remaining_ms,
             "questionDeadlineAt": deadline_at,
+            "questionRemainingMs": question_remaining_ms,
             "questionSeconds": BATTLE_QUESTION_SECONDS,
             "reward": (battle.get("rewards") or {}).get(user_id, {"coins": 0}),
             "battleRewards": reward_status,

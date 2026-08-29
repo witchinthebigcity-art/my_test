@@ -404,6 +404,22 @@ body::before {
     transition: transform 140ms ease, border-color 140ms ease, filter 140ms ease;
 }
 
+.error-report-button,
+.error-report-button:hover,
+.error-report-button:focus-visible {
+    color: #06243a !important;
+    -webkit-text-fill-color: #06243a !important;
+}
+
+#feedbackText {
+    line-height: 1.62;
+    word-spacing: .07em;
+}
+#feedbackText .katex {
+    display: inline-block;
+    margin-inline: .13em;
+}
+
 .btn:hover { border-color: color-mix(in srgb, var(--theme-accent) 78%, white 22%) !important; filter: brightness(1.05); }
 .btn:active { transform: scale(0.985); }
 .btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
@@ -1636,6 +1652,7 @@ body { min-height: var(--app-stable-height); }
     min-height: 430px;
     display: grid;
     grid-template-columns: 1.16fr .84fr;
+    grid-template-rows: 1fr 82px;
     margin: 15px 0;
     padding: 34px 13px 14px;
     overflow: hidden;
@@ -1646,9 +1663,12 @@ body { min-height: var(--app-stable-height); }
 }
 .wardrobe-crown { position: absolute; inset: 0 0 auto; height: 28px; display: flex; justify-content: space-around; border-bottom: 1px solid rgba(113, 219, 236, .32); background: linear-gradient(#183a58, #0b203b); }
 .wardrobe-crown i { width: 34px; height: 13px; margin-top: 7px; border: 1px solid rgba(180, 129, 255, .48); transform: skewX(-28deg); }
-.wardrobe-left-bay, .wardrobe-right-bay { position: relative; min-width: 0; border: 1px solid rgba(118, 199, 235, .2); background: rgba(2, 12, 27, .32); }
+.wardrobe-left-bay, .wardrobe-right-bay, .wardrobe-interior-bay { position: relative; min-width: 0; border: 1px solid rgba(118, 199, 235, .2); background: rgba(2, 12, 27, .32); }
 .wardrobe-left-bay { border-radius: 14px 0 0 14px; }
 .wardrobe-right-bay { border-radius: 0 14px 14px 0; }
+.wardrobe-interior-bay { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-around; padding: 8px 128px 8px 12px; border-radius: 0 0 14px 14px; }
+.wardrobe-interior-bay > span { font-size: clamp(21px, 6vw, 29px); filter: drop-shadow(0 5px 5px rgba(0,0,0,.4)); }
+.wardrobe-interior-bay .wardrobe-tag { left: auto; right: 10px; bottom: 50%; width: 110px; transform: translateY(50%); border-color: #f4bb66; }
 .wardrobe-rail { position: absolute; left: 12px; right: 12px; top: 50px; height: 4px; border-radius: 5px; background: linear-gradient(90deg, #4ba9c8, #cf9aff); box-shadow: 0 0 12px rgba(76, 213, 235, .55); }
 .wardrobe-coat { position: absolute; top: 63px; width: 24%; height: 210px; clip-path: polygon(28% 0, 72% 0, 100% 18%, 84% 38%, 72% 31%, 80% 100%, 20% 100%, 28% 31%, 16% 38%, 0 18%); border-radius: 12px; filter: drop-shadow(0 8px 9px rgba(0,0,0,.28)); }
 .coat-one { left: 8%; background: linear-gradient(145deg, #68d8ee, #24607d); }
@@ -1662,7 +1682,14 @@ body { min-height: var(--app-stable-height); }
 .wardrobe-right-bay .wardrobe-tag { width: calc(100% - 14px); border-color: #ba92ff; box-shadow: 0 0 20px rgba(167, 112, 255, .2); }
 .wardrobe-tag.active { background: color-mix(in srgb, var(--theme-accent) 25%, #102743); }
 .wardrobe-catalog-panel { margin-top: 14px; padding: 14px; border: 1px solid rgba(137, 199, 240, .3); border-radius: 18px; background: rgba(8, 23, 46, .88); }
-.wardrobe-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.wardrobe-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 92px; gap: 9px; align-items: center; }
+.wardrobe-character-preview { position: relative; z-index: 18; width: 92px; height: 118px; margin-top: -35px; overflow: hidden; touch-action: none; cursor: grab; border: 1px solid rgba(99, 227, 240, .58); border-radius: 18px; background: radial-gradient(circle at 50% 36%, rgba(95, 227, 228, .24), rgba(5, 20, 42, .94) 68%); box-shadow: 0 0 22px rgba(79, 222, 235, .16); user-select: none; }
+.wardrobe-character-preview.is-floating { position: fixed; z-index: 1000; width: 112px; height: 142px; margin: 0; box-shadow: 0 18px 48px rgba(0, 0, 0, .46), 0 0 28px rgba(79, 222, 235, .25); }
+.wardrobe-character-preview.is-dragging { cursor: grabbing; }
+.wardrobe-character-stage { position: absolute; inset: 0 0 19px; }
+.wardrobe-character-stage canvas { pointer-events: none !important; }
+.wardrobe-character-preview small { position: absolute; inset: auto 0 4px; color: #b9d5e9; font-size: 8px; line-height: 1; text-align: center; }
+.wardrobe-character-fallback { display: grid; height: 100%; place-items: center; font-size: 40px; }
 
 .formula-game-stage.active { min-height: calc(var(--app-stable-height) - max(30px, env(safe-area-inset-top)) - max(38px, env(safe-area-inset-bottom))); display: flex; flex-direction: column; overflow: hidden; }
 .formula-game-stage .adventure-status { margin-block: 6px; }
@@ -1798,6 +1825,17 @@ body::before {
     background: linear-gradient(145deg, rgba(13, 43, 86, .72), rgba(20, 18, 62, .76));
     box-shadow: inset 0 0 20px rgba(79, 211, 255, .035), 0 9px 22px rgba(0, 0, 0, .16);
 }
+
+.profile-material-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 11px;
+    align-items: center;
+}
+.profile-material-card > span { font-size: 28px; }
+.profile-material-card strong,
+.profile-material-card small { display: block; }
+.profile-material-card small { margin-top: 4px; color: var(--text-muted); }
 
 .action-card:nth-child(even) { border-color: rgba(183, 105, 255, .36); }
 .action-icon {

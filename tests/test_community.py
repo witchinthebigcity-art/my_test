@@ -141,6 +141,10 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state_a["questionDeadlineAt"], state_b["questionDeadlineAt"])
         self.assertEqual(state_a["countdownUntil"], state_b["countdownUntil"])
         self.assertEqual(state_a["questionSeconds"], 30)
+        self.assertIn("serverNowAt", state_a)
+        self.assertGreater(state_a["countdownRemainingMs"], 0)
+        self.assertGreater(state_a["questionRemainingMs"], 0)
+        self.assertLessEqual(state_a["questionRemainingMs"], 33000)
         with self.assertRaisesRegex(CommunityError, "Старт"):
             await self.store.answer_battle(
                 self.user_a, battle_id, state_a["questions"][0]["id"], 0, question_map
@@ -394,12 +398,25 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.store._save(data)
         purchased = await self.store.purchase_shop_item(self.user_a, "gadget-phone")
         self.assertEqual(purchased["coins"], 1000)
+        self.assertEqual(purchased["purchasedItem"]["name"], "Смартфон")
         phone = next(item for item in purchased["items"] if item["id"] == "gadget-phone")
         self.assertTrue(phone["owned"])
         equipped = await self.store.equip_shop_item(self.user_a, "gadget-phone")
         self.assertEqual(equipped["equippedItems"]["accessory"], "gadget-phone")
         expires = datetime.fromisoformat(phone["ownedUntil"])
         self.assertGreater(expires, datetime.now(expires.tzinfo) + timedelta(days=29))
+
+    async def test_purchased_guides_are_returned_in_profile(self):
+        await self.store.get_profile(self.user_a)
+        data = self.store._load()
+        data["profiles"]["1"]["coins"] = 2000
+        self.store._save(data)
+        purchased = await self.store.purchase_shop_item(self.user_a, "guide-algebra")
+        self.assertEqual(purchased["paid"], 1500)
+        self.assertEqual(purchased["coins"], 500)
+        self.assertEqual(purchased["purchasedItem"]["slot"], "guide")
+        profile = await self.store.get_profile(self.user_a)
+        self.assertEqual([item["id"] for item in profile["materials"]], ["guide-algebra"])
 
     async def test_shop_catalog_is_tripled_and_headphones_removed(self):
         catalog = await self.store.shop_catalog(self.user_a)
