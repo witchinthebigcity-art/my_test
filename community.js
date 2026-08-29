@@ -19,6 +19,7 @@ const communityState = {
     friendsReturnScreen: 'mainMenu',
     characterCatalog: [],
     characterIndex: 0,
+    selectedCharacterId: null,
     battleInvitePublicId: null,
     battleInviteReturnScreen: 'friendsScreen',
     highlightedFriendRequestId: null,
@@ -413,8 +414,10 @@ async function openWardrobe() {
     window.characterViewer?.dispose();
     showScreen('wardrobeScreen');
     closeWardrobeCatalog();
-    if (!communityState.shop) await loadWardrobe();
-    await ensureWardrobeCharacterCatalog();
+    await Promise.all([
+        loadWardrobe(),
+        ensureWardrobeCharacterCatalog(true),
+    ]);
     renderWardrobeCharacterPreview();
     ensureWardrobeCharacterDrag();
 }
@@ -510,13 +513,16 @@ async function equipWardrobeItem(item) {
     }
 }
 
-async function ensureWardrobeCharacterCatalog() {
-    if (communityState.characterCatalog.length) return;
+async function ensureWardrobeCharacterCatalog(refresh = false) {
+    if (communityState.characterCatalog.length && !refresh) return;
     try {
         const payload = await communityRequest('/api/characters', {headers: telegramHeaders()});
         communityState.characterCatalog = payload.characters || [];
+        communityState.selectedCharacterId = payload.selectedId
+            || communityState.characterCatalog.find((character) => character.selected)?.id
+            || null;
         const selectedIndex = communityState.characterCatalog.findIndex(
-            (character) => character.selected || character.id === payload.selectedId
+            (character) => character.id === communityState.selectedCharacterId
         );
         communityState.characterIndex = selectedIndex >= 0 ? selectedIndex : 0;
         syncCoinBalance(payload.coins, payload.admin);
@@ -533,7 +539,8 @@ function renderWardrobeCharacterPreview() {
         stage.innerHTML = '<span class="wardrobe-character-fallback">🧍</span>';
         return;
     }
-    const selected = characters.find((character) => character.selected)
+    const selected = characters.find((character) => character.id === communityState.selectedCharacterId)
+        || characters.find((character) => character.selected)
         || characters[communityState.characterIndex]
         || characters[0];
     try {
@@ -613,6 +620,9 @@ async function loadCharacterCatalog() {
             headers: telegramHeaders(),
         });
         communityState.characterCatalog = payload.characters || [];
+        communityState.selectedCharacterId = payload.selectedId
+            || communityState.characterCatalog.find((character) => character.selected)?.id
+            || null;
         renderCharacterCatalog(payload);
     } catch (error) {
         window.characterViewer?.dispose();
@@ -633,7 +643,12 @@ function renderCharacterCatalog(payload) {
         return;
     }
 
-    const selectedIndex = payload.characters.findIndex((character) => character.selected || character.id === payload.selectedId);
+    communityState.selectedCharacterId = payload.selectedId
+        || payload.characters.find((character) => character.selected)?.id
+        || null;
+    const selectedIndex = payload.characters.findIndex(
+        (character) => character.id === communityState.selectedCharacterId
+    );
     communityState.characterIndex = selectedIndex >= 0 ? selectedIndex : 0;
     renderCharacterTumbler();
 }
