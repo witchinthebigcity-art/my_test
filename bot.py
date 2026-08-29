@@ -36,7 +36,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "31"
+WEBAPP_VERSION = "32"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -567,7 +567,8 @@ async def purchase_shop_item(request):
                     f"Ник в приложении: {profile.get('nickname', 'Участник')}\n"
                     f"Материал: {purchased_item.get('name', 'Без названия')}\n"
                     f"Списано: {result.get('paid', 0)} монет\n"
-                    "Нужно отправить покупателю соответствующий файл.",
+                    f"Файл кабинета: /data/materials/{purchased_item.get('id', '')}.pdf\n"
+                    "Нужно добавить соответствующий PDF в хранилище. Покупатель откроет его в личном кабинете.",
                 )
             except (
                 TelegramBadRequest,
@@ -645,6 +646,22 @@ async def get_avatar(request):
         avatar_path,
         headers={"Cache-Control": "public, max-age=31536000, immutable"},
     )
+
+
+async def get_material_file(request):
+    try:
+        material = await community_store.material_access(
+            _authenticated_user(request), request.match_info.get("item_id", "")
+        )
+        return web.FileResponse(
+            material["path"],
+            headers={
+                "Cache-Control": "private, no-store, max-age=0",
+                "Content-Disposition": "inline",
+            },
+        )
+    except CommunityError as error:
+        return _community_error(error, status=404)
 
 
 async def get_leaderboard(request):
@@ -1359,6 +1376,7 @@ def create_app():
     application.router.add_post('/api/characters/select', select_character)
     application.router.add_post('/api/characters/purchase', purchase_character)
     application.router.add_get('/avatars/{filename}', get_avatar)
+    application.router.add_get('/api/materials/{item_id}', get_material_file)
     application.router.add_get('/api/leaderboard', get_leaderboard)
     application.router.add_get('/api/participants/search', search_participants)
     application.router.add_get('/api/participants/{public_id}', get_participant)

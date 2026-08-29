@@ -33,6 +33,7 @@ const communityState = {
     wardrobeTab: 'outfit',
     wardrobePreviewDragReady: false,
     equippedItems: {},
+    materialObjectUrl: null,
 };
 let pendingAvatarDataUrl = null;
 let adminMode = false;
@@ -290,6 +291,7 @@ async function restoreTelegramAvatar() {
 async function openProfile(returnScreen = null) {
     communityState.profileReturnScreen = returnScreen || (currentClass ? 'mainMenu' : 'classSelection');
     showScreen('profileScreen');
+    closeProfileMaterial();
     setInlineMessage('profileMessage', 'Загружаем профиль…');
     try {
         const profile = await communityRequest('/api/profile', { headers: telegramHeaders() });
@@ -316,15 +318,85 @@ function renderProfileMaterials(materials) {
     if (!section || !list) return;
     section.hidden = !materials.length;
     list.replaceChildren();
+    setInlineMessage('profileMaterialsMessage', '');
     materials.forEach((material) => {
         const card = document.createElement('article');
         const expiry = material.ownedUntil
             ? new Date(material.ownedUntil).toLocaleDateString('ru-RU')
             : '';
         card.className = 'profile-material-card';
-        card.innerHTML = `<span>${material.icon || '📘'}</span><div><strong>${material.name}</strong><small>Доступ в профиле до ${expiry}</small></div>`;
+        const icon = document.createElement('span');
+        icon.textContent = material.icon || '📘';
+        const copy = document.createElement('div');
+        const name = document.createElement('strong');
+        name.textContent = material.name;
+        const status = document.createElement('small');
+        status.textContent = material.available
+            ? `Файл доступен до ${expiry}`
+            : `Готовится · доступ к покупке до ${expiry}`;
+        copy.append(name, status);
+        const actions = document.createElement('div');
+        actions.className = 'profile-material-actions';
+        const openButton = document.createElement('button');
+        openButton.type = 'button';
+        openButton.className = 'small-link-button';
+        openButton.textContent = material.available ? 'Открыть файл' : 'Проверить файл';
+        const contactButton = document.createElement('button');
+        contactButton.type = 'button';
+        contactButton.className = 'small-link-button material-contact-button';
+        contactButton.textContent = 'Связаться с автором';
+        contactButton.hidden = true;
+        contactButton.addEventListener('click', () => openMaterialAuthorChat());
+        openButton.addEventListener('click', () => openProfileMaterial(material, contactButton));
+        actions.append(openButton, contactButton);
+        card.append(icon, copy, actions);
         list.appendChild(card);
     });
+}
+
+function openMaterialAuthorChat() {
+    if (typeof tg.openTelegramLink === 'function') tg.openTelegramLink(MATERIAL_ADMIN_CHAT);
+    else window.open(MATERIAL_ADMIN_CHAT, '_blank', 'noopener');
+}
+
+async function openProfileMaterial(material, contactButton) {
+    setInlineMessage('profileMaterialsMessage', `Проверяем «${material.name}»…`);
+    try {
+        const response = await fetch(`/api/materials/${encodeURIComponent(material.id)}`, {
+            cache: 'no-store', headers: telegramHeaders(),
+        });
+        if (!response.ok) throw new Error('Файл пока недоступен');
+        const blob = await response.blob();
+        closeProfileMaterial();
+        communityState.materialObjectUrl = URL.createObjectURL(blob);
+        document.getElementById('profileMaterialViewerTitle').textContent = material.name;
+        document.getElementById('profileMaterialFrame').src = communityState.materialObjectUrl;
+        document.getElementById('profileMaterialViewer').hidden = false;
+        setInlineMessage('profileMaterialsMessage', 'Файл открыт ниже.', 'success');
+        document.getElementById('profileMaterialViewer').scrollIntoView({behavior: 'smooth', block: 'start'});
+    } catch (error) {
+        material.available = false;
+        const contactAvailable = material.contactAvailable
+            || Date.now() >= Date.parse(material.contactAfter || '');
+        contactButton.hidden = !contactAvailable;
+        const readyDate = new Date(material.contactAfter);
+        setInlineMessage(
+            'profileMaterialsMessage',
+            contactAvailable
+                ? 'Файл не открылся. Можно связаться с автором.'
+                : `Файл готовится. Если он не появится до ${readyDate.toLocaleString('ru-RU')}, здесь станет доступна связь с автором.`,
+            'error'
+        );
+    }
+}
+
+function closeProfileMaterial() {
+    const viewer = document.getElementById('profileMaterialViewer');
+    const frame = document.getElementById('profileMaterialFrame');
+    if (frame) frame.removeAttribute('src');
+    if (viewer) viewer.hidden = true;
+    if (communityState.materialObjectUrl) URL.revokeObjectURL(communityState.materialObjectUrl);
+    communityState.materialObjectUrl = null;
 }
 
 async function openCharacterProfile(returnScreen = null) {
@@ -1450,12 +1522,6 @@ async function purchaseShopItem(item) {
         const discountText = payload.discountApplied ? ` Купон −${payload.discountApplied}% применён.` : '';
         setInlineMessage('shopMessage', `«${item.name}» доступен 30 дней и добавлен в личный кабинет.${discountText}`, 'success');
         renderShopPage();
-        if (item.slot === 'guide') {
-            window.setTimeout(() => {
-                if (typeof tg.openTelegramLink === 'function') tg.openTelegramLink(MATERIAL_ADMIN_CHAT);
-                else window.open(MATERIAL_ADMIN_CHAT, '_blank', 'noopener');
-            }, 650);
-        }
     } catch (error) {
         setInlineMessage('shopMessage', error.message, 'error');
     }

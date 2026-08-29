@@ -417,6 +417,40 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(purchased["purchasedItem"]["slot"], "guide")
         profile = await self.store.get_profile(self.user_a)
         self.assertEqual([item["id"] for item in profile["materials"]], ["guide-algebra"])
+        material = profile["materials"][0]
+        self.assertFalse(material["available"])
+        self.assertFalse(material["contactAvailable"])
+        self.assertTrue(material["contactAfter"])
+
+        os.makedirs(self.store.material_directory, exist_ok=True)
+        material_path = os.path.join(self.store.material_directory, "guide-algebra.pdf")
+        with open(material_path, "wb") as target:
+            target.write(b"%PDF-1.4\n% protected test material\n")
+
+        profile = await self.store.get_profile(self.user_a)
+        self.assertTrue(profile["materials"][0]["available"])
+        access = await self.store.material_access(self.user_a, "guide-algebra")
+        self.assertEqual(access["path"], material_path)
+        with self.assertRaises(CommunityError):
+            await self.store.material_access(self.user_b, "guide-algebra")
+
+    async def test_guide_contact_becomes_available_after_two_days_without_file(self):
+        await self.store.get_profile(self.user_a)
+        data = self.store._load()
+        data["profiles"]["1"]["coins"] = 2000
+        self.store._save(data)
+        await self.store.purchase_shop_item(self.user_a, "guide-algebra")
+
+        data = self.store._load()
+        purchased_at = (datetime.now().astimezone() - timedelta(days=3)).isoformat()
+        data["profiles"]["1"]["material_orders"]["guide-algebra"]["purchased_at"] = purchased_at
+        self.store._save(data)
+
+        material = (await self.store.get_profile(self.user_a))["materials"][0]
+        self.assertFalse(material["available"])
+        self.assertTrue(material["contactAvailable"])
+        with self.assertRaises(CommunityError):
+            await self.store.material_access(self.user_a, "guide-algebra")
 
     async def test_shop_catalog_is_tripled_and_headphones_removed(self):
         catalog = await self.store.shop_catalog(self.user_a)

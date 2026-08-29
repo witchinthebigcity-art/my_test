@@ -1830,7 +1830,7 @@ body::before {
 
 .profile-material-card {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 11px;
     align-items: center;
 }
@@ -1838,6 +1838,14 @@ body::before {
 .profile-material-card strong,
 .profile-material-card small { display: block; }
 .profile-material-card small { margin-top: 4px; color: var(--text-muted); }
+.profile-material-actions { display: grid; gap: 6px; }
+.profile-material-actions .small-link-button { white-space: nowrap; }
+.profile-material-viewer { margin: 14px 0; padding: 12px; border: 1px solid var(--theme-border); border-radius: 18px; background: var(--surface-soft); }
+.profile-material-viewer iframe { display: block; width: 100%; height: min(68vh, 620px); margin-top: 10px; border: 0; border-radius: 12px; background: #fff; }
+@media (max-width: 520px) {
+    .profile-material-card { grid-template-columns: auto minmax(0, 1fr); }
+    .profile-material-actions { grid-column: 1 / -1; grid-template-columns: 1fr; }
+}
 
 .action-card:nth-child(even) { border-color: rgba(183, 105, 255, .36); }
 .action-icon {

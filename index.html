@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=31">
+    <link rel="stylesheet" href="/app.css?v=32">
 </head>
 <body data-grade="8">
 
@@ -197,9 +197,14 @@
         </section>
         <section id="profileMaterialsSection" class="social-section" hidden>
             <div class="section-heading"><h3>Мои материалы</h3></div>
-            <p class="supporting-text">Приобретённые пособия. Файл отправляет преподаватель в Telegram.</p>
+            <p class="supporting-text">Приобретённые пособия открываются прямо здесь, в личном кабинете.</p>
             <div id="profileMaterialsList" class="social-list"></div>
+            <div id="profileMaterialsMessage" class="inline-message" hidden></div>
         </section>
+        <div id="profileMaterialViewer" class="profile-material-viewer" hidden>
+            <div class="section-heading"><h3 id="profileMaterialViewerTitle">Материал</h3><button class="small-link-button" type="button" onclick="closeProfileMaterial()">Закрыть</button></div>
+            <iframe id="profileMaterialFrame" title="Просмотр приобретённого материала"></iframe>
+        </div>
         <div class="section-heading"><h3>Мои награды</h3></div>
         <div id="awardShelf" class="award-grid"><p class="empty-state">Награды появятся после попадания в тройку лучших.</p></div>
         <button class="btn btn-secondary" onclick="returnFromProfile()">Назад</button>
@@ -1301,7 +1306,7 @@ function sendToForm(grade, topic, status) {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=30"></script>
-<script src="/community.js?v=31"></script>
+<script src="/community.js?v=32"></script>
 <script src="/adventure.js?v=30"></script>
 </body>
 </html>

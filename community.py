@@ -289,6 +289,7 @@ class CommunityStore:
         self.path = path
         self.avatar_directory = os.path.join(os.path.dirname(path) or ".", "avatars")
         self.solution_directory = os.path.join(os.path.dirname(path) or ".", "solutions")
+        self.material_directory = os.path.join(os.path.dirname(path) or ".", "materials")
         self.lock = asyncio.Lock()
 
     def _load(self):
@@ -352,6 +353,7 @@ class CommunityStore:
             "unlocked_characters": {},
             "character_prices": {},
             "shop_purchases": {},
+            "material_orders": {},
             "equipped_items": {},
             "temporary_items": {},
             "discount_coupons": [],
@@ -369,6 +371,7 @@ class CommunityStore:
         profile.setdefault("unlocked_characters", {})
         profile.setdefault("character_prices", {})
         profile.setdefault("shop_purchases", {})
+        profile.setdefault("material_orders", {})
         profile.setdefault("equipped_items", {})
         profile.setdefault("temporary_items", {})
         profile.setdefault("discount_coupons", [])
@@ -389,19 +392,68 @@ class CommunityStore:
             "admin": self._is_admin(user),
         }
 
-    def _profile_materials(self, profile):
+    def _material_path(self, item_id):
+        if not re.fullmatch(r"guide-[a-z0-9-]+", str(item_id or "")):
+            return None
+        path = os.path.join(self.material_directory, f"{item_id}.pdf")
+        return path if os.path.isfile(path) else None
+
+    def _profile_materials(self, data, user_id, profile):
         purchases = profile.get("shop_purchases", {})
-        return [
-            {
+        orders = profile.setdefault("material_orders", {})
+        result = []
+        for item in SHOP_CATALOG:
+            if item.get("slot") != "guide" or item["id"] not in purchases:
+                continue
+            order = orders.get(item["id"], {})
+            purchased_at = order.get("purchased_at")
+            if not purchased_at:
+                transaction = next((
+                    transaction for transaction in reversed(data.get("coin_transactions", []))
+                    if transaction.get("user_id") == user_id
+                    and transaction.get("item_id") == item["id"]
+                    and transaction.get("kind") == "shop_purchase"
+                ), None)
+                purchased_at = (transaction or {}).get("created_at")
+            if not purchased_at:
+                try:
+                    purchased_at = (
+                        datetime.fromisoformat(purchases[item["id"]]).astimezone(MOSCOW)
+                        - timedelta(days=SHOP_OWNERSHIP_DAYS)
+                    ).isoformat()
+                except (TypeError, ValueError):
+                    purchased_at = profile.get("updated_at") or _now_iso()
+            orders[item["id"]] = {"purchased_at": purchased_at}
+            try:
+                contact_after = datetime.fromisoformat(purchased_at).astimezone(MOSCOW) + timedelta(days=2)
+            except (TypeError, ValueError):
+                contact_after = datetime.now(MOSCOW) + timedelta(days=2)
+            available = bool(self._material_path(item["id"]))
+            result.append({
                 "id": item["id"],
                 "name": item["name"],
                 "description": item["description"],
                 "icon": item["icon"],
                 "ownedUntil": purchases[item["id"]],
-            }
-            for item in SHOP_CATALOG
-            if item.get("slot") == "guide" and item["id"] in purchases
-        ]
+                "purchasedAt": purchased_at,
+                "available": available,
+                "contactAfter": contact_after.isoformat(),
+                "contactAvailable": not available and datetime.now(MOSCOW) >= contact_after,
+            })
+        return result
+
+    async def material_access(self, user, item_id):
+        async with self.lock:
+            data = self._load()
+            profile = self._ensure_profile(data, user)
+            item = next((item for item in SHOP_CATALOG if item["id"] == item_id and item.get("slot") == "guide"), None)
+            if not item or item_id not in profile.get("shop_purchases", {}):
+                raise CommunityError("Материал не приобретён или срок доступа завершён")
+            path = self._material_path(item_id)
+            if not path:
+                raise CommunityError("Файл пока готовится")
+            self._save(data)
+            return {"path": path, "name": item["name"]}
 
     @staticmethod
     def _next_midnight_iso():
@@ -470,12 +522,13 @@ class CommunityStore:
             data = self._load()
             profile = self._ensure_profile(data, user)
             self._finalise_awards(data)
-            self._save(data)
+            materials = self._profile_materials(data, self._user_id(user), profile)
             result = {
                 **profile,
                 "awards": [award for award in data["awards"] if award["user_id"] == self._user_id(user)],
-                "materials": self._profile_materials(profile),
+                "materials": materials,
             }
+            self._save(data)
             result.update(self._balance_payload(profile, user))
             return result
 
@@ -499,12 +552,13 @@ class CommunityStore:
                 profile["avatar_source"] = "telegram"
                 profile["avatar_url"] = user.get("photo_url", "")
             profile["updated_at"] = _now_iso()
-            self._save(data)
+            materials = self._profile_materials(data, self._user_id(user), profile)
             result = {
                 **profile,
                 "awards": [a for a in data["awards"] if a["user_id"] == self._user_id(user)],
-                "materials": self._profile_materials(profile),
+                "materials": materials,
             }
+            self._save(data)
             result.update(self._balance_payload(profile, user))
             return result
 
@@ -747,6 +801,8 @@ class CommunityStore:
                 coupon["used"] = True
             expires_at = self._shop_expiry("monthly")
             profile["shop_purchases"][item_id] = expires_at
+            if item.get("slot") == "guide":
+                profile.setdefault("material_orders", {})[item_id] = {"purchased_at": _now_iso()}
             profile["updated_at"] = _now_iso()
             data["coin_transactions"].append({
                 "id": f"shop:{user_id}:{item_id}:{uuid.uuid4().hex[:8]}",
