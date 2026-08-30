@@ -1,13 +1,11 @@
-__pycache__/
-*.py[cod]
+.git/
 .env
 .env.*
-!.env.example
+__pycache__/
+*.py[cod]
 .DS_Store
 volume-backup-*/
 *.zip
-
-# Local runtime data: never publish pupils' profiles, messages or solutions.
 /community.json
 /community.json.*
 /users.json
