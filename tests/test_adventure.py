@@ -109,6 +109,49 @@ class AdventureStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session["task"]["title"], "Пользовательская задача")
         self.assertNotIn("answers", session["task"]["fields"][0])
 
+    async def test_expert_game_hides_key_until_score_and_reveals_answer_only_on_error(self):
+        task = {
+            "id": "expert-work-1",
+            "number": 1,
+            "title": "Работа №1",
+            "question": "Поставьте балл",
+            "imageUrl": "https://example.com/work.png",
+            "answerImageUrl": "https://example.com/answer.png",
+            "expertScore": 1,
+            "maxScore": 2,
+            "kind": "Проверка работы",
+            "criteriaSource": "Критерии",
+            "fields": [],
+        }
+        first = await self.store.start_adventure(
+            self.user, 11, "expert-round", task=task, game="expert"
+        )
+        self.assertEqual(first["stage"], "grading")
+        self.assertNotIn("expertScore", first["task"])
+        self.assertNotIn("answerImageUrl", first["task"])
+        wrong = await self.store.submit_expert_score(self.user, first["id"], 2)
+        self.assertEqual(wrong["result"]["score"], 0)
+        self.assertEqual(wrong["result"]["expertScore"], 1)
+        self.assertEqual(wrong["result"]["answerImageUrl"], "https://example.com/answer.png")
+
+        second = await self.store.start_adventure(
+            self.user, 11, "expert-round-2", task=task, game="expert"
+        )
+        correct = await self.store.submit_expert_score(self.user, second["id"], 1)
+        self.assertEqual(correct["result"]["score"], 1)
+        self.assertNotIn("answerImageUrl", correct["result"])
+
+    async def test_leaving_expert_game_saves_no_attempt(self):
+        task = {
+            "id": "expert-work-1", "title": "Работа №1", "question": "Поставьте балл",
+            "imageUrl": "https://example.com/work.png", "answerImageUrl": "https://example.com/answer.png",
+            "expertScore": 1, "maxScore": 2, "kind": "Проверка", "criteriaSource": "Критерии", "fields": [],
+        }
+        session = await self.store.start_adventure(self.user, 11, "expert-leave", task=task, game="expert")
+        abandoned = await self.store.leave_adventure(self.user, session["id"])
+        self.assertEqual(abandoned["status"], "abandoned")
+        self.assertFalse(any(row.get("source") == "expert-game" for row in self.store._load()["attempts"]))
+
     async def test_four_mistakes_end_round_and_reward_only_correct_answers(self):
         session = await self.store.start_adventure(self.user, 9, "training-errors")
         stored = self.store._load()["adventures"][session["id"]]

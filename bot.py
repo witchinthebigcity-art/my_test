@@ -32,13 +32,19 @@ from aiogram.exceptions import (
 )
 
 from community import CommunityError, CommunityStore, validate_telegram_init_data
-from drive_questions import fetch_public_drive_index, parse_drive_index, parse_extended_drive_index
+from drive_questions import (
+    fetch_expert_game_index,
+    fetch_public_drive_index,
+    parse_drive_index,
+    parse_expert_game_index,
+    parse_extended_drive_index,
+)
 from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "35"
+WEBAPP_VERSION = "36"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -67,6 +73,13 @@ DRIVE_INDEX_URL = os.getenv("DRIVE_INDEX_URL", "").strip()
 DRIVE_ROOT_FOLDER_ID = os.getenv(
     "DRIVE_ROOT_FOLDER_ID", "1CIagfcGHZO_Sdk2G1QysBNg-rX06c_-r"
 ).strip()
+EXPERT_GAME_FOLDER_ID = os.getenv(
+    "EXPERT_GAME_FOLDER_ID", "10zrD0b4U64JFALp6lUqjzaZl9Gn1DYzN"
+).strip()
+EXPERT_GAME_MAX_SCORE = int(os.getenv("EXPERT_GAME_MAX_SCORE", "2"))
+EXPERT_GAME_ENABLED = os.getenv("EXPERT_GAME_ENABLED", "").strip().casefold() in {
+    "1", "true", "yes", "да"
+}
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -81,7 +94,12 @@ COMMUNITY_FILE = f"{DATA_DIR}/community.json"
 
 community_store = CommunityStore(COMMUNITY_FILE)
 
-questions_cache = {"loaded_at": 0.0, "items": [], "extended": {grade: [] for grade in SUPPORTED_GRADES}}
+questions_cache = {
+    "loaded_at": 0.0,
+    "items": [],
+    "extended": {grade: [] for grade in SUPPORTED_GRADES},
+    "expert": [],
+}
 questions_cache_lock = asyncio.Lock()
 
 def save_user(user_id):
@@ -429,6 +447,7 @@ async def _load_questions(force=False):
                 csv_text = await response.text()
 
             drive_payload = None
+            expert_payload = None
             if DRIVE_INDEX_URL:
                 drive_separator = "&" if "?" in DRIVE_INDEX_URL else "?"
                 drive_url = f"{DRIVE_INDEX_URL}{drive_separator}t={int(time.time())}"
@@ -446,6 +465,14 @@ async def _load_questions(force=False):
                     # On a cold start the verified bundled image set keeps the
                     # bot usable even if Google Drive is temporarily unavailable.
                     drive_payload = None
+            if EXPERT_GAME_FOLDER_ID:
+                try:
+                    expert_payload = await fetch_expert_game_index(
+                        session, EXPERT_GAME_FOLDER_ID
+                    )
+                except (QuestionFormatError, aiohttp.ClientError, asyncio.TimeoutError):
+                    if force:
+                        raise
 
         questions = parse_questions_csv(csv_text)
         # Files 1–5 are the verified legacy set. The Drive parser ignores these
@@ -458,6 +485,10 @@ async def _load_questions(force=False):
             questions_cache["extended"] = parse_extended_drive_index(drive_payload)
         else:
             questions_cache["extended"] = {grade: [] for grade in SUPPORTED_GRADES}
+        questions_cache["expert"] = (
+            parse_expert_game_index(expert_payload, EXPERT_GAME_MAX_SCORE)
+            if expert_payload is not None else []
+        )
         questions = list({question.question_id: question for question in questions}.values())
         questions_cache["items"] = questions
         questions_cache["loaded_at"] = time.monotonic()
@@ -1171,16 +1202,24 @@ async def start_adventure(request):
         payload = await request.json()
         grade = int(payload.get("grade") or 0)
         game = str(payload.get("game") or "tower")
+        if game == "expert" and not EXPERT_GAME_ENABLED:
+            raise CommunityError("Игра «Ты — эксперт» пока находится в разработке")
         user = _authenticated_user(request)
         attempt_key = str(payload.get("attemptKey") or "").strip()
         task = None
-        if game == "second_part":
+        if game in {"second_part", "expert"}:
             await _load_questions()
-            available = questions_cache.get("extended", {}).get(grade, [])
+            available = (
+                questions_cache.get("expert", [])
+                if game == "expert"
+                else questions_cache.get("extended", {}).get(grade, [])
+            )
             used_ids = await community_store.used_adventure_task_ids(user, grade, attempt_key)
             fresh_tasks = [task for task in available if task.get("id") not in used_ids]
             # Once every task in the folder has been solved, a new shuffled cycle may begin.
             task = random.choice(fresh_tasks or available) if available else None
+            if game == "expert" and task is None:
+                raise CommunityError("В папке игры пока нет готовых пар «Решение — Ответ»")
         session = await community_store.start_adventure(
             user, grade, attempt_key, task=task, game=game
         )
@@ -1239,6 +1278,20 @@ async def submit_adventure(request):
         expert_result = await _grade_extended_solution(context, payload)
         session = await community_store.submit_adventure(
             user, request.match_info["session_id"], payload, expert_result=expert_result
+        )
+        session["verification"] = _adventure_verification_capabilities()
+        return web.json_response(session)
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def submit_expert_score(request):
+    try:
+        payload = await request.json()
+        session = await community_store.submit_expert_score(
+            _authenticated_user(request),
+            request.match_info["session_id"],
+            payload.get("score"),
         )
         session["verification"] = _adventure_verification_capabilities()
         return web.json_response(session)
@@ -1446,6 +1499,7 @@ def create_app():
     application.router.add_post('/api/adventure/{session_id}/leave', leave_adventure)
     application.router.add_post('/api/adventure/{session_id}/draft', save_adventure_draft)
     application.router.add_post('/api/adventure/{session_id}/submit', submit_adventure)
+    application.router.add_post('/api/adventure/{session_id}/expert-score', submit_expert_score)
     application.router.add_post('/api/adventure/recognize', recognize_solution)
     application.router.add_get('/api/profile', get_profile)
     application.router.add_post('/api/profile', update_profile)

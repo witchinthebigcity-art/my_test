@@ -197,7 +197,8 @@ def grade_solution(task, answers, explanation=""):
 def public_task(task_or_grade):
     task = task_or_grade if isinstance(task_or_grade, dict) else ADVENTURE_TASKS[int(task_or_grade)]
     return {
-        key: value for key, value in task.items() if key != "fields"
+        key: value for key, value in task.items()
+        if key not in {"fields", "expertScore", "answerImageUrl"}
     } | {
         "fields": [{key: value for key, value in field.items() if key != "answers"} for field in task["fields"]]
     }
@@ -205,7 +206,7 @@ def public_task(task_or_grade):
 
 def new_session(user_id, grade, attempt_key, task=None, game="tower"):
     game = str(game or "tower")
-    if game not in {"tower", "second_part"}:
+    if game not in {"tower", "second_part", "expert"}:
         raise ValueError("Unknown adventure game")
     session = {
         "id": uuid.uuid4().hex,
@@ -213,7 +214,7 @@ def new_session(user_id, grade, attempt_key, task=None, game="tower"):
         "grade": int(grade),
         "attempt_key": str(attempt_key or uuid.uuid4().hex),
         "game": game,
-        "stage": "formula" if game == "tower" else "solution",
+        "stage": "formula" if game == "tower" else "grading" if game == "expert" else "solution",
         "status": "active",
         "task": task or ADVENTURE_TASKS[int(grade)],
     }

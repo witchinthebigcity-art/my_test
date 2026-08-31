@@ -1738,6 +1738,39 @@ body { min-height: var(--app-stable-height); }
     .wardrobe-coat { height: 150px; }
 }
 
+.expert-work-image,
+.expert-answer-image {
+    width: 100%;
+    max-height: min(46vh, 520px);
+    object-fit: contain;
+    background: rgba(2, 10, 32, .72);
+}
+
+.expert-score-label {
+    margin: 18px 0 10px;
+    color: #f4f8ff;
+    font-weight: 800;
+    text-align: center;
+}
+
+.expert-score-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    gap: 10px;
+}
+
+.expert-score-button {
+    min-height: 58px;
+    border: 1px solid rgba(90, 220, 255, .7);
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(16, 56, 116, .94), rgba(54, 28, 105, .94));
+    color: #fff;
+    font: 800 1.3rem/1 inherit;
+    box-shadow: 0 0 18px rgba(70, 185, 255, .16);
+}
+
+.expert-score-button:disabled { opacity: .55; }
+
 /* Unified neon universe v29 */
 :root {
     --universe-cyan: #52dcff;

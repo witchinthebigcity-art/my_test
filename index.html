@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=35">
+    <link rel="stylesheet" href="/app.css?v=36">
 </head>
 <body data-grade="8">
 
@@ -481,11 +481,11 @@
                 <span class="game-world-copy"><small>Игра на ассоциации</small><strong>Башня формул</strong><em>Теоремы, площади и тождества</em></span>
                 <span class="game-world-status active">Играть</span>
             </button>
-            <button class="game-world-card investigation-world" type="button" onclick="startAdventureGame('second_part')">
-                <span class="game-world-art"><b>⌕</b><i>📐</i></span>
-                <span class="game-world-copy"><small>Развёрнутые решения</small><strong>Математическое расследование</strong><em>Вторая часть и итоговые контрольные</em></span>
-                <span class="game-world-status active">Играть</span>
-            </button>
+            <article class="game-world-card investigation-world is-locked" aria-disabled="true">
+                <span class="game-world-art"><b>✓</b><i>🧑‍🏫</i></span>
+                <span class="game-world-copy"><small>Проверка работ</small><strong>Ты — эксперт</strong><em>Изучите решение и выставьте балл</em></span>
+                <span class="game-world-status">В разработке</span>
+            </article>
             <article class="game-world-card geometry-world is-locked" aria-disabled="true">
                 <span class="game-world-art"><b>△</b><i>🧭</i></span>
                 <span class="game-world-copy"><small>Будущий мир</small><strong>Экспедиция геометров</strong><em>Чертежи, маршруты и доказательства</em></span>
@@ -555,6 +555,20 @@
             </div>
             <div id="solutionUploadStatus" class="inline-message" hidden></div>
             <button id="submitExtendedButton" class="btn" type="button" onclick="submitExtendedSolution()">Проверить по критериям</button>
+        </section>
+        <section id="expertGradingPanel" class="extended-solution-panel expert-grading-panel" hidden>
+            <div class="solution-game-heading">
+                <div class="math-investigator" aria-hidden="true"><i></i><span>✓</span></div>
+                <div><p class="eyebrow">Игра на экспертное мышление</p><h3>Ты — эксперт</h3></div>
+            </div>
+            <p id="expertTaskKind" class="eyebrow"></p>
+            <h3 id="expertTaskTitle"></h3>
+            <p id="expertTaskQuestion" class="extended-task-question"></p>
+            <img id="expertTaskImage" class="question-media expert-work-image" alt="Работа ученика для оценивания">
+            <div class="criteria-note"><strong>Задача</strong><span>Оцените математическую корректность и полноту решения. Эталон откроется только после ответа, если оценка неверна.</span></div>
+            <p class="expert-score-label">Какой балл поставил эксперт?</p>
+            <div id="expertScoreOptions" class="expert-score-options"></div>
+            <div id="expertScoreMessage" class="inline-message" hidden></div>
         </section>
         <section id="extendedResult" class="extended-result" hidden></section>
         <div class="adventure-footer-actions">
@@ -1316,6 +1330,6 @@ function sendToForm(grade, topic, status) {
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=35"></script>
 <script src="/community.js?v=35"></script>
-<script src="/adventure.js?v=30"></script>
+<script src="/adventure.js?v=36"></script>
 </body>
 </html>

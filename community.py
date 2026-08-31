@@ -1094,7 +1094,11 @@ class CommunityStore:
                 "createdAt": session.get("updated_at"),
                 "total": int((session.get("result") or {}).get("maxScore") or 2),
                 "correct": int((session.get("result") or {}).get("score") or 0),
-                "topics": ["Формулы" if session.get("game") == "tower" else "Вторая часть"],
+                "topics": [
+                    "Формулы" if session.get("game") == "tower"
+                    else "Экспертная оценка" if session.get("game") == "expert"
+                    else "Вторая часть"
+                ],
                 "kind": "extended",
             } for session in sessions[:30]]
 
@@ -1122,7 +1126,7 @@ class CommunityStore:
         if grade not in ADVENTURE_TASKS:
             raise CommunityError("Некорректный класс")
         game = str(game or "tower")
-        if game not in {"tower", "second_part"}:
+        if game not in {"tower", "second_part", "expert"}:
             raise CommunityError("Неизвестная мини-игра")
         async with self.lock:
             data = self._load()
@@ -1246,24 +1250,96 @@ class CommunityStore:
                 or session.get("status") != "active"
             ):
                 raise CommunityError("Активное приключение не найдено")
-            ensure_formula_round(session)
-            if session.get("game") != "tower" or session.get("stage") != "formula":
+            game = session.get("game")
+            if game == "tower":
+                ensure_formula_round(session)
+            if not (
+                (game == "tower" and session.get("stage") == "formula")
+                or (game == "expert" and session.get("stage") == "grading")
+            ):
                 raise CommunityError("Сейчас нельзя покинуть этот раунд")
             session["status"] = "abandoned"
             session["stage"] = "abandoned"
-            session["result"] = {
-                "score": 0,
-                "maxScore": len(session["formula_round"]),
-                "correctAnswers": int(session.get("formula_score") or 0),
-                "mistakes": int(session.get("formula_errors") or 0),
-                "maxMistakes": FORMULA_MAX_MISTAKES,
-                "rewardCoins": 0,
-                "endReason": "left",
-                "criteria": [],
-                "verdict": "Вы покинули раунд. Очки и монеты не начислены.",
-                "engine": "formula-game",
-            }
+            if game == "tower":
+                session["result"] = {
+                    "score": 0,
+                    "maxScore": len(session["formula_round"]),
+                    "correctAnswers": int(session.get("formula_score") or 0),
+                    "mistakes": int(session.get("formula_errors") or 0),
+                    "maxMistakes": FORMULA_MAX_MISTAKES,
+                    "rewardCoins": 0,
+                    "endReason": "left",
+                    "criteria": [],
+                    "verdict": "Вы покинули раунд. Очки и монеты не начислены.",
+                    "engine": "formula-game",
+                }
+            else:
+                session["result"] = {
+                    "score": 0,
+                    "maxScore": 1,
+                    "rewardCoins": 0,
+                    "endReason": "left",
+                    "criteria": [],
+                    "verdict": "Вы покинули проверку. Результат не сохранён.",
+                    "engine": "expert-game",
+                }
             session["updated_at"] = _now_iso()
+            self._save(data)
+            return self._adventure_view(session)
+
+    async def submit_expert_score(self, user, session_id, selected_score):
+        try:
+            selected_score = int(selected_score)
+        except (TypeError, ValueError) as error:
+            raise CommunityError("Выберите балл за работу") from error
+        async with self.lock:
+            data = self._load()
+            session = data["adventures"].get(str(session_id))
+            if (
+                not session
+                or session.get("user_id") != self._user_id(user)
+                or session.get("status") != "active"
+                or session.get("game") != "expert"
+                or session.get("stage") != "grading"
+            ):
+                raise CommunityError("Активная проверка не найдена")
+            task = session.get("task") or {}
+            max_work_score = int(task.get("maxScore") or 0)
+            expert_score = int(task.get("expertScore") or 0)
+            if selected_score < 0 or selected_score > max_work_score:
+                raise CommunityError(f"Выберите оценку от 0 до {max_work_score}")
+            correct = selected_score == expert_score
+            result = {
+                "score": int(correct),
+                "maxScore": 1,
+                "selectedScore": selected_score,
+                "expertScore": expert_score,
+                "workMaxScore": max_work_score,
+                "criteria": [],
+                "verdict": (
+                    f"Верно: эксперт поставил {expert_score} балл."
+                    if correct else
+                    f"Ваша оценка — {selected_score}, оценка эксперта — {expert_score}. Изучите разбор ниже."
+                ),
+                "engine": "expert-game",
+            }
+            if not correct:
+                result["answerImageUrl"] = str(task.get("answerImageUrl") or "")
+            session["selected_score"] = selected_score
+            session["result"] = result
+            session["status"] = "complete"
+            session["stage"] = "complete"
+            session["updated_at"] = _now_iso()
+            data["attempts"].append({
+                "attempt_key": f"adventure:{session['id']}",
+                "user_id": self._user_id(user),
+                "question_id": task.get("id") or "expert-work",
+                "grade": session["grade"],
+                "correct": correct,
+                "points": int(correct),
+                "source": "expert-game",
+                "created_at": _now_iso(),
+            })
             self._save(data)
             return self._adventure_view(session)
 

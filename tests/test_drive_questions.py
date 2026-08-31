@@ -4,7 +4,9 @@ from unittest.mock import patch
 from drive_questions import (
     FOLDER_MIME_TYPE,
     fetch_public_drive_index,
+    fetch_expert_game_index,
     parse_drive_index,
+    parse_expert_game_index,
     parse_extended_drive_index,
     parse_public_folder_html,
 )
@@ -96,6 +98,35 @@ class DriveFolderSeparationTests(unittest.IsolatedAsyncioTestCase):
             payload = await fetch_public_drive_index(_FakeSession(), "root")
         self.assertEqual({item["id"] for item in payload["files"]}, {"first-8", "first-9", "first-10", "first-11"})
         self.assertEqual([item["id"] for item in payload["extendedFiles"]], ["second-8"])
+
+    async def test_expert_bank_reads_solutions_and_answers_folders(self):
+        folders = {
+            "expert-root": [
+                {"id": "solutions-folder", "name": "Решения", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "answers-folder", "name": "Ответы", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "solutions-folder": [{"id": "work-1", "name": "1 - 1", "mimeType": "image/jpeg"}],
+            "answers-folder": [{"id": "answer-1", "name": "1", "mimeType": "image/png"}],
+        }
+        with patch("drive_questions.parse_public_folder_html", side_effect=lambda marker: folders[marker]):
+            payload = await fetch_expert_game_index(_FakeSession(), "expert-root")
+        tasks = parse_expert_game_index(payload)
+        self.assertEqual(tasks[0]["number"], 1)
+        self.assertEqual(tasks[0]["expertScore"], 1)
+        self.assertIn("work-1", tasks[0]["imageUrl"])
+        self.assertIn("answer-1", tasks[0]["answerImageUrl"])
+
+    def test_expert_bank_requires_matching_answer_and_valid_score(self):
+        with self.assertRaisesRegex(QuestionFormatError, "нет файла Ответы/1"):
+            parse_expert_game_index({
+                "solutions": [{"id": "work-1", "name": "1 - 1", "mimeType": "image/jpeg"}],
+                "answers": [],
+            })
+        with self.assertRaisesRegex(QuestionFormatError, "выше максимума"):
+            parse_expert_game_index({
+                "solutions": [{"id": "work-1", "name": "1 - 3", "mimeType": "image/jpeg"}],
+                "answers": [{"id": "answer-1", "name": "1", "mimeType": "image/png"}],
+            }, max_score=2)
 
     def test_rejects_duplicate_number_inside_one_grade(self):
         with self.assertRaisesRegex(QuestionFormatError, "повторяется номер 6"):

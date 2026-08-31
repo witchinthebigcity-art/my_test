@@ -27,6 +27,15 @@ PUBLIC_FOLDER_DATA_PATTERN = re.compile(
 PUBLIC_API_KEY_PATTERN = re.compile(r"AIza[0-9A-Za-z_-]{30,50}")
 FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
 DRIVE_FILES_API_URL = "https://www.googleapis.com/drive/v3/files"
+EXPERT_SOLUTION_PATTERN = re.compile(
+    r"^\s*(?P<number>\d+)\s*[-–—]\s*(?P<score>\d+)"
+    r"(?:\.(?:jpe?g|png|webp))?\s*$",
+    re.IGNORECASE,
+)
+EXPERT_ANSWER_PATTERN = re.compile(
+    r"^\s*(?P<number>\d+)(?:\.(?:jpe?g|png|webp))?\s*$",
+    re.IGNORECASE,
+)
 
 
 def _format_decimal(value: Decimal, comma: bool) -> str:
@@ -203,6 +212,87 @@ def parse_extended_drive_index(payload) -> dict[int, list[dict]]:
     return tasks
 
 
+def parse_expert_game_index(payload, max_score=2) -> list[dict]:
+    """Match `Решения/N - score` with the hidden reveal image `Ответы/N`."""
+    solution_files = payload.get("solutions") if isinstance(payload, dict) else None
+    answer_files = payload.get("answers") if isinstance(payload, dict) else None
+    if not isinstance(solution_files, list) or not isinstance(answer_files, list):
+        raise QuestionFormatError("Папка оценивания должна содержать «Решения» и «Ответы»")
+    try:
+        max_score = int(max_score)
+    except (TypeError, ValueError) as error:
+        raise QuestionFormatError("Максимальный балл игры должен быть целым числом") from error
+    if not 1 <= max_score <= 10:
+        raise QuestionFormatError("Максимальный балл игры должен быть от 1 до 10")
+
+    answers_by_number = {}
+    errors = []
+    for item in answer_files:
+        if not isinstance(item, dict) or item.get("mimeType") not in IMAGE_TYPES:
+            continue
+        name = os.path.basename(str(item.get("name") or ""))
+        match = EXPERT_ANSWER_PATTERN.match(name)
+        if not match:
+            errors.append(f"Ответы/{name}")
+            continue
+        number = int(match.group("number"))
+        file_id = str(item.get("id") or "").strip()
+        if number in answers_by_number:
+            errors.append(f"Ответы: повторяется номер {number}")
+        elif re.fullmatch(r"[A-Za-z0-9_-]+", file_id):
+            answers_by_number[number] = file_id
+        else:
+            errors.append(f"Ответы/{name}: некорректный ID")
+
+    tasks = []
+    seen = set()
+    for item in solution_files:
+        if not isinstance(item, dict) or item.get("mimeType") not in IMAGE_TYPES:
+            continue
+        name = os.path.basename(str(item.get("name") or ""))
+        match = EXPERT_SOLUTION_PATTERN.match(name)
+        if not match:
+            errors.append(f"Решения/{name}")
+            continue
+        number = int(match.group("number"))
+        expert_score = int(match.group("score"))
+        file_id = str(item.get("id") or "").strip()
+        if number in seen:
+            errors.append(f"Решения: повторяется номер {number}")
+            continue
+        seen.add(number)
+        if expert_score > max_score:
+            errors.append(f"Решения/{name}: балл выше максимума {max_score}")
+            continue
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", file_id):
+            errors.append(f"Решения/{name}: некорректный ID")
+            continue
+        if number not in answers_by_number:
+            errors.append(f"Для решения {number} нет файла Ответы/{number}")
+            continue
+        tasks.append({
+            "id": f"expert-work-{number}-{file_id}",
+            "number": number,
+            "title": f"Работа №{number}",
+            "question": "Изучите решение ученика и поставьте балл, как эксперт.",
+            "imageUrl": f"https://drive.google.com/thumbnail?id={quote(file_id)}&sz=w2000",
+            "answerImageUrl": (
+                "https://drive.google.com/thumbnail?id="
+                f"{quote(answers_by_number[number])}&sz=w2000"
+            ),
+            "kind": "Проверка развёрнутого решения",
+            "maxScore": max_score,
+            "expertScore": expert_score,
+            "criteriaSource": "Сравните полноту и корректность решения с критериями экзамена.",
+            "fields": [],
+        })
+    if errors:
+        raise QuestionFormatError("Ошибка в папке игры «Ты — эксперт»: " + "; ".join(errors[:8]))
+    if not tasks:
+        raise QuestionFormatError("В папке «Решения» нет работ по схеме «номер - балл»")
+    return sorted(tasks, key=lambda item: item["number"])
+
+
 def parse_public_folder_html(html: str) -> list[dict]:
     """Read public Drive folder entries from the initial page payload."""
     match = PUBLIC_FOLDER_DATA_PATTERN.search(html)
@@ -345,3 +435,38 @@ async def fetch_public_drive_index(session, root_folder_id: str) -> dict:
     for grade, entries in zip(sorted(SUPPORTED_GRADES), second_entries):
         extended_files.extend({**entry, "grade": grade} for entry in entries if entry["mimeType"] in IMAGE_TYPES)
     return {"files": files, "extendedFiles": extended_files}
+
+
+async def fetch_expert_game_index(session, root_folder_id: str) -> dict:
+    """Read the public two-folder bank used by the expert-scoring game."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", root_folder_id or ""):
+        raise QuestionFormatError("Некорректный ID папки игры оценивания")
+
+    async def read_folder(folder_id):
+        url = f"https://drive.google.com/drive/folders/{quote(folder_id)}?usp=drive_link"
+        async with session.get(url) as response:
+            response.raise_for_status()
+            html = await response.text()
+        initial_entries = parse_public_folder_html(html)
+        if len(initial_entries) < 50:
+            return initial_entries
+        complete_entries = await _fetch_complete_public_folder(session, folder_id, html)
+        return complete_entries if complete_entries is not None else initial_entries
+
+    root_entries = await read_folder(root_folder_id)
+    folders = {}
+    for entry in root_entries:
+        if entry.get("mimeType") != FOLDER_MIME_TYPE:
+            continue
+        normalised = re.sub(r"[\s_-]+", "", str(entry.get("name") or "").casefold().replace("ё", "е"))
+        if normalised in {"решения", "ответы"}:
+            if normalised in folders:
+                raise QuestionFormatError(f"Найдено несколько папок «{entry['name']}»")
+            folders[normalised] = entry["id"]
+    missing = [name.title() for name in ("решения", "ответы") if name not in folders]
+    if missing:
+        raise QuestionFormatError("Не найдены папки: " + ", ".join(missing))
+    solutions, answers = await asyncio.gather(
+        read_folder(folders["решения"]), read_folder(folders["ответы"])
+    )
+    return {"solutions": solutions, "answers": answers}
