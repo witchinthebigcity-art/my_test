@@ -4,6 +4,8 @@ import asyncio
 import ssl
 import time
 import random
+from collections import OrderedDict, deque
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 import aiohttp
@@ -36,7 +38,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "34"
+WEBAPP_VERSION = "35"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -491,18 +493,33 @@ async def get_questions(request):
 # Эта функция принимает результаты тестов от учеников и сохраняет их в файл
 async def save_progress(request):
     try:
-        data = await request.json()
-        init_data = request.headers.get("X-Telegram-Init-Data", "")
-        if init_data:
-            user = validate_telegram_init_data(init_data, TOKEN)
-            await community_store.record_attempt(user, data)
-        with open(RESULTS_FILE, "a", encoding="utf-8") as f:
+        user = _authenticated_user(request)
+        payload = await request.json()
+        if not isinstance(payload, dict) or type(payload.get("isCorrect")) is not bool:
+            return web.json_response({"error": "Некорректный результат"}, status=400)
+        # The owner is always the signed Telegram user, never an ID supplied by JS.
+        grade = int(payload.get("grade") or payload.get("class") or 0)
+        data = {
+            "user_id": user["id"], "username": user.get("username"),
+            "questionId": str(payload.get("questionId") or "")[:200],
+            "attemptKey": str(payload.get("attemptKey") or "")[:200],
+            "grade": grade, "class": grade,
+            "topic": str(payload.get("topic") or "Общее")[:300],
+            "isCorrect": payload["isCorrect"],
+            "time": datetime.now(timezone.utc).isoformat(),
+        }
+        await community_store.record_attempt(user, data)
+        descriptor = os.open(RESULTS_FILE, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
         return web.json_response({"status": "success"})
     except CommunityError as error:
         return _community_error(error, status=401)
-    except Exception as e:
-        return web.json_response({"status": "error", "message": str(e)}, status=500)
+    except (ValueError, TypeError):
+        return web.json_response({"error": "Некорректный результат"}, status=400)
+    except OSError:
+        return web.json_response({"error": "Не удалось сохранить результат. Повторите позже"}, status=500)
 
 
 async def get_profile(request):
@@ -666,10 +683,11 @@ async def get_material_file(request):
 
 async def get_leaderboard(request):
     try:
+        user = _authenticated_user(request)
         grade_value = request.query.get("grade")
         grade = int(grade_value) if grade_value else None
         return web.json_response(
-            await community_store.leaderboard(request.query.get("period", "day"), grade)
+            await community_store.leaderboard(request.query.get("period", "day"), grade, str(user["id"]))
         )
     except (CommunityError, ValueError) as error:
         return _community_error(error)
@@ -737,6 +755,20 @@ async def get_friends(request):
         return web.json_response(await community_store.friends(_authenticated_user(request)))
     except CommunityError as error:
         return _community_error(error, status=401)
+
+
+async def get_blocks(request):
+    return web.json_response(await community_store.blocked_participants(_authenticated_user(request)))
+
+
+async def change_block(request):
+    try:
+        return web.json_response(await community_store.block_participant(
+            _authenticated_user(request), request.match_info["public_id"],
+            remove=request.method == "DELETE",
+        ))
+    except CommunityError as error:
+        return _community_error(error, status=422)
 
 
 async def request_friend(request):
@@ -1007,9 +1039,13 @@ async def answer_battle(request):
     except (QuestionFormatError, aiohttp.ClientError, asyncio.TimeoutError) as error:
         return _community_error(error, status=502)
 async def get_stats(request):
-    user_id = request.query.get('user_id')
-    if not user_id:
-        return web.json_response({"error": "No user_id"}, status=400)
+    try:
+        user = _authenticated_user(request)
+    except CommunityError as error:
+        return _community_error(error, status=401)
+    user_id = str(user["id"])
+    if request.query.get("user_id") not in (None, "", user_id):
+        return web.json_response({"error": "Доступна только ваша статистика"}, status=403)
     
     stats = {"total": 0, "correct": 0, "topics": {}}
     
@@ -1022,7 +1058,7 @@ async def get_stats(request):
             for line in f:
                 try:
                     data = json.loads(line)
-                    if str(data.get('user_id')) == str(user_id) or data.get('username') == request.query.get('username'):
+                    if str(data.get('user_id')) == user_id:
                         stats["total"] += 1
                         if data.get('isCorrect'):
                             stats["correct"] += 1
@@ -1343,8 +1379,56 @@ async def recognize_solution(request):
         return _community_error(error, status=422)
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, TypeError):
         return _community_error(CommunityError("Распознавание временно недоступно"), status=502)
+def security_middleware():
+    # Bounded, per-worker limits. Persistent friendship limits also survive restarts.
+    windows = OrderedDict()
+
+    def allowed(key, limit):
+        now = time.monotonic()
+        events = windows.setdefault(key, deque())
+        windows.move_to_end(key)
+        while events and events[0] <= now - 60:
+            events.popleft()
+        if len(events) >= limit:
+            return False
+        events.append(now)
+        while len(windows) > 10000:
+            windows.popitem(last=False)
+        return True
+
+    @web.middleware
+    async def middleware(request, handler):
+        private = request.path in {"/save", "/stats"} or (
+            request.path.startswith("/api/") and request.path != "/api/questions"
+        )
+        try:
+            if private:
+                user = _authenticated_user(request)
+                category = "search" if request.path == "/api/participants/search" else "general"
+                if (not allowed((user["id"], "all"), 240)
+                        or (category == "search" and not allowed((user["id"], category), 20))):
+                    response = web.json_response({"error": "Слишком много запросов. Подождите минуту"}, status=429,
+                                                 headers={"Retry-After": "60"})
+                else:
+                    response = await handler(request)
+            else:
+                response = await handler(request)
+        except CommunityError as error:
+            response = _community_error(error, status=401)
+        except web.HTTPException as error:
+            response = web.Response(status=error.status, text=error.text, headers=error.headers)
+        if private:
+            response.headers["Cache-Control"] = "private, no-store, max-age=0"
+            response.headers["Vary"] = "X-Telegram-Init-Data"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        return response
+
+    return middleware
+
+
 def create_app():
-    application = web.Application(client_max_size=4 * 1024 * 1024)
+    application = web.Application(client_max_size=4 * 1024 * 1024, middlewares=[security_middleware()])
     application.router.add_get('/', handle_index)
     application.router.add_get('/app.css', handle_styles)
     application.router.add_get('/community.js', handle_community_script)
@@ -1381,6 +1465,9 @@ def create_app():
     application.router.add_get('/api/participants/search', search_participants)
     application.router.add_get('/api/participants/{public_id}', get_participant)
     application.router.add_get('/api/friends', get_friends)
+    application.router.add_get('/api/blocks', get_blocks)
+    application.router.add_post('/api/blocks/{public_id}', change_block)
+    application.router.add_delete('/api/blocks/{public_id}', change_block)
     application.router.add_post('/api/friends/{public_id}', request_friend)
     application.router.add_post('/api/friend-requests/{request_id}/accept', accept_friend)
     application.router.add_post('/api/friend-requests/{request_id}/decline', decline_friend)

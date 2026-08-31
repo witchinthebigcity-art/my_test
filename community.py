@@ -167,7 +167,12 @@ def validate_telegram_init_data(init_data, bot_token, max_age_seconds=86400):
     if not init_data or not bot_token:
         raise CommunityError("Откройте приложение из Telegram")
 
-    values = dict(parse_qsl(init_data, keep_blank_values=True))
+    if not isinstance(init_data, str) or len(init_data) > 16384:
+        raise CommunityError("Некорректная авторизация Telegram")
+    pairs = parse_qsl(init_data, keep_blank_values=True)
+    values = dict(pairs)
+    if len(values) != len(pairs):
+        raise CommunityError("Некорректная авторизация Telegram")
     received_hash = values.pop("hash", "")
     if not received_hash:
         raise CommunityError("Не удалось подтвердить Telegram-профиль")
@@ -182,15 +187,19 @@ def validate_telegram_init_data(init_data, bot_token, max_age_seconds=86400):
         auth_date = int(values.get("auth_date", "0"))
     except ValueError as error:
         raise CommunityError("Некорректная дата авторизации Telegram") from error
-    if auth_date <= 0 or abs(time.time() - auth_date) > max_age_seconds:
+    age = time.time() - auth_date
+    if auth_date <= 0 or age < -60 or age > max_age_seconds:
         raise CommunityError("Сессия Telegram устарела. Откройте приложение заново")
 
     try:
         user = json.loads(values.get("user", "{}"))
     except json.JSONDecodeError as error:
         raise CommunityError("Некорректный Telegram-профиль") from error
-    if not user.get("id"):
-        raise CommunityError("Telegram не передал идентификатор пользователя")
+    if (not isinstance(user, dict) or type(user.get("id")) is not int
+            or not 0 < user["id"] < 2**52
+            or user.get("is_bot", False) is not False
+            or "type" in user):
+        raise CommunityError("Войдите с личного аккаунта Telegram, не от имени канала или бота")
     return user
 
 
@@ -276,6 +285,7 @@ def _default_data():
         "awards": [],
         "battles": {},
         "friendships": [],
+        "blocks": [],
         "messages": [],
         "battle_invites": [],
         "coin_transactions": [],
@@ -316,7 +326,9 @@ class CommunityStore:
         directory = os.path.dirname(self.path) or "."
         os.makedirs(directory, exist_ok=True)
         temporary_path = f"{self.path}.tmp"
-        with open(temporary_path, "w", encoding="utf-8") as target:
+        descriptor = os.open(temporary_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as target:
             json.dump(data, target, ensure_ascii=False, indent=2)
         os.replace(temporary_path, self.path)
 
@@ -364,6 +376,7 @@ class CommunityStore:
         })
         profile.setdefault("public_id", uuid.uuid4().hex[:12])
         profile.setdefault("avatar_source", "telegram")
+        profile.setdefault("allow_friend_requests", True)
         profile.setdefault("coins", 0)
         profile.setdefault("login_streak", 0)
         profile.setdefault("last_login_date", None)
@@ -540,6 +553,10 @@ class CommunityStore:
                 profile["nickname"] = validate_nickname(payload["nickname"])
             if "leaderboardConsent" in payload:
                 profile["leaderboard_consent"] = bool(payload["leaderboardConsent"])
+            if "allowFriendRequests" in payload:
+                if type(payload["allowFriendRequests"]) is not bool:
+                    raise CommunityError("Некорректная настройка заявок")
+                profile["allow_friend_requests"] = payload["allowFriendRequests"]
             if payload.get("grade") is not None:
                 grade = int(payload["grade"])
                 if grade not in {8, 9, 10, 11}:
@@ -1369,7 +1386,7 @@ class CommunityStore:
                 })
                 existing.add(key)
 
-    async def leaderboard(self, period="day", grade=None):
+    async def leaderboard(self, period="day", grade=None, viewer_id=None):
         if period not in {"day", "month"}:
             raise CommunityError("Период должен быть day или month")
         now = datetime.now(MOSCOW)
@@ -1382,6 +1399,8 @@ class CommunityStore:
             award_names = DAILY_AWARDS if period == "day" else MONTHLY_AWARDS
             entries = []
             for rank, (user_id, result) in enumerate(ranking[:100], start=1):
+                if not self._can_view_stats(data, str(viewer_id) if viewer_id is not None else None, user_id):
+                    continue
                 profile = data["profiles"].get(user_id, {})
                 entry = {
                     "rank": rank,
@@ -1407,12 +1426,61 @@ class CommunityStore:
         ), (None, None))
 
     @staticmethod
+    def _is_blocked(data, first_id, second_id):
+        return any(
+            {row.get("blocker_id"), row.get("blocked_id")} == {first_id, second_id}
+            for row in data.get("blocks", [])
+        )
+
+    async def blocked_participants(self, user):
+        async with self.lock:
+            data = self._load()
+            return {"entries": [
+                {"publicId": profile.get("public_id"),
+                 "nickname": profile.get("nickname", "Участник"),
+                 "avatarUrl": profile.get("avatar_url", "")}
+                for row in data["blocks"] if row.get("blocker_id") == self._user_id(user)
+                for profile in [data["profiles"].get(row.get("blocked_id"), {})]
+                if profile.get("public_id")
+            ]}
+
+    async def block_participant(self, user, public_id, remove=False):
+        async with self.lock:
+            data = self._load()
+            user_id = self._user_id(user)
+            target_id, _ = self._find_user_by_public_id(data, public_id)
+            if not target_id or target_id == user_id:
+                raise CommunityError("Участник не найден")
+            own_block = lambda row: row.get("blocker_id") == user_id and row.get("blocked_id") == target_id
+            if remove:
+                data["blocks"] = [row for row in data["blocks"] if not own_block(row)]
+            else:
+                if not any(own_block(row) for row in data["blocks"]):
+                    data["blocks"].append({"blocker_id": user_id, "blocked_id": target_id, "created_at": _now_iso()})
+                # Keep history, but revoke relationships and outstanding invitations.
+                for row in data["friendships"] + data["battle_invites"]:
+                    if ({row.get("sender_id"), row.get("receiver_id")} == {user_id, target_id}
+                            and row.get("status") in {"pending", "accepted"}):
+                        row["status"] = "blocked"
+                        row["updated_at"] = _now_iso()
+            self._save(data)
+            return {"blocked": not remove}
+
+    @staticmethod
     def _friendship_between(data, first_id, second_id):
         return next((
             item for item in reversed(data["friendships"])
             if {item.get("sender_id"), item.get("receiver_id")} == {first_id, second_id}
             and item.get("status") in {"pending", "accepted"}
         ), None)
+
+    def _can_view_stats(self, data, viewer_id, target_id):
+        if not viewer_id or self._is_blocked(data, viewer_id, target_id):
+            return False
+        if viewer_id == target_id:
+            return True
+        relationship = self._friendship_between(data, viewer_id, target_id)
+        return bool(relationship and relationship.get("status") == "accepted")
 
     def _friendship_status(self, data, viewer_id, target_id):
         if viewer_id == target_id:
@@ -1441,8 +1509,9 @@ class CommunityStore:
             "characterId": character_id,
             "characterStyle": character.get("style") if character else None,
             "friendshipStatus": self._friendship_status(data, viewer_id, target_id) if viewer_id else "none",
+            "acceptsFriendRequests": profile.get("allow_friend_requests", True),
         }
-        if profile.get("leaderboard_consent"):
+        if profile.get("leaderboard_consent") and self._can_view_stats(data, viewer_id, target_id):
             now = datetime.now(MOSCOW)
             day_rank = dict(self._ranking(data, "day", now.strftime("%Y-%m-%d"))).get(target_id, {})
             month_rank = dict(self._ranking(data, "month", now.strftime("%Y-%m"))).get(target_id, {})
@@ -1479,7 +1548,7 @@ class CommunityStore:
             target_id, target = self._find_user_by_public_id(data, public_id)
             friendship = self._friendship_between(data, viewer_id, target_id) if target_id else None
             can_view_friend = friendship and friendship.get("status") == "accepted"
-            if not target_id or (
+            if not target_id or self._is_blocked(data, viewer_id, target_id) or (
                 target_id != viewer_id
                 and not target.get("leaderboard_consent")
                 and not can_view_friend
@@ -1491,17 +1560,18 @@ class CommunityStore:
 
     async def search_participants(self, user, query):
         query = unicodedata.normalize("NFKC", str(query or "")).strip().casefold()
-        if len(query) < 2:
-            raise CommunityError("Введите минимум 2 символа никнейма")
+        if not 2 <= len(query) <= 24:
+            raise CommunityError("Введите полный никнейм участника (2–24 символа)")
         async with self.lock:
             data = self._load()
             viewer_id = self._user_id(user)
             self._ensure_profile(data, user)
             matches = []
             for target_id, profile in data["profiles"].items():
-                if target_id == viewer_id or not profile.get("leaderboard_consent"):
+                if (target_id == viewer_id or not profile.get("leaderboard_consent")
+                        or self._is_blocked(data, viewer_id, target_id)):
                     continue
-                if query not in str(profile.get("nickname", "")).casefold():
+                if query != unicodedata.normalize("NFKC", str(profile.get("nickname", ""))).strip().casefold():
                     continue
                 matches.append(self._public_profile(data, target_id, viewer_id))
                 if len(matches) >= 20:
@@ -1519,6 +1589,8 @@ class CommunityStore:
                 if user_id not in {item.get("sender_id"), item.get("receiver_id")}:
                     continue
                 target_id = item["receiver_id"] if item["sender_id"] == user_id else item["sender_id"]
+                if self._is_blocked(data, user_id, target_id):
+                    continue
                 if target_id not in data["profiles"]:
                     continue
                 record = {
@@ -1541,8 +1613,11 @@ class CommunityStore:
             user_id = self._user_id(user)
             self._ensure_profile(data, user)
             target_id, target = self._find_user_by_public_id(data, target_public_id)
-            if not target_id or not target.get("leaderboard_consent"):
+            if (not target_id or not target.get("leaderboard_consent")
+                    or self._is_blocked(data, user_id, target_id)):
                 raise CommunityError("Профиль участника не найден")
+            if not target.get("allow_friend_requests", True):
+                raise CommunityError("Участник отключил новые заявки в друзья")
             if target_id == user_id:
                 raise CommunityError("Нельзя добавить в друзья самого себя")
             existing = self._friendship_between(data, user_id, target_id)
@@ -1550,11 +1625,18 @@ class CommunityStore:
                 raise CommunityError("Этот участник уже у вас в друзьях")
             if existing and existing["status"] == "pending":
                 if existing["receiver_id"] == user_id:
-                    existing["status"] = "accepted"
-                    existing["updated_at"] = _now_iso()
-                    self._save(data)
-                    return {"status": "accepted", "targetUserId": target_id}
+                    raise CommunityError("Откройте входящие заявки и нажмите «Принять»")
                 raise CommunityError("Заявка уже отправлена")
+            now = datetime.now(MOSCOW)
+            sent = [row for row in data["friendships"] if row.get("sender_id") == user_id]
+            recent = [row for row in sent if datetime.fromisoformat(row["created_at"]) >= now - timedelta(days=1)]
+            hourly = [row for row in recent if datetime.fromisoformat(row["created_at"]) >= now - timedelta(hours=1)]
+            if len(recent) >= 20 or len(hourly) >= 5:
+                raise CommunityError("Лимит заявок: 5 в час и 20 в сутки. Попробуйте позже")
+            if any(row.get("receiver_id") == target_id and row.get("status") in {"declined", "blocked"}
+                   and datetime.fromisoformat(row.get("updated_at") or row["created_at"]) >= now - timedelta(days=7)
+                   for row in sent):
+                raise CommunityError("После отклонения заявки повторить её можно через 7 дней")
             request = {
                 "id": uuid.uuid4().hex[:12],
                 "sender_id": user_id,
@@ -1575,6 +1657,8 @@ class CommunityStore:
             request = next((item for item in data["friendships"] if item.get("id") == request_id), None)
             if not request or request.get("receiver_id") != user_id or request.get("status") != "pending":
                 raise CommunityError("Заявка в друзья не найдена")
+            if self._is_blocked(data, user_id, request["sender_id"]):
+                raise CommunityError("Заявка в друзья не найдена")
             request["status"] = "accepted"
             request["updated_at"] = _now_iso()
             self._save(data)
@@ -1593,6 +1677,8 @@ class CommunityStore:
             return {"status": "declined"}
 
     def _require_friend(self, data, user_id, target_id):
+        if self._is_blocked(data, user_id, target_id):
+            raise CommunityError("Взаимодействие с участником недоступно")
         friendship = self._friendship_between(data, user_id, target_id)
         if not friendship or friendship.get("status") != "accepted":
             raise CommunityError("Сначала добавьте участника в друзья")
@@ -1687,6 +1773,8 @@ class CommunityStore:
                 if invite.get("status") != "pending" or user_id not in {invite["sender_id"], invite["receiver_id"]}:
                     continue
                 target_id = invite["sender_id"] if invite["receiver_id"] == user_id else invite["receiver_id"]
+                if self._is_blocked(data, user_id, target_id):
+                    continue
                 entry = {
                     "id": invite["id"],
                     "grade": invite["grade"],
@@ -1849,6 +1937,7 @@ class CommunityStore:
             waiting = next((
                 battle for battle in data["battles"].values()
                 if battle["status"] == "waiting" and battle["grade"] == grade and user_id not in battle["players"]
+                and not any(self._is_blocked(data, user_id, other_id) for other_id in battle["players"])
             ), None)
             if waiting:
                 started = datetime.now(MOSCOW)

@@ -93,7 +93,7 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         await self.store.record_attempt(self.user_a, {"questionId": "q1", "grade": 8, "isCorrect": True, "attemptKey": "a1"})
         await self.store.record_attempt(self.user_b, {"questionId": "q2", "grade": 8, "isCorrect": True, "attemptKey": "b1"})
 
-        leaderboard = await self.store.leaderboard("day", 8)
+        leaderboard = await self.store.leaderboard("day", 8, str(self.user_a["id"]))
         self.assertEqual(len(leaderboard["entries"]), 1)
         entry = leaderboard["entries"][0]
         self.assertEqual(entry["nickname"], "Алгебра8")
@@ -224,7 +224,7 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         profile_b = await self.store.update_profile(
             self.user_b, {"nickname": "Геометр8", "leaderboardConsent": True, "grade": 8}
         )
-        search = await self.store.search_participants(self.user_a, "Геометр")
+        search = await self.store.search_participants(self.user_a, "Геометр8")
         self.assertEqual(search["entries"][0]["publicId"], profile_b["public_id"])
         self.assertNotIn("user_id", search["entries"][0])
         self.assertNotIn("username", search["entries"][0])

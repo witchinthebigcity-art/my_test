@@ -47,7 +47,8 @@ function telegramHeaders(json = false) {
 }
 
 async function communityRequest(url, options = {}) {
-    const response = await fetch(url, {cache: 'no-store', ...options});
+    const response = await fetch(url, {cache: 'no-store', ...options,
+        headers: {...telegramHeaders(), ...(options.headers || {})}});
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || payload.message || 'Не удалось выполнить запрос');
     return payload;
@@ -299,6 +300,7 @@ async function openProfile(returnScreen = null) {
         document.getElementById('profileNickname').value = profile.nickname || '';
         document.getElementById('profilePreviewName').textContent = profile.nickname || 'Участник';
         document.getElementById('leaderboardConsent').checked = Boolean(profile.leaderboard_consent);
+        document.getElementById('allowFriendRequests').checked = profile.allow_friend_requests !== false;
         setAvatar(
             document.getElementById('profileAvatar'),
             document.getElementById('profileAvatarPlaceholder'),
@@ -805,6 +807,7 @@ async function saveProfile() {
             body: JSON.stringify({
                 nickname: document.getElementById('profileNickname').value,
                 leaderboardConsent: document.getElementById('leaderboardConsent').checked,
+                allowFriendRequests: document.getElementById('allowFriendRequests').checked,
                 avatarDataUrl: pendingAvatarDataUrl,
             }),
         });
@@ -923,7 +926,7 @@ function renderLeaderboard(entries) {
     if (!entries.length) {
         const message = document.createElement('p');
         message.className = 'empty-state';
-        message.textContent = 'Пока нет участников с результатами. Можно стать первым.';
+        message.textContent = 'У вас и ваших друзей пока нет результатов за этот период.';
         list.appendChild(message);
         return;
     }
@@ -1025,11 +1028,13 @@ async function openFriends(returnScreen = null) {
     setInlineMessage('friendMessage', 'Загружаем друзей и приглашения…');
     document.getElementById('friendSearchResults').replaceChildren();
     try {
-        const [friendData, inviteData] = await Promise.all([
+        const [friendData, inviteData, blockData] = await Promise.all([
             communityRequest('/api/friends', { headers: telegramHeaders() }),
             communityRequest('/api/battle-invites', { headers: telegramHeaders() }),
+            communityRequest('/api/blocks'),
         ]);
         renderFriends(friendData);
+        renderBlockedParticipants(blockData);
         renderBattleInvites(inviteData);
         setInlineMessage('friendMessage', '');
         focusDeepLinkedSocialItem();
@@ -1050,6 +1055,7 @@ function renderFriends(payload) {
         friendList.appendChild(createSocialCard(participant, [
             { label: 'Сообщения', action: () => openChat(participant.publicId) },
             { label: 'Вызвать в баттл', action: () => inviteToBattle(participant.publicId), secondary: true },
+            { label: 'Заблокировать', action: () => blockParticipant(participant.publicId), secondary: true },
         ]));
     });
     if (!payload.friends?.length) renderEmpty(friendList, 'В списке пока никого нет. Найдите участника по никнейму.');
@@ -1062,11 +1068,54 @@ function renderFriends(payload) {
         const card = createSocialCard(participant, [
             { label: 'Принять', action: () => respondFriendRequest(id, true) },
             { label: 'Отклонить', action: () => respondFriendRequest(id, false), secondary: true },
+            { label: 'Заблокировать', action: () => blockParticipant(participant.publicId), secondary: true },
         ]);
         card.id = `friend-request-${id}`;
         if (id === communityState.highlightedFriendRequestId) card.classList.add('deep-link-highlight');
         requestList.appendChild(card);
     });
+}
+
+function renderBlockedParticipants(payload) {
+    const list = document.getElementById('blockedParticipantsList');
+    list.replaceChildren();
+    const entries = payload.entries || [];
+    document.getElementById('blockedParticipantsSection').hidden = !entries.length;
+    entries.forEach((participant) => {
+        const row = document.createElement('article');
+        row.className = 'social-card';
+        const name = document.createElement('strong');
+        name.textContent = participant.nickname;
+        const button = document.createElement('button');
+        button.className = 'btn btn-secondary';
+        button.textContent = 'Разблокировать';
+        button.addEventListener('click', () => blockParticipant(participant.publicId, true));
+        row.append(name, button);
+        list.appendChild(row);
+    });
+}
+
+async function blockParticipant(publicId, remove = false) {
+    try {
+        if (!remove) {
+            const text = 'Заблокировать участника? Дружба и заявки будут отменены. Он не сможет писать вам или приглашать в баттлы.';
+            const confirmed = await new Promise((resolve) => {
+                if (tg.isVersionAtLeast?.('6.2') && tg.showConfirm) tg.showConfirm(text, resolve);
+                else resolve(window.confirm(text));
+            });
+            if (!confirmed) return;
+        }
+        await communityRequest(`/api/blocks/${encodeURIComponent(publicId)}`, {
+            method: remove ? 'DELETE' : 'POST',
+        });
+        await openFriends();
+        setInlineMessage('friendMessage', remove
+            ? 'Блокировка снята. Дружба и отменённые заявки не восстанавливаются автоматически.'
+            : 'Участник заблокирован. Он не получит уведомление о блокировке.', 'success');
+    } catch (error) {
+        setInlineMessage(document.getElementById('participantScreen').classList.contains('active')
+            ? 'participantMessage' : 'friendMessage', error.message, 'error');
+    }
 }
 
 function renderBattleInvites(payload) {
@@ -1206,7 +1255,7 @@ function renderParticipant(participant) {
             stats.appendChild(item);
         });
     } else {
-        renderEmpty(stats, 'Участник не публикует результаты.');
+        renderEmpty(stats, 'Статистика доступна подтверждённым друзьям, если участник разрешил её публикацию.');
     }
 
     const awards = document.getElementById('participantAwards');
@@ -1224,7 +1273,8 @@ function renderParticipant(participant) {
         button.addEventListener('click', handler);
         actions.appendChild(button);
     };
-    if (participant.friendshipStatus === 'none') addAction('Добавить в друзья', () => requestFriendFromProfile(participant.publicId));
+    if (participant.friendshipStatus === 'none' && participant.acceptsFriendRequests !== false)
+        addAction('Добавить в друзья', () => requestFriendFromProfile(participant.publicId));
     if (participant.friendshipStatus === 'outgoing') {
         const pending = document.createElement('p');
         pending.className = 'soft-pill';
@@ -1236,6 +1286,8 @@ function renderParticipant(participant) {
         addAction('Написать сообщение', () => openChat(participant.publicId));
         addAction('Вызвать в баттл', () => inviteToBattle(participant.publicId), true);
     }
+    if (participant.friendshipStatus !== 'self')
+        addAction('Заблокировать', () => blockParticipant(participant.publicId), true);
 }
 
 async function requestFriendFromProfile(publicId) {

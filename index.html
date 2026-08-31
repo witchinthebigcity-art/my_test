@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=34">
+    <link rel="stylesheet" href="/app.css?v=35">
 </head>
 <body data-grade="8">
 
@@ -185,7 +185,11 @@
         <input id="profileNickname" class="text-field" maxlength="24" placeholder="Например, Геометр_11">
         <label class="consent-card">
             <input id="leaderboardConsent" type="checkbox">
-            <span><strong>Участвовать в рейтинге, друзьях и баттлах</strong><small>Другие смогут найти вас по никнейму и увидят только никнейм, аватар и результат. Настройку можно отключить.</small></span>
+            <span><strong>Участвовать в рейтинге, друзьях и баттлах</strong><small>Другие смогут найти вас по полному никнейму и увидеть аватар. Статистику и награды видят только подтверждённые друзья. Настройку можно отключить.</small></span>
+        </label>
+        <label class="consent-card">
+            <input id="allowFriendRequests" type="checkbox">
+            <span><strong>Разрешить новые заявки в друзья</strong><small>Можно отключить отдельно от рейтинга. Текущие друзья сохранятся. Заявка не добавляет человека в друзья без вашего подтверждения.</small></span>
         </label>
         <div id="profileMessage" class="inline-message" hidden></div>
         <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
@@ -261,7 +265,7 @@
     <div id="leaderboardScreen" class="screen">
         <p class="eyebrow">Только добровольные участники</p>
         <h2>Рейтинг <span id="leaderboardGrade"></span> класса</h2>
-        <p class="supporting-text">Публично показываются только никнейм, аватар и результат.</p>
+        <p class="supporting-text">Здесь видны только ваши результаты и результаты подтверждённых друзей, согласившихся участвовать в рейтинге.</p>
         <div class="segmented-control">
             <button id="ratingDayButton" class="segment active" onclick="openLeaderboard('day')">Сегодня</button>
             <button id="ratingMonthButton" class="segment" onclick="openLeaderboard('month')">Месяц</button>
@@ -278,9 +282,9 @@
     <div id="friendsScreen" class="screen">
         <p class="eyebrow">Ваш круг участников</p>
         <h2>Мои друзья</h2>
-        <p class="supporting-text">Найдите участника по публичному никнейму. Писать сообщения и отправлять личные вызовы можно после принятия заявки.</p>
+        <p class="supporting-text">Введите полный публичный никнейм. Сообщения и личные вызовы доступны после принятия заявки. Название и аватар не подтверждают личность: принимайте только знакомых.</p>
         <div class="social-search">
-            <input id="friendSearchInput" class="text-field" maxlength="24" placeholder="Введите никнейм">
+            <input id="friendSearchInput" class="text-field" maxlength="24" placeholder="Введите полный никнейм">
             <button class="btn" type="button" onclick="searchParticipants()">Найти</button>
         </div>
         <div id="friendMessage" class="inline-message" hidden></div>
@@ -297,6 +301,10 @@
         <section class="social-section">
             <div class="section-heading"><h3>Список друзей</h3></div>
             <div id="friendsList" class="social-list"><p class="empty-state">Загружаем…</p></div>
+        </section>
+        <section id="blockedParticipantsSection" class="social-section" hidden>
+            <div class="section-heading"><h3>Заблокированные участники</h3></div>
+            <div id="blockedParticipantsList" class="social-list"></div>
         </section>
         <button class="btn btn-secondary" onclick="returnFromFriends()">Назад</button>
     </div>
@@ -865,7 +873,8 @@ async function loadMyStats() {
     if (!userId && !username) return;
 
     try {
-        const response = await fetch(`/stats?user_id=${userId}&username=${username}`);
+        const response = await fetch('/stats', {cache: 'no-store', headers: telegramHeaders()});
+        if (!response.ok) throw new Error('Не удалось загрузить статистику. Откройте приложение из Telegram заново.');
         const stats = await response.json();
         
         const overallPercent = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
@@ -1305,8 +1314,8 @@ function sendToForm(grade, topic, status) {
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="/characters.js?v=34"></script>
-<script src="/community.js?v=34"></script>
+<script src="/characters.js?v=35"></script>
+<script src="/community.js?v=35"></script>
 <script src="/adventure.js?v=30"></script>
 </body>
 </html>
