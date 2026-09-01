@@ -23,12 +23,31 @@ function openGameUniverse() {
     showScreen('gameUniverseScreen');
 }
 
-async function startAdventureGame(game = 'tower') {
+function openExpertNumberMenu() {
+    const grid = document.getElementById('expertNumberGrid');
+    grid.replaceChildren();
+    for (let number = 13; number <= 19; number += 1) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `expert-number-button${number === 13 ? ' is-active' : ' is-locked'}`;
+        button.disabled = number !== 13;
+        const title = document.createElement('strong');
+        title.textContent = `${number} номер`;
+        const status = document.createElement('small');
+        status.textContent = number === 13 ? 'Играть' : 'В разработке';
+        button.append(title, status);
+        if (number === 13) button.addEventListener('click', () => startAdventureGame('expert', number));
+        grid.appendChild(button);
+    }
+    showScreen('expertNumberScreen');
+}
+
+async function startAdventureGame(game = 'tower', taskNumber = null) {
     try {
         const session = await communityRequest('/api/adventure/start', {
             method: 'POST',
             headers: telegramHeaders(true),
-            body: JSON.stringify({grade: currentClass, attemptKey: currentAttemptKey, game}),
+            body: JSON.stringify({grade: currentClass, attemptKey: currentAttemptKey, game, taskNumber}),
         });
         renderAdventure(session);
     } catch (error) {
@@ -60,7 +79,7 @@ function renderAdventure(session) {
     const isTower = session.game === 'tower';
     const isFormulaStage = isTower && session.stage === 'formula';
     const isSolutionStage = session.game === 'second_part' && session.stage === 'solution';
-    const isExpertStage = session.game === 'expert' && session.stage === 'grading';
+    const isExpertStage = session.game === 'expert' && ['grading', 'review'].includes(session.stage);
     const formula = session.formula || {};
     const screen = document.getElementById('adventureScreen');
     screen.classList.toggle('formula-game-stage', isFormulaStage);
@@ -72,12 +91,14 @@ function renderAdventure(session) {
         ? 'Башня формул'
         : session.game === 'expert' ? 'Ты — эксперт' : 'Математическое расследование';
     document.getElementById('adventureStatus').textContent = isExpertStage
-        ? 'Изучите работу и определите, сколько баллов поставил эксперт.'
+        ? (session.stage === 'review'
+            ? 'Изучите обратную связь и нажмите «Далее», когда будете готовы.'
+            : 'Изучите работу и определите, сколько баллов поставил эксперт.')
         : isSolutionStage
         ? 'Решите задание второй части — черновик сохраняется автоматически.'
         : session.stage === 'complete'
             ? (isTower ? 'Раунд завершён. Монеты начислены за каждый верный ответ.' : 'Проверка завершена. Результат сохранён в статистике.')
-            : `Вопрос ${Math.min(Number(formula.index || 0) + 1, Number(formula.total || 10))} из ${Number(formula.total || 10)} · Ошибки ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 4)} · ${Number(formula.rewardPerCorrect || 50)} монет за верный ответ.`;
+            : `Вопрос ${Math.min(Number(formula.index || 0) + 1, Number(formula.total || 10))} из ${Number(formula.total || 10)} · Ошибки ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 5)} · ${Number(formula.rewardPerCorrect || 50)} монет за верный ответ.`;
     document.getElementById('adventureLeaveButton').hidden = !(isFormulaStage || isExpertStage);
     if (typeof syncPageNavigationControls === 'function') syncPageNavigationControls();
     document.getElementById('adventureWorld').hidden = !isFormulaStage;
@@ -88,7 +109,7 @@ function renderAdventure(session) {
     expertPanel.hidden = !isExpertStage;
     document.getElementById('extendedResult').hidden = session.stage !== 'complete';
     if (isSolutionStage) renderExtendedTask(session.task, session.draft || {}, session.verification || {});
-    if (isExpertStage) renderExpertTask(session.task);
+    if (isExpertStage) renderExpertTask(session.task, session.expert || {}, session.stage, session.result || null);
     if (session.stage === 'complete' && session.result) {
         if (isTower) renderTowerResult(session.result);
         else if (session.game === 'expert') renderExpertResult(session.result);
@@ -126,7 +147,7 @@ function renderFormulaChallenge(formula) {
         options.appendChild(button);
     });
     const feedback = document.getElementById('formulaFeedback');
-    feedback.textContent = formula.feedback?.message || `Верных ответов: ${Number(formula.score || 0)} · ошибок: ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 4)}`;
+    feedback.textContent = formula.feedback?.message || `Верных ответов: ${Number(formula.score || 0)} · ошибок: ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 5)}`;
     feedback.className = `formula-feedback${formula.feedback ? (formula.feedback.correct ? ' correct' : ' wrong') : ''}`;
 }
 
@@ -170,7 +191,7 @@ function renderTowerResult(result) {
     verdict.textContent = result.verdict || 'Башня формул пройдена.';
     const reward = document.createElement('p');
     reward.className = 'formula-result-reward';
-    reward.textContent = `Награда: ${Number(result.rewardCoins || 0)} монет · ошибок: ${Number(result.mistakes || 0)} из ${Number(result.maxMistakes || 4)}`;
+    reward.textContent = `Награда: ${Number(result.rewardCoins || 0)} монет · ошибок: ${Number(result.mistakes || 0)} из ${Number(result.maxMistakes || 5)}`;
     panel.append(score, verdict, reward);
     if (Number.isFinite(Number(result.coins)) && typeof syncCoinBalance === 'function') {
         syncCoinBalance(Number(result.coins), Boolean(result.admin));
@@ -180,10 +201,10 @@ function renderTowerResult(result) {
 
 async function leaveAdventureGame() {
     const session = adventureState.session;
-    if (!session || !['formula', 'grading'].includes(session.stage)) return;
+    if (!session || !['formula', 'grading', 'review'].includes(session.stage)) return;
     const confirmed = await new Promise((resolve) => {
         const message = session.game === 'expert'
-            ? 'Покинуть проверку? Результат этой работы не сохранится.'
+            ? 'Покинуть проверку? Уже заработанные монеты сохранятся, но раунд завершится.'
             : 'Покинуть игру? Очки и монеты за этот раунд не сохранятся.';
         if (tg && typeof tg.showConfirm === 'function') tg.showConfirm(message, resolve);
         else resolve(window.confirm(message));
@@ -203,12 +224,27 @@ async function leaveAdventureGame() {
     }
 }
 
-function renderExpertTask(task) {
+function renderExpertTask(task, run = {}, stage = 'grading', result = null) {
     document.getElementById('expertTaskKind').textContent = task.kind || 'Проверка работы';
     document.getElementById('expertTaskTitle').textContent = task.title;
     document.getElementById('expertTaskQuestion').textContent = task.question;
     const image = document.getElementById('expertTaskImage');
     image.src = task.imageUrl;
+    document.getElementById('expertRunStats').textContent =
+        `Работа ${Number(run.index || 0) + 1} из ${Number(run.total || 1)} · ` +
+        `❤️ ${Number(run.lives || 0)} из ${Number(run.maxLives || 5)} · ` +
+        `Верно: ${Number(run.correct || 0)} · Награда: ${Number(run.rewardCoins || 0)} 🪙`;
+    const criteriaImages = document.getElementById('expertCriteriaImages');
+    criteriaImages.replaceChildren();
+    (task.criteriaImageUrls || []).forEach((url, index) => {
+        const criteria = document.createElement('img');
+        criteria.className = 'question-media expert-criteria-image';
+        criteria.src = url;
+        criteria.alt = `Критерии, страница ${index + 1}`;
+        criteriaImages.appendChild(criteria);
+    });
+    document.getElementById('expertCriteriaPanel').hidden = true;
+    document.getElementById('expertCriteriaButton').textContent = 'Критерии';
     const options = document.getElementById('expertScoreOptions');
     options.replaceChildren();
     for (let score = 0; score <= Number(task.maxScore || 2); score += 1) {
@@ -220,7 +256,54 @@ function renderExpertTask(task) {
         button.addEventListener('click', () => submitExpertScore(score));
         options.appendChild(button);
     }
-    document.getElementById('expertScoreMessage').hidden = true;
+    document.getElementById('expertAnswerControls').hidden = stage !== 'grading';
+    const scoreMessage = document.getElementById('expertScoreMessage');
+    scoreMessage.hidden = true;
+    const review = document.getElementById('expertReviewPanel');
+    review.replaceChildren();
+    review.hidden = stage !== 'review';
+    if (stage === 'review' && result) renderExpertReview(review, result);
+}
+
+function toggleExpertCriteria() {
+    const panel = document.getElementById('expertCriteriaPanel');
+    panel.hidden = !panel.hidden;
+    document.getElementById('expertCriteriaButton').textContent = panel.hidden ? 'Критерии' : 'Скрыть критерии';
+}
+
+function renderExpertReview(panel, result) {
+    const verdict = document.createElement('p');
+    verdict.className = `inline-message ${result.correct ? 'success' : 'error'}`;
+    verdict.textContent = result.verdict;
+    panel.appendChild(verdict);
+    if (result.answerImageUrl) {
+        const heading = document.createElement('h3');
+        heading.textContent = 'Ответ и разбор эксперта';
+        const answer = document.createElement('img');
+        answer.className = 'question-media expert-answer-image';
+        answer.src = result.answerImageUrl;
+        answer.alt = 'Ответ и разбор эксперта';
+        panel.append(heading, answer);
+    }
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'btn adventure-launch-button';
+    next.textContent = Number(result.lives || 0) > 0 ? 'Далее' : 'Завершить игру';
+    next.addEventListener('click', continueExpertGame);
+    panel.appendChild(next);
+}
+
+async function continueExpertGame() {
+    try {
+        const session = await communityRequest(`/api/adventure/${adventureState.session.id}/expert-next`, {
+            method: 'POST',
+            headers: telegramHeaders(true),
+            body: JSON.stringify({}),
+        });
+        renderAdventure(session);
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 async function submitExpertScore(score) {
@@ -251,25 +334,16 @@ function renderExpertResult(result) {
     panel.hidden = false;
     const score = document.createElement('strong');
     score.className = 'extended-score';
-    score.textContent = result.score ? 'Точная экспертная оценка' : 'Оценка отличается';
+    score.textContent = `${Number(result.score || 0)} из ${Number(result.maxScore || 0)} оценок верны`;
     const verdict = document.createElement('p');
     verdict.textContent = result.verdict;
     panel.append(score, verdict);
-    if (result.answerImageUrl) {
-        const heading = document.createElement('h3');
-        heading.textContent = 'Разбор эксперта';
-        const answer = document.createElement('img');
-        answer.className = 'question-media expert-answer-image';
-        answer.src = result.answerImageUrl;
-        answer.alt = 'Разбор и оценка эксперта';
-        panel.append(heading, answer);
+    const summary = document.createElement('p');
+    summary.textContent = `Ошибок: ${Number(result.mistakes || 0)} · заработано: ${Number(result.rewardCoins || 0)} монет.`;
+    panel.appendChild(summary);
+    if (Number.isFinite(Number(result.coins)) && typeof syncCoinBalance === 'function') {
+        syncCoinBalance(Number(result.coins), Boolean(result.admin));
     }
-    const next = document.createElement('button');
-    next.type = 'button';
-    next.className = 'btn adventure-launch-button';
-    next.textContent = 'Следующая работа без повторов';
-    next.addEventListener('click', () => startAdventureGame('expert'));
-    panel.appendChild(next);
     appendGameNavigation(panel, null);
 }
 

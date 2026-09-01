@@ -373,6 +373,7 @@
             </div>
         </div>
         <div id="battleFinishActions" class="battle-finish-actions" hidden>
+            <div id="battleLearningSummary" class="learning-summary" hidden></div>
             <button class="btn" onclick="openShop()">Магазин</button>
             <button class="btn adventure-launch-button" onclick="openGameUniverse()">🪐 Вселенная игр</button>
             <button class="btn btn-secondary" onclick="leaveBattleScreen()">Меню</button>
@@ -464,6 +465,7 @@
         <h2>Результаты</h2>
         <p id="resultLivesRow">Осталось жизней: <span id="resultLives"></span> ❤️</p>
         <p id="resultCoinsRow">Заработано монет: <span id="resultCoins"></span> 🪙</p>
+        <div id="trainingLearningSummary" class="learning-summary" hidden></div>
         <div id="diagnosticSummary" class="diagnostic-summary" hidden></div>
         <div id="resultActions"></div>
         <button id="resultShopButton" class="btn" onclick="openShop()">Магазин</button>
@@ -481,11 +483,11 @@
                 <span class="game-world-copy"><small>Игра на ассоциации</small><strong>Башня формул</strong><em>Теоремы, площади и тождества</em></span>
                 <span class="game-world-status active">Играть</span>
             </button>
-            <article class="game-world-card investigation-world is-locked" aria-disabled="true">
+            <button class="game-world-card investigation-world" type="button" onclick="openExpertNumberMenu()">
                 <span class="game-world-art"><b>✓</b><i>🧑‍🏫</i></span>
                 <span class="game-world-copy"><small>Проверка работ</small><strong>Ты — эксперт</strong><em>Изучите решение и выставьте балл</em></span>
-                <span class="game-world-status">В разработке</span>
-            </article>
+                <span class="game-world-status active">Играть</span>
+            </button>
             <article class="game-world-card geometry-world is-locked" aria-disabled="true">
                 <span class="game-world-art"><b>△</b><i>🧭</i></span>
                 <span class="game-world-copy"><small>Будущий мир</small><strong>Экспедиция геометров</strong><em>Чертежи, маршруты и доказательства</em></span>
@@ -498,6 +500,14 @@
             </article>
         </div>
         <button class="btn btn-secondary" type="button" onclick="showScreen('mainMenu')">Вернуться в меню класса</button>
+    </div>
+
+    <div id="expertNumberScreen" class="screen game-universe-screen">
+        <p class="eyebrow">Игра «Ты — эксперт»</p>
+        <h1>Выберите номер</h1>
+        <p class="supporting-text">Оцените решение по официальным критериям. За верную оценку — 150 монет, на игру даётся 5 жизней.</p>
+        <div id="expertNumberGrid" class="expert-number-grid"></div>
+        <button class="btn btn-secondary" type="button" onclick="openGameUniverse()">Назад во Вселенную игр</button>
     </div>
 
     <div id="adventureScreen" class="screen adventure-screen">
@@ -564,11 +574,17 @@
             <p id="expertTaskKind" class="eyebrow"></p>
             <h3 id="expertTaskTitle"></h3>
             <p id="expertTaskQuestion" class="extended-task-question"></p>
+            <div id="expertRunStats" class="expert-run-stats"></div>
             <img id="expertTaskImage" class="question-media expert-work-image" alt="Работа ученика для оценивания">
-            <div class="criteria-note"><strong>Задача</strong><span>Оцените математическую корректность и полноту решения. Эталон откроется только после ответа, если оценка неверна.</span></div>
-            <p class="expert-score-label">Какой балл поставил эксперт?</p>
-            <div id="expertScoreOptions" class="expert-score-options"></div>
+            <div class="criteria-note"><strong>Задача</strong><span>Оцените математическую корректность и полноту решения. При ошибке откроется ответ эксперта.</span></div>
+            <button id="expertCriteriaButton" class="btn btn-secondary" type="button" onclick="toggleExpertCriteria()">Критерии</button>
+            <section id="expertCriteriaPanel" class="expert-criteria-panel" hidden><div id="expertCriteriaImages"></div></section>
+            <div id="expertAnswerControls">
+                <p class="expert-score-label">Какой балл поставил эксперт?</p>
+                <div id="expertScoreOptions" class="expert-score-options"></div>
+            </div>
             <div id="expertScoreMessage" class="inline-message" hidden></div>
+            <div id="expertReviewPanel" class="expert-review-panel" hidden></div>
         </section>
         <section id="extendedResult" class="extended-result" hidden></section>
         <div class="adventure-footer-actions">
@@ -870,12 +886,41 @@
         });
     }
 
-    function openTheory() {
+    function theoryKeywordsForTopic(topic) {
+        const value = String(topic || '').toLowerCase();
+        const mappings = [
+            ['тригоном', ['тригоном']], ['логариф', ['логариф']], ['производн', ['производн', 'касательн']],
+            ['стереометр', ['стереометр', 'объём', 'призм', 'пирамид']], ['вероят', ['вероят', 'комбинатор']],
+            ['площад', ['площад', 'планиметр']], ['треуголь', ['треуголь', 'планиметр']],
+            ['окружност', ['окружност', 'круг']], ['неравен', ['неравен']], ['уравнен', ['уравнен']],
+            ['степен', ['степен', 'корн']], ['корн', ['степен', 'корн']], ['функц', ['функц', 'график']],
+            ['процент', ['процент', 'дроб']], ['прогрес', ['прогрес']],
+        ];
+        const match = mappings.find(([needle]) => value.includes(needle));
+        return match ? match[1] : value.split(/\s+/).filter((word) => word.length >= 5).slice(0, 2);
+    }
+
+    function openTheory(recommendedTopics = []) {
         document.getElementById('theoryClassLabel').innerText = currentClass;
         document.querySelectorAll('.theory-class-container').forEach(el => el.style.display = 'none');
         const activeTheory = document.getElementById(`theory-data-${currentClass}`);
-        if (activeTheory) activeTheory.style.display = 'block';
+        document.querySelectorAll('.theory-section').forEach(section => section.classList.remove('is-recommended'));
+        if (activeTheory) {
+            activeTheory.style.display = 'block';
+            const keywords = recommendedTopics.flatMap(theoryKeywordsForTopic);
+            activeTheory.querySelectorAll('.theory-section').forEach(section => {
+                const text = section.textContent.toLowerCase();
+                const recommended = keywords.some(keyword => text.includes(keyword));
+                section.classList.toggle('is-recommended', recommended);
+                if (recommended) section.open = true;
+            });
+        }
         showScreen('theoryScreen');
+    }
+
+    function openTheoryWithRecommendations(topics = [], grade = currentClass) {
+        currentClass = Number(grade || currentClass);
+        openTheory(Array.isArray(topics) ? topics : []);
     }
 let myRadarChart = null; 
 
@@ -1270,6 +1315,36 @@ function sendToForm(grade, topic, status) {
             diagnosticSummary.hidden = false;
         } else {
             diagnosticSummary.hidden = true;
+        }
+        const learningSummary = document.getElementById('trainingLearningSummary');
+        learningSummary.replaceChildren();
+        if (!window.diagnosticMode) {
+            const reviewTopics = Object.entries(diagnosticTopicStats)
+                .map(([topic, stats]) => ({topic, errors: Number(stats.total || 0) - Number(stats.correct || 0)}))
+                .filter(item => item.errors > 0)
+                .sort((left, right) => right.errors - left.errors)
+                .slice(0, 3)
+                .map(item => item.topic);
+            const title = document.createElement('h3');
+            title.textContent = 'Итоги тренировки';
+            const totals = document.createElement('p');
+            totals.textContent = `Верно: ${sessionCorrectAnswers} · ошибок: ${Math.max(0, sessionAnswered - sessionCorrectAnswers)} · монет: ${sessionCoinsEarned}`;
+            const advice = document.createElement('p');
+            advice.textContent = reviewTopics.length
+                ? `Стоит повторить: ${reviewTopics.join(', ')}.`
+                : 'Ошибок по темам не обнаружено — отличный результат.';
+            learningSummary.append(title, totals, advice);
+            if (reviewTopics.length) {
+                const theoryButton = document.createElement('button');
+                theoryButton.type = 'button';
+                theoryButton.className = 'btn btn-secondary';
+                theoryButton.textContent = 'Повторить теорию';
+                theoryButton.addEventListener('click', () => openTheoryWithRecommendations(reviewTopics, currentClass));
+                learningSummary.appendChild(theoryButton);
+            }
+            learningSummary.hidden = false;
+        } else {
+            learningSummary.hidden = true;
         }
         const resultActions = document.getElementById('resultActions');
         resultActions.replaceChildren();

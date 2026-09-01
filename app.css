@@ -1771,6 +1771,66 @@ body { min-height: var(--app-stable-height); }
 
 .expert-score-button:disabled { opacity: .55; }
 
+.expert-number-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 20px 0;
+}
+.expert-number-button {
+    min-height: 104px;
+    display: grid;
+    place-content: center;
+    gap: 6px;
+    border: 1px solid rgba(83, 214, 255, .52);
+    border-radius: 20px;
+    background: linear-gradient(145deg, rgba(13, 63, 105, .92), rgba(57, 28, 97, .9));
+    color: #fff;
+    font: inherit;
+    text-align: center;
+}
+.expert-number-button strong { font-size: 20px; }
+.expert-number-button small { color: #8fffe6; font-weight: 800; }
+.expert-number-button.is-locked { opacity: .5; filter: saturate(.55); }
+.expert-number-button.is-locked small { color: var(--text-muted); }
+.expert-run-stats {
+    margin: 10px 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(83, 214, 255, .35);
+    border-radius: 14px;
+    background: rgba(4, 21, 53, .66);
+    color: #dceaff;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.45;
+}
+.expert-criteria-panel,
+.expert-review-panel { display: grid; gap: 12px; margin-top: 12px; }
+.expert-criteria-panel[hidden],
+.expert-review-panel[hidden] { display: none; }
+.expert-criteria-panel > div { display: grid; gap: 10px; }
+.expert-criteria-image { width: 100%; max-height: min(52vh, 620px); object-fit: contain; }
+.expert-review-panel .inline-message { display: block; }
+.learning-summary {
+    margin: 14px 0;
+    padding: 15px;
+    border: 1px solid rgba(83, 214, 255, .38);
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(10, 44, 83, .72), rgba(34, 23, 73, .68));
+}
+.learning-summary h3 { margin: 0 0 8px; }
+.learning-summary p { margin: 6px 0; color: var(--text-muted); }
+.learning-summary .btn { margin-top: 10px; }
+.theory-section.is-recommended {
+    border-color: rgba(255, 208, 107, .8) !important;
+    box-shadow: 0 0 22px rgba(255, 208, 107, .13) !important;
+}
+.theory-section.is-recommended > summary::after { content: ' · повторить'; color: #ffd06b; font-size: 11px; }
+
+@media (min-width: 560px) {
+    .expert-number-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 /* Unified neon universe v29 */
 :root {
     --universe-cyan: #52dcff;

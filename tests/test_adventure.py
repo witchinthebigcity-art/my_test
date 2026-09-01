@@ -4,6 +4,8 @@ import unittest
 
 from adventure import (
     ADVENTURE_TASKS,
+    EXPERT_MAX_LIVES,
+    EXPERT_REWARD_PER_CORRECT,
     FORMULA_CHALLENGES,
     FORMULA_CHALLENGES_BY_GRADE,
     FORMULA_MAX_MISTAKES,
@@ -121,6 +123,7 @@ class AdventureStoreTests(unittest.IsolatedAsyncioTestCase):
             "maxScore": 2,
             "kind": "Проверка работы",
             "criteriaSource": "Критерии",
+            "criteriaImageUrls": ["https://example.com/criteria.png"],
             "fields": [],
         }
         first = await self.store.start_adventure(
@@ -130,16 +133,46 @@ class AdventureStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("expertScore", first["task"])
         self.assertNotIn("answerImageUrl", first["task"])
         wrong = await self.store.submit_expert_score(self.user, first["id"], 2)
+        self.assertEqual(wrong["stage"], "review")
+        self.assertEqual(wrong["expert"]["lives"], EXPERT_MAX_LIVES - 1)
         self.assertEqual(wrong["result"]["score"], 0)
         self.assertEqual(wrong["result"]["expertScore"], 1)
         self.assertEqual(wrong["result"]["answerImageUrl"], "https://example.com/answer.png")
 
-        second = await self.store.start_adventure(
-            self.user, 11, "expert-round-2", task=task, game="expert"
-        )
+        completed_wrong = await self.store.continue_expert_game(self.user, first["id"])
+        self.assertEqual(completed_wrong["status"], "complete")
+
+        second = await self.store.start_adventure(self.user, 11, "expert-round-2", task=task, game="expert")
         correct = await self.store.submit_expert_score(self.user, second["id"], 1)
         self.assertEqual(correct["result"]["score"], 1)
         self.assertNotIn("answerImageUrl", correct["result"])
+        self.assertEqual(correct["expert"]["rewardCoins"], EXPERT_REWARD_PER_CORRECT)
+        completed_correct = await self.store.continue_expert_game(self.user, second["id"])
+        self.assertEqual(completed_correct["status"], "complete")
+        self.assertEqual(completed_correct["result"]["rewardCoins"], EXPERT_REWARD_PER_CORRECT)
+        self.assertEqual(self.store._load()["profiles"]["77"]["coins"], EXPERT_REWARD_PER_CORRECT)
+
+    async def test_expert_game_uses_five_lives_and_never_auto_advances_after_error(self):
+        tasks = [{
+            "id": f"expert-work-{index}", "taskNumber": 13, "number": index,
+            "title": f"Работа №{index}", "question": "Поставьте балл",
+            "imageUrl": f"https://example.com/work-{index}.png",
+            "answerImageUrl": f"https://example.com/answer-{index}.png",
+            "criteriaImageUrls": ["https://example.com/criteria.png"],
+            "expertScore": 1, "maxScore": 2, "kind": "Проверка",
+            "criteriaSource": "Критерии", "fields": [],
+        } for index in range(1, 7)]
+        session = await self.store.start_adventure(self.user, 11, "expert-lives", task=tasks, game="expert")
+        for error_number in range(1, EXPERT_MAX_LIVES + 1):
+            reviewed = await self.store.submit_expert_score(self.user, session["id"], 0)
+            self.assertEqual(reviewed["stage"], "review")
+            self.assertEqual(reviewed["expert"]["lives"], EXPERT_MAX_LIVES - error_number)
+            session = await self.store.continue_expert_game(self.user, session["id"])
+            if error_number < EXPERT_MAX_LIVES:
+                self.assertEqual(session["stage"], "grading")
+            else:
+                self.assertEqual(session["status"], "complete")
+                self.assertEqual(session["result"]["endReason"], "lives")
 
     async def test_leaving_expert_game_saves_no_attempt(self):
         task = {

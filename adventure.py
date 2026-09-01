@@ -59,9 +59,11 @@ ADVENTURE_TASKS = {
 
 FORMULA_SOURCE_PATH = Path(__file__).with_name("formula_tower.json")
 FORMULA_ROUND_SIZE = 10
-FORMULA_MAX_MISTAKES = 4
+FORMULA_MAX_MISTAKES = 5
 FORMULA_REWARD_PER_CORRECT = 50
 FORMULA_ROUND_VERSION = 3
+EXPERT_MAX_LIVES = 5
+EXPERT_REWARD_PER_CORRECT = 150
 
 
 with FORMULA_SOURCE_PATH.open(encoding="utf-8") as formula_source:
@@ -208,6 +210,12 @@ def new_session(user_id, grade, attempt_key, task=None, game="tower"):
     game = str(game or "tower")
     if game not in {"tower", "second_part", "expert"}:
         raise ValueError("Unknown adventure game")
+    expert_tasks = list(task) if game == "expert" and isinstance(task, (list, tuple)) else None
+    if expert_tasks:
+        random.SystemRandom().shuffle(expert_tasks)
+        current_task = expert_tasks[0]
+    else:
+        current_task = task or ADVENTURE_TASKS[int(grade)]
     session = {
         "id": uuid.uuid4().hex,
         "user_id": str(user_id),
@@ -216,6 +224,15 @@ def new_session(user_id, grade, attempt_key, task=None, game="tower"):
         "game": game,
         "stage": "formula" if game == "tower" else "grading" if game == "expert" else "solution",
         "status": "active",
-        "task": task or ADVENTURE_TASKS[int(grade)],
+        "task": current_task,
     }
+    if game == "expert":
+        session.update({
+            "expert_tasks": expert_tasks or [current_task],
+            "expert_index": 0,
+            "expert_lives": EXPERT_MAX_LIVES,
+            "expert_correct": 0,
+            "expert_errors": 0,
+            "expert_reward_coins": 0,
+        })
     return ensure_formula_round(session) if game == "tower" else session

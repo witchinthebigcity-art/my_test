@@ -16,6 +16,8 @@ from zoneinfo import ZoneInfo
 
 from adventure import (
     ADVENTURE_TASKS,
+    EXPERT_MAX_LIVES,
+    EXPERT_REWARD_PER_CORRECT,
     FORMULA_MAX_MISTAKES,
     FORMULA_REWARD_PER_CORRECT,
     ensure_formula_round,
@@ -1050,6 +1052,18 @@ class CommunityStore:
         }
         if session["game"] == "tower":
             result["formula"] = public_formula_state(session)
+        if session["game"] == "expert":
+            result["expert"] = {
+                "taskNumber": int((session.get("task") or {}).get("taskNumber") or 13),
+                "index": int(session.get("expert_index") or 0),
+                "total": len(session.get("expert_tasks") or [session.get("task")]),
+                "lives": int(session.get("expert_lives") or 0),
+                "maxLives": EXPERT_MAX_LIVES,
+                "correct": int(session.get("expert_correct") or 0),
+                "errors": int(session.get("expert_errors") or 0),
+                "rewardCoins": int(session.get("expert_reward_coins") or 0),
+                "rewardPerCorrect": EXPERT_REWARD_PER_CORRECT,
+            }
         if session.get("result"):
             result["result"] = session["result"]
         if session.get("draft"):
@@ -1184,8 +1198,8 @@ class CommunityStore:
                 session["formula_errors"] = int(session.get("formula_errors") or 0) + 1
                 session["formula_feedback"] = {
                     "correct": False,
-                    "message": "Ошибка {} из 4. Переходим к следующей формуле.".format(
-                        session["formula_errors"]
+                    "message": "Ошибка {} из {}. Переходим к следующей формуле.".format(
+                        session["formula_errors"], FORMULA_MAX_MISTAKES
                     ),
                 }
 
@@ -1202,7 +1216,7 @@ class CommunityStore:
                 session["stage"] = "complete"
                 end_reason = "mistakes" if finished_by_mistakes else "completed"
                 if finished_by_mistakes:
-                    verdict = "Раунд завершён после 4 ошибок. Награда начислена за все верные ответы."
+                    verdict = f"Раунд завершён после {FORMULA_MAX_MISTAKES} ошибок. Награда начислена за все верные ответы."
                 else:
                     verdict = "Все 10 формул проверены. Награда начислена за каждый верный ответ."
                 session["result"] = {
@@ -1255,7 +1269,7 @@ class CommunityStore:
                 ensure_formula_round(session)
             if not (
                 (game == "tower" and session.get("stage") == "formula")
-                or (game == "expert" and session.get("stage") == "grading")
+                or (game == "expert" and session.get("stage") in {"grading", "review"})
             ):
                 raise CommunityError("Сейчас нельзя покинуть этот раунд")
             session["status"] = "abandoned"
@@ -1275,12 +1289,13 @@ class CommunityStore:
                 }
             else:
                 session["result"] = {
-                    "score": 0,
-                    "maxScore": 1,
-                    "rewardCoins": 0,
+                    "score": int(session.get("expert_correct") or 0),
+                    "maxScore": len(session.get("expert_tasks") or [session.get("task")]),
+                    "mistakes": int(session.get("expert_errors") or 0),
+                    "rewardCoins": int(session.get("expert_reward_coins") or 0),
                     "endReason": "left",
                     "criteria": [],
-                    "verdict": "Вы покинули проверку. Результат не сохранён.",
+                    "verdict": "Вы покинули проверку. Уже заработанные монеты сохранены.",
                     "engine": "expert-game",
                 }
             session["updated_at"] = _now_iso()
@@ -1309,6 +1324,25 @@ class CommunityStore:
             if selected_score < 0 or selected_score > max_work_score:
                 raise CommunityError(f"Выберите оценку от 0 до {max_work_score}")
             correct = selected_score == expert_score
+            round_index = int(session.get("expert_index") or 0)
+            if correct:
+                session["expert_correct"] = int(session.get("expert_correct") or 0) + 1
+                session["expert_reward_coins"] = int(session.get("expert_reward_coins") or 0) + EXPERT_REWARD_PER_CORRECT
+                profile = self._ensure_profile(data, user)
+                if not self._is_admin(user):
+                    profile["coins"] = int(profile.get("coins") or 0) + EXPERT_REWARD_PER_CORRECT
+                profile["updated_at"] = _now_iso()
+                data["coin_transactions"].append({
+                    "id": f"expert:{session['id']}:{round_index}",
+                    "user_id": self._user_id(user),
+                    "amount": 0 if self._is_admin(user) else EXPERT_REWARD_PER_CORRECT,
+                    "kind": "expert_game",
+                    "task_number": int(task.get("taskNumber") or 13),
+                    "created_at": _now_iso(),
+                })
+            else:
+                session["expert_errors"] = int(session.get("expert_errors") or 0) + 1
+                session["expert_lives"] = max(0, int(session.get("expert_lives") or 0) - 1)
             result = {
                 "score": int(correct),
                 "maxScore": 1,
@@ -1322,13 +1356,15 @@ class CommunityStore:
                     f"Ваша оценка — {selected_score}, оценка эксперта — {expert_score}. Изучите разбор ниже."
                 ),
                 "engine": "expert-game",
+                "correct": correct,
+                "lives": int(session.get("expert_lives") or 0),
+                "rewardCoins": int(session.get("expert_reward_coins") or 0),
             }
             if not correct:
                 result["answerImageUrl"] = str(task.get("answerImageUrl") or "")
             session["selected_score"] = selected_score
             session["result"] = result
-            session["status"] = "complete"
-            session["stage"] = "complete"
+            session["stage"] = "review"
             session["updated_at"] = _now_iso()
             data["attempts"].append({
                 "attempt_key": f"adventure:{session['id']}",
@@ -1340,6 +1376,54 @@ class CommunityStore:
                 "source": "expert-game",
                 "created_at": _now_iso(),
             })
+            self._save(data)
+            return self._adventure_view(session)
+
+    async def continue_expert_game(self, user, session_id):
+        async with self.lock:
+            data = self._load()
+            session = data["adventures"].get(str(session_id))
+            if (
+                not session
+                or session.get("user_id") != self._user_id(user)
+                or session.get("status") != "active"
+                or session.get("game") != "expert"
+                or session.get("stage") != "review"
+            ):
+                raise CommunityError("Разбор для продолжения не найден")
+            tasks = session.get("expert_tasks") or [session.get("task")]
+            next_index = int(session.get("expert_index") or 0) + 1
+            no_lives = int(session.get("expert_lives") or 0) <= 0
+            no_tasks = next_index >= len(tasks)
+            if no_lives or no_tasks:
+                profile = self._ensure_profile(data, user)
+                session["status"] = "complete"
+                session["stage"] = "complete"
+                session["result"] = {
+                    "score": int(session.get("expert_correct") or 0),
+                    "maxScore": len(tasks),
+                    "mistakes": int(session.get("expert_errors") or 0),
+                    "maxMistakes": EXPERT_MAX_LIVES,
+                    "rewardCoins": int(session.get("expert_reward_coins") or 0),
+                    "coins": int(profile.get("coins") or 0),
+                    "admin": self._is_admin(user),
+                    "endReason": "lives" if no_lives else "completed",
+                    "criteria": [],
+                    "reviewTopics": [f"Задание {int((session.get('task') or {}).get('taskNumber') or 13)}"],
+                    "verdict": (
+                        "Жизни закончились. Все монеты за верные оценки сохранены."
+                        if no_lives else
+                        "Все доступные работы проверены. Монеты начислены за верные оценки."
+                    ),
+                    "engine": "expert-game",
+                }
+            else:
+                session["expert_index"] = next_index
+                session["task"] = tasks[next_index]
+                session["stage"] = "grading"
+                session.pop("result", None)
+                session.pop("selected_score", None)
+            session["updated_at"] = _now_iso()
             self._save(data)
             return self._adventure_view(session)
 
@@ -2406,6 +2490,28 @@ class CommunityStore:
                 )
             except (TypeError, ValueError):
                 question_remaining_ms = 0
+        review_summary = None
+        if battle["status"] == "complete":
+            topic_errors = {}
+            answers = player.get("answers", {})
+            for question_id in battle.get("question_ids", []):
+                question = question_map.get(question_id)
+                if not question:
+                    continue
+                selected = answers.get(question_id, BATTLE_MISSED_ANSWER)
+                if selected != question.correct_index:
+                    topic_errors[question.topic] = topic_errors.get(question.topic, 0) + 1
+            review_topics = [
+                topic for topic, _errors in sorted(
+                    topic_errors.items(), key=lambda item: (-item[1], item[0])
+                )[:3]
+            ]
+            review_summary = {
+                "correct": int(player.get("score") or 0),
+                "errors": max(0, len(battle.get("question_ids", [])) - int(player.get("score") or 0)),
+                "coinsEarned": int(((battle.get("rewards") or {}).get(user_id) or {}).get("coins") or 0),
+                "reviewTopics": review_topics,
+            }
         return {
             "id": battle["id"],
             "grade": battle["grade"],
@@ -2427,6 +2533,7 @@ class CommunityStore:
             "battleRewards": reward_status,
             "coins": int((data["profiles"].get(user_id) or {}).get("coins") or 0),
             "admin": self._is_admin({"id": user_id, "username": (data["profiles"].get(user_id) or {}).get("telegram_username", "")}),
+            "reviewSummary": review_summary,
         }
 
     async def battle_stats(self, user):

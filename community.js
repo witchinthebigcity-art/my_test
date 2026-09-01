@@ -1889,9 +1889,38 @@ function renderBattleFinish(battle) {
     }
     const complete = battle.status === 'complete';
     document.getElementById('battleFinishActions').hidden = !complete;
+    renderBattleLearningSummary(complete ? battle.reviewSummary : null, battle.grade);
     document.getElementById('battleLeaveButton').hidden = complete;
     renderBattleRewardStatus(complete ? battle.battleRewards : null);
     if (complete) clearInterval(communityState.battlePoll);
+}
+
+function renderBattleLearningSummary(summary, grade) {
+    const panel = document.getElementById('battleLearningSummary');
+    panel.replaceChildren();
+    if (!summary) {
+        panel.hidden = true;
+        return;
+    }
+    const title = document.createElement('h3');
+    title.textContent = 'Итоги баттла';
+    const totals = document.createElement('p');
+    totals.textContent = `Верно: ${Number(summary.correct || 0)} · ошибок: ${Number(summary.errors || 0)} · монет: ${Number(summary.coinsEarned || 0)}`;
+    const topics = Array.isArray(summary.reviewTopics) ? summary.reviewTopics : [];
+    const advice = document.createElement('p');
+    advice.textContent = topics.length
+        ? `Стоит повторить: ${topics.join(', ')}.`
+        : 'Темы без ошибок — повторение сейчас не требуется.';
+    panel.append(title, totals, advice);
+    if (topics.length) {
+        const theory = document.createElement('button');
+        theory.type = 'button';
+        theory.className = 'btn btn-secondary';
+        theory.textContent = 'Повторить теорию';
+        theory.addEventListener('click', () => openTheoryWithRecommendations(topics, grade));
+        panel.appendChild(theory);
+    }
+    panel.hidden = false;
 }
 
 function renderBattleRewardStatus(rewards) {

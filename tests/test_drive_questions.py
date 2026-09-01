@@ -102,30 +102,39 @@ class DriveFolderSeparationTests(unittest.IsolatedAsyncioTestCase):
     async def test_expert_bank_reads_solutions_and_answers_folders(self):
         folders = {
             "expert-root": [
+                {"id": "number-13", "name": "13 номер", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "number-13": [
                 {"id": "solutions-folder", "name": "Решения", "mimeType": FOLDER_MIME_TYPE},
                 {"id": "answers-folder", "name": "Ответы", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "criteria-folder", "name": "Критерии", "mimeType": FOLDER_MIME_TYPE},
             ],
             "solutions-folder": [{"id": "work-1", "name": "1 - 1", "mimeType": "image/jpeg"}],
             "answers-folder": [{"id": "answer-1", "name": "1", "mimeType": "image/png"}],
+            "criteria-folder": [{"id": "criteria-13", "name": "Критерии", "mimeType": "image/png"}],
         }
         with patch("drive_questions.parse_public_folder_html", side_effect=lambda marker: folders[marker]):
             payload = await fetch_expert_game_index(_FakeSession(), "expert-root")
         tasks = parse_expert_game_index(payload)
-        self.assertEqual(tasks[0]["number"], 1)
-        self.assertEqual(tasks[0]["expertScore"], 1)
-        self.assertIn("work-1", tasks[0]["imageUrl"])
-        self.assertIn("answer-1", tasks[0]["answerImageUrl"])
+        task = tasks[13][0]
+        self.assertEqual(task["number"], 1)
+        self.assertEqual(task["expertScore"], 1)
+        self.assertIn("work-1", task["imageUrl"])
+        self.assertIn("answer-1", task["answerImageUrl"])
+        self.assertIn("criteria-13", task["criteriaImageUrls"][0])
 
     def test_expert_bank_requires_matching_answer_and_valid_score(self):
         with self.assertRaisesRegex(QuestionFormatError, "нет файла Ответы/1"):
             parse_expert_game_index({
                 "solutions": [{"id": "work-1", "name": "1 - 1", "mimeType": "image/jpeg"}],
                 "answers": [],
+                "criteria": [{"id": "criteria", "name": "criteria", "mimeType": "image/png"}],
             })
         with self.assertRaisesRegex(QuestionFormatError, "выше максимума"):
             parse_expert_game_index({
                 "solutions": [{"id": "work-1", "name": "1 - 3", "mimeType": "image/jpeg"}],
                 "answers": [{"id": "answer-1", "name": "1", "mimeType": "image/png"}],
+                "criteria": [{"id": "criteria", "name": "criteria", "mimeType": "image/png"}],
             }, max_score=2)
 
     def test_rejects_duplicate_number_inside_one_grade(self):

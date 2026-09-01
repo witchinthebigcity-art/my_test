@@ -77,7 +77,7 @@ EXPERT_GAME_FOLDER_ID = os.getenv(
     "EXPERT_GAME_FOLDER_ID", "10zrD0b4U64JFALp6lUqjzaZl9Gn1DYzN"
 ).strip()
 EXPERT_GAME_MAX_SCORE = int(os.getenv("EXPERT_GAME_MAX_SCORE", "2"))
-EXPERT_GAME_ENABLED = os.getenv("EXPERT_GAME_ENABLED", "").strip().casefold() in {
+EXPERT_GAME_ENABLED = os.getenv("EXPERT_GAME_ENABLED", "1").strip().casefold() in {
     "1", "true", "yes", "да"
 }
 
@@ -98,7 +98,7 @@ questions_cache = {
     "loaded_at": 0.0,
     "items": [],
     "extended": {grade: [] for grade in SUPPORTED_GRADES},
-    "expert": [],
+    "expert": {},
 }
 questions_cache_lock = asyncio.Lock()
 
@@ -487,7 +487,7 @@ async def _load_questions(force=False):
             questions_cache["extended"] = {grade: [] for grade in SUPPORTED_GRADES}
         questions_cache["expert"] = (
             parse_expert_game_index(expert_payload, EXPERT_GAME_MAX_SCORE)
-            if expert_payload is not None else []
+            if expert_payload is not None else {}
         )
         questions = list({question.question_id: question for question in questions}.values())
         questions_cache["items"] = questions
@@ -1209,17 +1209,22 @@ async def start_adventure(request):
         task = None
         if game in {"second_part", "expert"}:
             await _load_questions()
-            available = (
-                questions_cache.get("expert", [])
-                if game == "expert"
-                else questions_cache.get("extended", {}).get(grade, [])
-            )
+            if game == "expert":
+                task_number = int(payload.get("taskNumber") or 13)
+                if task_number != 13:
+                    raise CommunityError(f"Задание {task_number} пока находится в разработке")
+                available = questions_cache.get("expert", {}).get(task_number, [])
+            else:
+                available = questions_cache.get("extended", {}).get(grade, [])
             used_ids = await community_store.used_adventure_task_ids(user, grade, attempt_key)
             fresh_tasks = [task for task in available if task.get("id") not in used_ids]
             # Once every task in the folder has been solved, a new shuffled cycle may begin.
-            task = random.choice(fresh_tasks or available) if available else None
-            if game == "expert" and task is None:
-                raise CommunityError("В папке игры пока нет готовых пар «Решение — Ответ»")
+            if game == "expert":
+                task = fresh_tasks or available
+            else:
+                task = random.choice(fresh_tasks or available) if available else None
+            if game == "expert" and not task:
+                raise CommunityError("В папке игры пока нет готовых комплектов «Решение — Ответ — Критерии»")
         session = await community_store.start_adventure(
             user, grade, attempt_key, task=task, game=game
         )
@@ -1292,6 +1297,17 @@ async def submit_expert_score(request):
             _authenticated_user(request),
             request.match_info["session_id"],
             payload.get("score"),
+        )
+        session["verification"] = _adventure_verification_capabilities()
+        return web.json_response(session)
+    except CommunityError as error:
+        return _community_error(error, status=422)
+
+
+async def continue_expert_game(request):
+    try:
+        session = await community_store.continue_expert_game(
+            _authenticated_user(request), request.match_info["session_id"]
         )
         session["verification"] = _adventure_verification_capabilities()
         return web.json_response(session)
@@ -1500,6 +1516,7 @@ def create_app():
     application.router.add_post('/api/adventure/{session_id}/draft', save_adventure_draft)
     application.router.add_post('/api/adventure/{session_id}/submit', submit_adventure)
     application.router.add_post('/api/adventure/{session_id}/expert-score', submit_expert_score)
+    application.router.add_post('/api/adventure/{session_id}/expert-next', continue_expert_game)
     application.router.add_post('/api/adventure/recognize', recognize_solution)
     application.router.add_get('/api/profile', get_profile)
     application.router.add_post('/api/profile', update_profile)
