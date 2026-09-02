@@ -1063,6 +1063,7 @@ class CommunityStore:
                 "errors": int(session.get("expert_errors") or 0),
                 "rewardCoins": int(session.get("expert_reward_coins") or 0),
                 "rewardPerCorrect": EXPERT_REWARD_PER_CORRECT,
+                "adminUnlimited": bool(session.get("admin_unlimited")),
             }
         if session.get("result"):
             result["result"] = session["result"]
@@ -1155,6 +1156,7 @@ class CommunityStore:
             if active:
                 return self._adventure_view(active)
             session = new_session(user_id, grade, attempt_key, task=task, game=game)
+            session["admin_unlimited"] = self._is_admin(user)
             session["created_at"] = _now_iso()
             session["updated_at"] = session["created_at"]
             data["adventures"][session["id"]] = session
@@ -1205,7 +1207,10 @@ class CommunityStore:
 
             mistakes = int(session.get("formula_errors") or 0)
             score = int(session.get("formula_score") or 0)
-            finished_by_mistakes = mistakes >= FORMULA_MAX_MISTAKES
+            finished_by_mistakes = (
+                not session.get("admin_unlimited")
+                and mistakes >= FORMULA_MAX_MISTAKES
+            )
             finished_all_questions = session["formula_index"] >= len(formula_round)
             if finished_by_mistakes or finished_all_questions:
                 reward = score * FORMULA_REWARD_PER_CORRECT
@@ -1342,7 +1347,8 @@ class CommunityStore:
                 })
             else:
                 session["expert_errors"] = int(session.get("expert_errors") or 0) + 1
-                session["expert_lives"] = max(0, int(session.get("expert_lives") or 0) - 1)
+                if not session.get("admin_unlimited"):
+                    session["expert_lives"] = max(0, int(session.get("expert_lives") or 0) - 1)
             result = {
                 "score": int(correct),
                 "maxScore": 1,
@@ -1393,7 +1399,10 @@ class CommunityStore:
                 raise CommunityError("Разбор для продолжения не найден")
             tasks = session.get("expert_tasks") or [session.get("task")]
             next_index = int(session.get("expert_index") or 0) + 1
-            no_lives = int(session.get("expert_lives") or 0) <= 0
+            no_lives = (
+                not session.get("admin_unlimited")
+                and int(session.get("expert_lives") or 0) <= 0
+            )
             no_tasks = next_index >= len(tasks)
             if no_lives or no_tasks:
                 profile = self._ensure_profile(data, user)

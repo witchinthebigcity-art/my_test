@@ -44,7 +44,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "36"
+WEBAPP_VERSION = "37"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()

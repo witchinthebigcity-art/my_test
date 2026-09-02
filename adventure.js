@@ -98,7 +98,7 @@ function renderAdventure(session) {
         ? 'Решите задание второй части — черновик сохраняется автоматически.'
         : session.stage === 'complete'
             ? (isTower ? 'Раунд завершён. Монеты начислены за каждый верный ответ.' : 'Проверка завершена. Результат сохранён в статистике.')
-            : `Вопрос ${Math.min(Number(formula.index || 0) + 1, Number(formula.total || 10))} из ${Number(formula.total || 10)} · Ошибки ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 5)} · ${Number(formula.rewardPerCorrect || 50)} монет за верный ответ.`;
+            : `Вопрос ${Math.min(Number(formula.index || 0) + 1, Number(formula.total || 10))} из ${Number(formula.total || 10)} · Ошибки ${Number(formula.mistakes || 0)} из ${formula.adminUnlimited ? '∞' : Number(formula.maxMistakes || 5)} · ${Number(formula.rewardPerCorrect || 50)} монет за верный ответ.`;
     document.getElementById('adventureLeaveButton').hidden = !(isFormulaStage || isExpertStage);
     if (typeof syncPageNavigationControls === 'function') syncPageNavigationControls();
     document.getElementById('adventureWorld').hidden = !isFormulaStage;
@@ -147,7 +147,7 @@ function renderFormulaChallenge(formula) {
         options.appendChild(button);
     });
     const feedback = document.getElementById('formulaFeedback');
-    feedback.textContent = formula.feedback?.message || `Верных ответов: ${Number(formula.score || 0)} · ошибок: ${Number(formula.mistakes || 0)} из ${Number(formula.maxMistakes || 5)}`;
+    feedback.textContent = formula.feedback?.message || `Верных ответов: ${Number(formula.score || 0)} · ошибок: ${Number(formula.mistakes || 0)} из ${formula.adminUnlimited ? '∞' : Number(formula.maxMistakes || 5)}`;
     feedback.className = `formula-feedback${formula.feedback ? (formula.feedback.correct ? ' correct' : ' wrong') : ''}`;
 }
 
@@ -232,7 +232,7 @@ function renderExpertTask(task, run = {}, stage = 'grading', result = null) {
     image.src = task.imageUrl;
     document.getElementById('expertRunStats').textContent =
         `Работа ${Number(run.index || 0) + 1} из ${Number(run.total || 1)} · ` +
-        `❤️ ${Number(run.lives || 0)} из ${Number(run.maxLives || 5)} · ` +
+        `❤️ ${run.adminUnlimited ? '∞' : `${Number(run.lives || 0)} из ${Number(run.maxLives || 5)}`} · ` +
         `Верно: ${Number(run.correct || 0)} · Награда: ${Number(run.rewardCoins || 0)} 🪙`;
     const criteriaImages = document.getElementById('expertCriteriaImages');
     criteriaImages.replaceChildren();

@@ -129,6 +129,9 @@ class CommunityStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(final["battle"]["status"], "complete")
         self.assertEqual(final["battle"]["me"]["score"], 0)
         self.assertEqual(final["battle"]["opponent"]["score"], 5)
+        self.assertEqual(final["battle"]["reviewSummary"]["correct"], 0)
+        self.assertEqual(final["battle"]["reviewSummary"]["errors"], 5)
+        self.assertEqual(final["battle"]["reviewSummary"]["reviewTopics"], ["Алгебра"])
 
     async def test_battle_players_start_together_and_timeout_is_missed(self):
         await self.store.update_profile(self.user_a, {"nickname": "Алгебра8", "leaderboardConsent": True, "grade": 8})

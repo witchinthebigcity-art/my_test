@@ -174,6 +174,25 @@ class AdventureStoreTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(session["status"], "complete")
                 self.assertEqual(session["result"]["endReason"], "lives")
 
+    async def test_admin_expert_game_keeps_unlimited_lives(self):
+        admin = {"id": 909, "first_name": "Администратор", "username": "Dany_german"}
+        tasks = [{
+            "id": f"admin-work-{index}", "taskNumber": 13, "number": index,
+            "title": f"Работа №{index}", "question": "Поставьте балл",
+            "imageUrl": f"https://example.com/work-{index}.png",
+            "answerImageUrl": f"https://example.com/answer-{index}.png",
+            "criteriaImageUrls": ["https://example.com/criteria.png"],
+            "expertScore": 2, "maxScore": 2, "kind": "Проверка",
+            "criteriaSource": "Критерии", "fields": [],
+        } for index in range(1, 7)]
+        session = await self.store.start_adventure(admin, 11, "admin-expert", task=tasks, game="expert")
+        self.assertTrue(session["expert"]["adminUnlimited"])
+        for _index in range(EXPERT_MAX_LIVES):
+            reviewed = await self.store.submit_expert_score(admin, session["id"], 0)
+            self.assertEqual(reviewed["expert"]["lives"], EXPERT_MAX_LIVES)
+            session = await self.store.continue_expert_game(admin, session["id"])
+        self.assertEqual(session["stage"], "grading")
+
     async def test_leaving_expert_game_saves_no_attempt(self):
         task = {
             "id": "expert-work-1", "title": "Работа №1", "question": "Поставьте балл",

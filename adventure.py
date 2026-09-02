@@ -153,6 +153,7 @@ def public_formula_state(session):
         "mistakes": int(session.get("formula_errors") or 0),
         "maxMistakes": FORMULA_MAX_MISTAKES,
         "rewardPerCorrect": FORMULA_REWARD_PER_CORRECT,
+        "adminUnlimited": bool(session.get("admin_unlimited")),
         "challenge": challenge,
         "feedback": session.get("formula_feedback"),
     }
