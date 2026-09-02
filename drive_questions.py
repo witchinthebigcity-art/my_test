@@ -5,6 +5,7 @@ import json
 import os
 import random
 import re
+import time
 from decimal import Decimal, InvalidOperation
 from urllib.parse import quote
 
@@ -212,8 +213,8 @@ def parse_extended_drive_index(payload) -> dict[int, list[dict]]:
     return tasks
 
 
-def parse_expert_game_index(payload, max_score=2) -> dict[int, list[dict]]:
-    """Build numbered expert banks from `N номер/Решения|Ответы|Критерии`."""
+def parse_expert_game_index_report(payload, max_score=2) -> dict:
+    """Build expert banks and isolate errors to the affected task number."""
     banks = payload.get("taskBanks") if isinstance(payload, dict) else None
     # Keep the old two-folder format readable during a rolling deployment.
     if not isinstance(banks, dict) and isinstance(payload, dict):
@@ -228,7 +229,8 @@ def parse_expert_game_index(payload, max_score=2) -> dict[int, list[dict]]:
         raise QuestionFormatError("Максимальный балл игры должен быть от 1 до 10")
 
     parsed = {}
-    all_errors = []
+    all_errors = list(payload.get("warnings") or []) if isinstance(payload, dict) else []
+    failed_numbers = list(payload.get("failedNumbers") or []) if isinstance(payload, dict) else []
     for task_number_raw, bank in banks.items():
         try:
             task_number = int(task_number_raw)
@@ -241,6 +243,7 @@ def parse_expert_game_index(payload, max_score=2) -> dict[int, list[dict]]:
         criteria_files = bank.get("criteria")
         if not all(isinstance(files, list) for files in (solution_files, answer_files, criteria_files)):
             all_errors.append(f"{task_number} номер: нужны папки Решения, Ответы и Критерии")
+            failed_numbers.append(task_number)
             continue
 
         criteria_urls = []
@@ -254,6 +257,7 @@ def parse_expert_game_index(payload, max_score=2) -> dict[int, list[dict]]:
                 )
         if not criteria_urls:
             all_errors.append(f"{task_number} номер/Критерии: нет изображений")
+            failed_numbers.append(task_number)
             continue
 
         answers_by_number = {}
@@ -319,15 +323,33 @@ def parse_expert_game_index(payload, max_score=2) -> dict[int, list[dict]]:
                 "criteriaSource": f"Официальные критерии задания {task_number}",
                 "fields": [],
             })
-        all_errors.extend(f"{task_number} номер/{error}" for error in errors)
-        if tasks:
+        if errors:
+            all_errors.extend(f"{task_number} номер/{error}" for error in errors)
+            failed_numbers.append(task_number)
+        elif tasks:
             parsed[task_number] = sorted(tasks, key=lambda item: item["number"])
         else:
             all_errors.append(f"{task_number} номер/Решения: нет работ по схеме «номер - балл»")
+            failed_numbers.append(task_number)
 
-    if all_errors:
-        raise QuestionFormatError("Ошибка в папке игры «Ты — эксперт»: " + "; ".join(all_errors[:12]))
+    return {
+        "banks": parsed,
+        "warnings": list(dict.fromkeys(all_errors)),
+        "failedNumbers": sorted(set(failed_numbers)),
+    }
+
+
+def parse_expert_game_index(payload, max_score=2) -> dict[int, list[dict]]:
+    """Build every valid expert bank without blocking it on future draft folders."""
+    report = parse_expert_game_index_report(payload, max_score)
+    parsed = report["banks"]
+
     if not parsed:
+        if report["warnings"]:
+            raise QuestionFormatError(
+                "Ошибка в папке игры «Ты — эксперт»: "
+                + "; ".join(report["warnings"][:12])
+            )
         raise QuestionFormatError("Не найдено ни одной готовой папки номера")
     return parsed
 
@@ -416,8 +438,11 @@ async def fetch_public_drive_index(session, root_folder_id: str) -> dict:
         raise QuestionFormatError("Некорректный ID корневой папки Google Drive")
 
     async def read_folder(folder_id):
-        url = f"https://drive.google.com/drive/folders/{quote(folder_id)}?usp=drive_link"
-        async with session.get(url) as response:
+        url = (
+            f"https://drive.google.com/drive/folders/{quote(folder_id)}"
+            f"?usp=drive_link&refresh={time.time_ns()}"
+        )
+        async with session.get(url, headers={"Cache-Control": "no-cache"}) as response:
             response.raise_for_status()
             html = await response.text()
         initial_entries = parse_public_folder_html(html)
@@ -482,8 +507,11 @@ async def fetch_expert_game_index(session, root_folder_id: str) -> dict:
         raise QuestionFormatError("Некорректный ID папки игры оценивания")
 
     async def read_folder(folder_id):
-        url = f"https://drive.google.com/drive/folders/{quote(folder_id)}?usp=drive_link"
-        async with session.get(url) as response:
+        url = (
+            f"https://drive.google.com/drive/folders/{quote(folder_id)}"
+            f"?usp=drive_link&refresh={time.time_ns()}"
+        )
+        async with session.get(url, headers={"Cache-Control": "no-cache"}) as response:
             response.raise_for_status()
             html = await response.text()
         initial_entries = parse_public_folder_html(html)
@@ -508,23 +536,32 @@ async def fetch_expert_game_index(session, root_folder_id: str) -> dict:
 
     number_entries = await asyncio.gather(*(read_folder(number_folders[number]) for number in sorted(number_folders)))
     result = {}
+    warnings = []
+    failed_numbers = []
     for task_number, entries in zip(sorted(number_folders), number_entries):
         subfolders = {}
+        duplicate_subfolders = []
         for entry in entries:
             if entry.get("mimeType") != FOLDER_MIME_TYPE:
                 continue
             normalised = re.sub(r"[\s_-]+", "", str(entry.get("name") or "").casefold().replace("ё", "е"))
             if normalised in {"решения", "ответы", "критерии"}:
                 if normalised in subfolders:
-                    raise QuestionFormatError(
-                        f"В папке «{task_number} номер» несколько папок «{entry['name']}»"
-                    )
+                    duplicate_subfolders.append(entry["name"])
+                    continue
                 subfolders[normalised] = entry["id"]
+        if duplicate_subfolders:
+            warnings.append(
+                f"{task_number} номер: повторяются папки "
+                + ", ".join(map(str, duplicate_subfolders))
+            )
+            failed_numbers.append(task_number)
+            continue
         missing = [name.title() for name in ("решения", "ответы", "критерии") if name not in subfolders]
         if missing:
-            raise QuestionFormatError(
-                f"В папке «{task_number} номер» не найдены: " + ", ".join(missing)
-            )
+            warnings.append(f"{task_number} номер: не найдены " + ", ".join(missing))
+            failed_numbers.append(task_number)
+            continue
         solutions, answers, criteria = await asyncio.gather(
             read_folder(subfolders["решения"]),
             read_folder(subfolders["ответы"]),
@@ -535,4 +572,8 @@ async def fetch_expert_game_index(session, root_folder_id: str) -> dict:
             "answers": answers,
             "criteria": criteria,
         }
-    return {"taskBanks": result}
+    return {
+        "taskBanks": result,
+        "warnings": warnings,
+        "failedNumbers": failed_numbers,
+    }

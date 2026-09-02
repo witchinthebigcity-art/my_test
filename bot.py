@@ -36,7 +36,7 @@ from drive_questions import (
     fetch_expert_game_index,
     fetch_public_drive_index,
     parse_drive_index,
-    parse_expert_game_index,
+    parse_expert_game_index_report,
     parse_extended_drive_index,
 )
 from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
@@ -44,7 +44,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "37"
+WEBAPP_VERSION = "38"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -99,6 +99,7 @@ questions_cache = {
     "items": [],
     "extended": {grade: [] for grade in SUPPORTED_GRADES},
     "expert": {},
+    "expert_warnings": [],
 }
 questions_cache_lock = asyncio.Lock()
 
@@ -196,7 +197,7 @@ async def admin_panel(message: types.Message):
             "Также можно отправить: /sendall текст сообщения\n"
             "/users — количество и список пользователей\n"
             "/delete_last — удалить последнюю рассылку у получателей\n"
-            "/refresh — обновить Google Таблицу и изображения",
+            "/refresh — обновить тренировки, вторую часть и игру «Ты — эксперт»",
             reply_markup=markup,
         )
 
@@ -229,9 +230,25 @@ async def _refresh_questions_for_admin(message):
             f"2 часть: {len(questions_cache.get('extended', {}).get(grade, []))})"
             for grade, values in counts.items()
         ]
+        expert_banks = questions_cache.get("expert", {})
+        expert_lines = [
+            f"{number} — {len(expert_banks.get(number, []))} работ"
+            if expert_banks.get(number)
+            else f"{number} — в разработке"
+            for number in range(13, 20)
+        ]
+        warnings = questions_cache.get("expert_warnings", [])
+        warning_text = (
+            "\n\n⚠ Пропущены незавершённые папки:\n"
+            + "\n".join(f"• {warning}" for warning in warnings[:7])
+            if warnings else ""
+        )
         await message.answer(
             "✅ База заданий обновлена\n\n"
             + "\n".join(lines)
+            + "\n\nИгра «Ты — эксперт»:\n"
+            + "\n".join(expert_lines)
+            + warning_text
             + f"\n\nИсточник: {source_status}."
         )
     except (
@@ -252,7 +269,7 @@ async def refresh_questions_command(message: types.Message):
     if not is_admin_telegram_user(message.from_user):
         await message.answer("Эта команда доступна только администратору.")
         return
-    await message.answer("⏳ Проверяю Google Таблицу и папки с изображениями…")
+    await message.answer("⏳ Обновляю тренировки, вторую часть и игру «Ты — эксперт»…")
     await _refresh_questions_for_admin(message)
 
 
@@ -262,7 +279,7 @@ async def refresh_questions_button(callback: types.CallbackQuery):
         await callback.answer("Недостаточно прав", show_alert=True)
         return
     await callback.answer("Обновление запущено")
-    await callback.message.answer("⏳ Проверяю Google Таблицу и папки с изображениями…")
+    await callback.message.answer("⏳ Обновляю тренировки, вторую часть и игру «Ты — эксперт»…")
     await _refresh_questions_for_admin(callback.message)
 
 
@@ -482,14 +499,29 @@ async def _load_questions(force=False):
                 questions.extend(parse_questions_csv(source.read()))
         if drive_payload is not None:
             questions.extend(parse_drive_index(drive_payload))
-            questions_cache["extended"] = parse_extended_drive_index(drive_payload)
+            new_extended = parse_extended_drive_index(drive_payload)
         else:
-            questions_cache["extended"] = {grade: [] for grade in SUPPORTED_GRADES}
-        questions_cache["expert"] = (
-            parse_expert_game_index(expert_payload, EXPERT_GAME_MAX_SCORE)
-            if expert_payload is not None else {}
-        )
+            new_extended = {grade: [] for grade in SUPPORTED_GRADES}
+        if expert_payload is not None:
+            expert_report = parse_expert_game_index_report(
+                expert_payload, EXPERT_GAME_MAX_SCORE
+            )
+            new_expert = dict(expert_report["banks"])
+            # A draft or temporarily malformed number must not erase its last
+            # working version while the administrator is filling the folder.
+            for task_number in expert_report["failedNumbers"]:
+                if task_number in questions_cache.get("expert", {}):
+                    new_expert[task_number] = questions_cache["expert"][task_number]
+            expert_warnings = expert_report["warnings"]
+        else:
+            new_expert = {}
+            expert_warnings = []
         questions = list({question.question_id: question for question in questions}.values())
+        # Publish the newly parsed snapshot only after every required source has
+        # been validated, so a failed manual refresh leaves the live bank intact.
+        questions_cache["extended"] = new_extended
+        questions_cache["expert"] = new_expert
+        questions_cache["expert_warnings"] = expert_warnings
         questions_cache["items"] = questions
         questions_cache["loaded_at"] = time.monotonic()
         return questions

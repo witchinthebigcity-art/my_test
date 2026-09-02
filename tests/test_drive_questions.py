@@ -7,6 +7,7 @@ from drive_questions import (
     fetch_expert_game_index,
     parse_drive_index,
     parse_expert_game_index,
+    parse_expert_game_index_report,
     parse_extended_drive_index,
     parse_public_folder_html,
 )
@@ -122,6 +123,32 @@ class DriveFolderSeparationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("work-1", task["imageUrl"])
         self.assertIn("answer-1", task["answerImageUrl"])
         self.assertIn("criteria-13", task["criteriaImageUrls"][0])
+
+    async def test_incomplete_future_number_does_not_block_ready_bank(self):
+        folders = {
+            "expert-root": [
+                {"id": "number-13", "name": "13 номер", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "number-14", "name": "14 номер", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "number-13": [
+                {"id": "solutions-folder", "name": "Решения", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "answers-folder", "name": "Ответы", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "criteria-folder", "name": "Критерии", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "number-14": [
+                {"id": "draft-solutions", "name": "Решения", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "solutions-folder": [{"id": "work-1", "name": "1 - 1", "mimeType": "image/jpeg"}],
+            "answers-folder": [{"id": "answer-1", "name": "1", "mimeType": "image/png"}],
+            "criteria-folder": [{"id": "criteria-13", "name": "Критерии", "mimeType": "image/png"}],
+        }
+        with patch("drive_questions.parse_public_folder_html", side_effect=lambda marker: folders[marker]):
+            payload = await fetch_expert_game_index(_FakeSession(), "expert-root")
+        report = parse_expert_game_index_report(payload)
+        self.assertEqual(len(report["banks"][13]), 1)
+        self.assertIn(14, report["failedNumbers"])
+        self.assertTrue(any("14 номер" in warning for warning in report["warnings"]))
+        self.assertEqual(set(parse_expert_game_index(payload)), {13})
 
     def test_expert_bank_requires_matching_answer_and_valid_score(self):
         with self.assertRaisesRegex(QuestionFormatError, "нет файла Ответы/1"):

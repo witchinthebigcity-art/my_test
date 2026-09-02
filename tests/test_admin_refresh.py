@@ -1,5 +1,6 @@
 import os
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -34,12 +35,27 @@ class AdminRefreshTests(unittest.IsolatedAsyncioTestCase):
             for grade in (8, 9, 10, 11)
         ]
         message = FakeMessage()
-        with patch.object(bot, "_load_questions", AsyncMock(return_value=questions)) as loader:
-            await bot._refresh_questions_for_admin(message)
+        old_extended = bot.questions_cache["extended"]
+        old_expert = bot.questions_cache["expert"]
+        old_warnings = bot.questions_cache.get("expert_warnings", [])
+        bot.questions_cache["extended"] = {grade: [object()] for grade in (8, 9, 10, 11)}
+        bot.questions_cache["expert"] = {13: [object(), object()]}
+        bot.questions_cache["expert_warnings"] = ["14 номер: не найдены Ответы, Критерии"]
+        try:
+            with patch.object(bot, "_load_questions", AsyncMock(return_value=questions)) as loader:
+                await bot._refresh_questions_for_admin(message)
+        finally:
+            bot.questions_cache["extended"] = old_extended
+            bot.questions_cache["expert"] = old_expert
+            bot.questions_cache["expert_warnings"] = old_warnings
         loader.assert_awaited_once_with(force=True)
         report = message.answers[-1][0]
         for grade in (8, 9, 10, 11):
             self.assertIn(f"{grade} класс: 1", report)
+            self.assertIn("2 часть: 1", report)
+        self.assertIn("13 — 2 работ", report)
+        self.assertIn("14 — в разработке", report)
+        self.assertIn("Пропущены незавершённые папки", report)
 
     async def test_failed_refresh_says_that_working_database_is_preserved(self):
         message = FakeMessage()
@@ -60,6 +76,13 @@ class AdminRefreshTests(unittest.IsolatedAsyncioTestCase):
         await bot.refresh_questions_button(callback)
         callback.answer.assert_awaited_once_with("Недостаточно прав", show_alert=True)
         self.assertEqual(callback.message.answers, [])
+
+    def test_universe_entry_is_hidden_until_server_confirms_admin(self):
+        root = Path(__file__).resolve().parents[1]
+        html = (root / "index.html").read_text(encoding="utf-8")
+        script = (root / "community.js").read_text(encoding="utf-8")
+        self.assertRegex(html, r'id="adminUniverseButton"[^>]+hidden')
+        self.assertIn("adminUniverseButton.hidden = !adminMode", script)
 
 
 if __name__ == "__main__":

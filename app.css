@@ -2067,3 +2067,6 @@ select:focus {
     .hybrid-grade-grid .grade-symbol { min-height: 38px; }
     .hybrid-grade-grid .grade-symbol svg { max-height: 50px; }
 }
+#adminUniverseButton[hidden] {
+    display: none !important;
+}

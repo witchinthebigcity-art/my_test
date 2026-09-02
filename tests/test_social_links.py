@@ -24,7 +24,7 @@ class SocialNotificationLinkTests(unittest.TestCase):
 
         self.assertEqual(parsed.path, "/app")
         self.assertEqual(parse_qs(parsed.query), {
-            "v": ["37"],
+            "v": [bot.WEBAPP_VERSION],
             "view": ["chat"],
             "publicId": ["abcdef123456"],
         })
@@ -37,7 +37,7 @@ class SocialNotificationLinkTests(unittest.TestCase):
 
         self.assertEqual(parse_qs(parsed.query), {
             "theme": ["dark"],
-            "v": ["37"],
+            "v": [bot.WEBAPP_VERSION],
             "view": ["battle-invite"],
             "invite": ["123456abcdef"],
         })

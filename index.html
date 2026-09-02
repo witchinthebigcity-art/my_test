@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=37">
+    <link rel="stylesheet" href="/app.css?v=38">
 </head>
 <body data-grade="8">
 
@@ -137,6 +137,7 @@
             <p id="gradeDescription">Укрепляем базу и учимся видеть логику задачи.</p>
         </div>
         <div class="menu-actions">
+            <button id="adminUniverseButton" class="action-card" type="button" onclick="openGameUniverse()" hidden><span class="action-icon">🪐</span><span><strong>Вселенная игр</strong><small>Прямой вход администратора для тестирования</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startPractice()"><span class="action-icon">✏️</span><span><strong>Начать тренировку</strong><small>Новая подборка из таблицы</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startDiagnostic()"><span class="action-icon">🧭</span><span><strong>Пробное тестирование</strong><small>Определить уровень и получить рекомендации</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openBattle()"><span class="action-icon">⚔️</span><span><strong>Баттлы</strong><small>Пять одинаковых задач против ученика своего класса</small></span><span class="action-arrow">›</span></button>
@@ -1404,7 +1405,7 @@ function sendToForm(grade, topic, status) {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=35"></script>
-<script src="/community.js?v=37"></script>
-<script src="/adventure.js?v=37"></script>
+<script src="/community.js?v=38"></script>
+<script src="/adventure.js?v=38"></script>
 </body>
 </html>
