@@ -44,7 +44,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "38"
+WEBAPP_VERSION = "39"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -77,10 +77,6 @@ EXPERT_GAME_FOLDER_ID = os.getenv(
     "EXPERT_GAME_FOLDER_ID", "10zrD0b4U64JFALp6lUqjzaZl9Gn1DYzN"
 ).strip()
 EXPERT_GAME_MAX_SCORE = int(os.getenv("EXPERT_GAME_MAX_SCORE", "2"))
-EXPERT_GAME_ENABLED = os.getenv("EXPERT_GAME_ENABLED", "1").strip().casefold() in {
-    "1", "true", "yes", "да"
-}
-
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
@@ -1234,8 +1230,6 @@ async def start_adventure(request):
         payload = await request.json()
         grade = int(payload.get("grade") or 0)
         game = str(payload.get("game") or "tower")
-        if game == "expert" and not EXPERT_GAME_ENABLED:
-            raise CommunityError("Игра «Ты — эксперт» пока находится в разработке")
         user = _authenticated_user(request)
         attempt_key = str(payload.get("attemptKey") or "").strip()
         task = None

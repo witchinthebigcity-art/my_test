@@ -82,7 +82,8 @@ class AdminRefreshTests(unittest.IsolatedAsyncioTestCase):
         html = (root / "index.html").read_text(encoding="utf-8")
         script = (root / "community.js").read_text(encoding="utf-8")
         self.assertRegex(html, r'id="adminUniverseButton"[^>]+hidden')
-        self.assertIn("adminUniverseButton.hidden = !adminMode", script)
+        self.assertRegex(html, r'id="adminUniverseHomePanel"[^>]+hidden')
+        self.assertIn("element.hidden = !adminMode", script)
 
 
 if __name__ == "__main__":

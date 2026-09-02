@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=38">
+    <link rel="stylesheet" href="/app.css?v=39">
 </head>
 <body data-grade="8">
 
@@ -76,6 +76,15 @@
             <button class="hybrid-shortcut" onclick="openProfile('classSelection')"><span>💼</span><strong>Кабинет</strong></button>
             <button class="hybrid-shortcut" onclick="openFriends('classSelection')"><span>👥</span><strong>Друзья</strong></button>
         </div>
+        <section id="adminUniverseHomePanel" class="admin-universe-home" data-admin-universe-entry hidden>
+            <div><span>🪐</span><strong>Вселенная игр</strong><small>Быстрый вход администратора</small></div>
+            <div class="admin-universe-grades" aria-label="Выберите класс для входа во Вселенную игр">
+                <button type="button" onclick="openAdminUniverseForGrade(8)">8</button>
+                <button type="button" onclick="openAdminUniverseForGrade(9)">9</button>
+                <button type="button" onclick="openAdminUniverseForGrade(10)">10</button>
+                <button type="button" onclick="openAdminUniverseForGrade(11)">11</button>
+            </div>
+        </section>
         <div id="dailyRewardBanner" class="daily-reward-panel" hidden>
             <div class="daily-reward-heading">
                 <div><strong id="dailyRewardTitle">Награда за вход</strong><small id="dailyRewardText">Заберите монеты вручную.</small></div>
@@ -137,7 +146,7 @@
             <p id="gradeDescription">Укрепляем базу и учимся видеть логику задачи.</p>
         </div>
         <div class="menu-actions">
-            <button id="adminUniverseButton" class="action-card" type="button" onclick="openGameUniverse()" hidden><span class="action-icon">🪐</span><span><strong>Вселенная игр</strong><small>Прямой вход администратора для тестирования</small></span><span class="action-arrow">›</span></button>
+            <button id="adminUniverseButton" class="action-card" data-admin-universe-entry type="button" onclick="openGameUniverse()" hidden><span class="action-icon">🪐</span><span><strong>Вселенная игр</strong><small>Прямой вход администратора для тестирования</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startPractice()"><span class="action-icon">✏️</span><span><strong>Начать тренировку</strong><small>Новая подборка из таблицы</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="startDiagnostic()"><span class="action-icon">🧭</span><span><strong>Пробное тестирование</strong><small>Определить уровень и получить рекомендации</small></span><span class="action-arrow">›</span></button>
             <button class="action-card" onclick="openBattle()"><span class="action-icon">⚔️</span><span><strong>Баттлы</strong><small>Пять одинаковых задач против ученика своего класса</small></span><span class="action-arrow">›</span></button>
@@ -1405,7 +1414,7 @@ function sendToForm(grade, topic, status) {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=35"></script>
-<script src="/community.js?v=38"></script>
-<script src="/adventure.js?v=38"></script>
+<script src="/community.js?v=39"></script>
+<script src="/adventure.js?v=39"></script>
 </body>
 </html>

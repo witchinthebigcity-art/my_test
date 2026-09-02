@@ -23,6 +23,11 @@ function openGameUniverse() {
     showScreen('gameUniverseScreen');
 }
 
+function openAdminUniverseForGrade(grade) {
+    selectClass(Number(grade));
+    openGameUniverse();
+}
+
 function openExpertNumberMenu() {
     const grid = document.getElementById('expertNumberGrid');
     grid.replaceChildren();

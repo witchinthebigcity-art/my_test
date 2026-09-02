@@ -57,8 +57,9 @@ async function communityRequest(url, options = {}) {
 function syncCoinBalance(balance, isAdmin) {
     if (typeof isAdmin === 'boolean') adminMode = isAdmin;
     window.isAdminMode = adminMode;
-    const adminUniverseButton = document.getElementById('adminUniverseButton');
-    if (adminUniverseButton) adminUniverseButton.hidden = !adminMode;
+    document.querySelectorAll('[data-admin-universe-entry]').forEach((element) => {
+        element.hidden = !adminMode;
+    });
     coins = Number(balance || 0);
     localStorage.setItem('mathCoins', coins);
     ['quizCoins', 'shopCoins', 'characterCoins', 'dailyCoins', 'homeCoins'].forEach((id) => {
