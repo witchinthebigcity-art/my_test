@@ -44,7 +44,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "39"
+WEBAPP_VERSION = "40"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -228,10 +228,14 @@ async def _refresh_questions_for_admin(message):
         ]
         expert_banks = questions_cache.get("expert", {})
         expert_lines = [
-            f"{number} — {len(expert_banks.get(number, []))} работ"
-            if expert_banks.get(number)
-            else f"{number} — в разработке"
-            for number in range(13, 20)
+            f"{grade} класс: " + (
+                "; ".join(
+                    f"{number} номер — {len(tasks)} работ"
+                    for number, tasks in sorted(expert_banks.get(grade, {}).items())
+                    if tasks
+                ) or "нет готовых работ"
+            )
+            for grade in sorted(SUPPORTED_GRADES)
         ]
         warnings = questions_cache.get("expert_warnings", [])
         warning_text = (
@@ -505,9 +509,16 @@ async def _load_questions(force=False):
             new_expert = dict(expert_report["banks"])
             # A draft or temporarily malformed number must not erase its last
             # working version while the administrator is filling the folder.
-            for task_number in expert_report["failedNumbers"]:
-                if task_number in questions_cache.get("expert", {}):
-                    new_expert[task_number] = questions_cache["expert"][task_number]
+            for failed_bank in expert_report["failedBanks"]:
+                grade = failed_bank["grade"]
+                task_number = failed_bank["taskNumber"]
+                previous_tasks = (
+                    questions_cache.get("expert", {})
+                    .get(grade, {})
+                    .get(task_number)
+                )
+                if previous_tasks:
+                    new_expert.setdefault(grade, {})[task_number] = previous_tasks
             expert_warnings = expert_report["warnings"]
         else:
             new_expert = {}
@@ -1225,6 +1236,29 @@ async def get_adventure(request):
         return _community_error(error, status=422)
 
 
+async def get_expert_banks(request):
+    try:
+        _authenticated_user(request)
+        grade = int(request.query.get("grade") or 0)
+        if grade not in SUPPORTED_GRADES:
+            raise CommunityError("Выберите класс от 8 до 11")
+        await _load_questions()
+        banks = questions_cache.get("expert", {}).get(grade, {})
+        return web.json_response({
+            "grade": grade,
+            "numbers": [
+                {
+                    "number": number,
+                    "count": len(banks.get(number, [])),
+                    "active": number == 13 and bool(banks.get(number)),
+                }
+                for number in range(13, 20)
+            ],
+        })
+    except (CommunityError, TypeError, ValueError) as error:
+        return _community_error(error, status=422)
+
+
 async def start_adventure(request):
     try:
         payload = await request.json()
@@ -1239,7 +1273,11 @@ async def start_adventure(request):
                 task_number = int(payload.get("taskNumber") or 13)
                 if task_number != 13:
                     raise CommunityError(f"Задание {task_number} пока находится в разработке")
-                available = questions_cache.get("expert", {}).get(task_number, [])
+                available = (
+                    questions_cache.get("expert", {})
+                    .get(grade, {})
+                    .get(task_number, [])
+                )
             else:
                 available = questions_cache.get("extended", {}).get(grade, [])
             used_ids = await community_store.used_adventure_task_ids(user, grade, attempt_key)
@@ -1536,6 +1574,7 @@ def create_app():
     application.router.add_get('/stats', get_stats)
     application.router.add_get('/api/training-history', get_training_history)
     application.router.add_get('/api/adventure', get_adventure)
+    application.router.add_get('/api/adventure/expert-banks', get_expert_banks)
     application.router.add_post('/api/adventure/start', start_adventure)
     application.router.add_post('/api/adventure/{session_id}/formula', answer_adventure_formula)
     application.router.add_post('/api/adventure/{session_id}/leave', leave_adventure)

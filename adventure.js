@@ -28,23 +28,37 @@ function openAdminUniverseForGrade(grade) {
     openGameUniverse();
 }
 
-function openExpertNumberMenu() {
+async function openExpertNumberMenu() {
     const grid = document.getElementById('expertNumberGrid');
     grid.replaceChildren();
-    for (let number = 13; number <= 19; number += 1) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = `expert-number-button${number === 13 ? ' is-active' : ' is-locked'}`;
-        button.disabled = number !== 13;
-        const title = document.createElement('strong');
-        title.textContent = `${number} номер`;
-        const status = document.createElement('small');
-        status.textContent = number === 13 ? 'Играть' : 'В разработке';
-        button.append(title, status);
-        if (number === 13) button.addEventListener('click', () => startAdventureGame('expert', number));
-        grid.appendChild(button);
-    }
+    const loading = document.createElement('p');
+    loading.className = 'empty-state';
+    loading.textContent = `Проверяем задания для ${currentClass} класса…`;
+    grid.appendChild(loading);
     showScreen('expertNumberScreen');
+    try {
+        const payload = await communityRequest(`/api/adventure/expert-banks?grade=${currentClass}`, {
+            headers: telegramHeaders(),
+        });
+        grid.replaceChildren();
+        (payload.numbers || []).forEach(({number, count, active}) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `expert-number-button${active ? ' is-active' : ' is-locked'}`;
+            button.disabled = !active;
+            const title = document.createElement('strong');
+            title.textContent = `${number} номер`;
+            const status = document.createElement('small');
+            status.textContent = active
+                ? `Играть · ${count} работ`
+                : number === 13 ? `Нет работ для ${currentClass} класса` : 'В разработке';
+            button.append(title, status);
+            if (active) button.addEventListener('click', () => startAdventureGame('expert', number));
+            grid.appendChild(button);
+        });
+    } catch (error) {
+        loading.textContent = error.message;
+    }
 }
 
 async function startAdventureGame(game = 'tower', taskNumber = null) {

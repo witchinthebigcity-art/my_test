@@ -117,7 +117,8 @@ class DriveFolderSeparationTests(unittest.IsolatedAsyncioTestCase):
         with patch("drive_questions.parse_public_folder_html", side_effect=lambda marker: folders[marker]):
             payload = await fetch_expert_game_index(_FakeSession(), "expert-root")
         tasks = parse_expert_game_index(payload)
-        task = tasks[13][0]
+        task = tasks[11][13][0]
+        self.assertEqual(task["grade"], 11)
         self.assertEqual(task["number"], 1)
         self.assertEqual(task["expertScore"], 1)
         self.assertIn("work-1", task["imageUrl"])
@@ -145,10 +146,43 @@ class DriveFolderSeparationTests(unittest.IsolatedAsyncioTestCase):
         with patch("drive_questions.parse_public_folder_html", side_effect=lambda marker: folders[marker]):
             payload = await fetch_expert_game_index(_FakeSession(), "expert-root")
         report = parse_expert_game_index_report(payload)
-        self.assertEqual(len(report["banks"][13]), 1)
-        self.assertIn(14, report["failedNumbers"])
+        self.assertEqual(len(report["banks"][11][13]), 1)
+        self.assertIn({"grade": 11, "taskNumber": 14}, report["failedBanks"])
         self.assertTrue(any("14 номер" in warning for warning in report["warnings"]))
-        self.assertEqual(set(parse_expert_game_index(payload)), {13})
+        self.assertEqual(set(parse_expert_game_index(payload)[11]), {13})
+
+    async def test_expert_banks_are_separated_by_grade(self):
+        folders = {
+            "expert-root": [
+                {"id": "grade-8", "name": "8 класс", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "grade-11", "name": "11 класс", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "grade-8": [{"id": "number-8-13", "name": "13 номер", "mimeType": FOLDER_MIME_TYPE}],
+            "grade-11": [{"id": "number-11-13", "name": "13 номер", "mimeType": FOLDER_MIME_TYPE}],
+            "number-8-13": [
+                {"id": "solutions-8", "name": "Решения", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "answers-8", "name": "Ответы", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "criteria-8", "name": "Критерии", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "number-11-13": [
+                {"id": "solutions-11", "name": "Решения", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "answers-11", "name": "Ответы", "mimeType": FOLDER_MIME_TYPE},
+                {"id": "criteria-11", "name": "Критерии", "mimeType": FOLDER_MIME_TYPE},
+            ],
+            "solutions-8": [{"id": "work-8", "name": "1 - 1", "mimeType": "image/png"}],
+            "answers-8": [{"id": "answer-8", "name": "1", "mimeType": "image/png"}],
+            "criteria-8": [{"id": "rubric-8", "name": "Критерии", "mimeType": "image/png"}],
+            "solutions-11": [{"id": "work-11", "name": "1 - 2", "mimeType": "image/png"}],
+            "answers-11": [{"id": "answer-11", "name": "1", "mimeType": "image/png"}],
+            "criteria-11": [{"id": "rubric-11", "name": "Критерии", "mimeType": "image/png"}],
+        }
+        with patch("drive_questions.parse_public_folder_html", side_effect=lambda marker: folders[marker]):
+            payload = await fetch_expert_game_index(_FakeSession(), "expert-root")
+        tasks = parse_expert_game_index(payload)
+        self.assertEqual(tasks[8][13][0]["expertScore"], 1)
+        self.assertEqual(tasks[11][13][0]["expertScore"], 2)
+        self.assertIn("rubric-8", tasks[8][13][0]["criteriaImageUrls"][0])
+        self.assertNotIn("work-11", tasks[8][13][0]["imageUrl"])
 
     def test_expert_bank_requires_matching_answer_and_valid_score(self):
         with self.assertRaisesRegex(QuestionFormatError, "нет файла Ответы/1"):
@@ -192,6 +226,12 @@ class DriveFolderSeparationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(parse_public_folder_html(html), [{
             "id": "file_id", "name": "6 - 120", "mimeType": "image/png"
         }])
+
+    def test_parses_empty_public_drive_folder(self):
+        drive_json = '[null,null,null,null,[],1]'
+        escaped = drive_json.replace('"', r'\x22').replace('[', r'\x5b').replace(']', r'\x5d')
+        html = f"<script>window['_DRIVE_ivd'] = '{escaped}';</script>"
+        self.assertEqual(parse_public_folder_html(html), [])
 
     def test_builds_second_part_task_only_from_extended_files(self):
         tasks = parse_extended_drive_index({"extendedFiles": [{

@@ -92,6 +92,43 @@ class PrivacyApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status, 401)
         self.assertFalse(self.results.exists())
 
+    async def test_expert_game_uses_only_the_selected_grade_bank(self):
+        old_items = bot.questions_cache["items"]
+        old_loaded_at = bot.questions_cache["loaded_at"]
+        old_expert = bot.questions_cache["expert"]
+        self.addCleanup(bot.questions_cache.__setitem__, "items", old_items)
+        self.addCleanup(bot.questions_cache.__setitem__, "loaded_at", old_loaded_at)
+        self.addCleanup(bot.questions_cache.__setitem__, "expert", old_expert)
+        task_base = {
+            "taskNumber": 13, "number": 1, "title": "Работа №1",
+            "question": "Поставьте балл", "imageUrl": "https://example.com/work.png",
+            "answerImageUrl": "https://example.com/answer.png",
+            "criteriaImageUrls": ["https://example.com/criteria.png"],
+            "maxScore": 2, "expertScore": 1, "criteriaSource": "Критерии", "fields": [],
+        }
+        bot.questions_cache["items"] = [object()]
+        bot.questions_cache["loaded_at"] = time.monotonic()
+        bot.questions_cache["expert"] = {
+            8: {13: [{**task_base, "id": "expert-grade-8", "grade": 8}]},
+            11: {13: [{**task_base, "id": "expert-grade-11", "grade": 11}]},
+        }
+
+        banks_response = await self.client.get(
+            "/api/adventure/expert-banks?grade=8", headers=self.headers()
+        )
+        banks = await banks_response.json()
+        self.assertEqual(banks_response.status, 200)
+        self.assertEqual(banks["numbers"][0], {"number": 13, "count": 1, "active": True})
+
+        start_response = await self.client.post(
+            "/api/adventure/start", headers=self.headers(),
+            json={"grade": 8, "game": "expert", "taskNumber": 13, "attemptKey": "grade-isolation"},
+        )
+        session = await start_response.json()
+        self.assertEqual(start_response.status, 200)
+        self.assertEqual(session["task"]["id"], "expert-grade-8")
+        self.assertNotEqual(session["task"]["id"], "expert-grade-11")
+
     async def test_forged_and_bot_sessions_do_not_reach_store(self):
         for value in (signed(self.a).replace("901", "902"), signed({"id": 909, "is_bot": True})):
             response = await self.client.post("/api/friends/" + self.public_id(self.b),

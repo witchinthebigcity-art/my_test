@@ -39,8 +39,8 @@ class AdminRefreshTests(unittest.IsolatedAsyncioTestCase):
         old_expert = bot.questions_cache["expert"]
         old_warnings = bot.questions_cache.get("expert_warnings", [])
         bot.questions_cache["extended"] = {grade: [object()] for grade in (8, 9, 10, 11)}
-        bot.questions_cache["expert"] = {13: [object(), object()]}
-        bot.questions_cache["expert_warnings"] = ["14 номер: не найдены Ответы, Критерии"]
+        bot.questions_cache["expert"] = {11: {13: [object(), object()]}}
+        bot.questions_cache["expert_warnings"] = ["11 класс / 14 номер: не найдены Ответы, Критерии"]
         try:
             with patch.object(bot, "_load_questions", AsyncMock(return_value=questions)) as loader:
                 await bot._refresh_questions_for_admin(message)
@@ -53,8 +53,8 @@ class AdminRefreshTests(unittest.IsolatedAsyncioTestCase):
         for grade in (8, 9, 10, 11):
             self.assertIn(f"{grade} класс: 1", report)
             self.assertIn("2 часть: 1", report)
-        self.assertIn("13 — 2 работ", report)
-        self.assertIn("14 — в разработке", report)
+        self.assertIn("11 класс: 13 номер — 2 работ", report)
+        self.assertIn("8 класс: нет готовых работ", report)
         self.assertIn("Пропущены незавершённые папки", report)
 
     async def test_failed_refresh_says_that_working_database_is_preserved(self):
