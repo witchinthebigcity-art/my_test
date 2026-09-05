@@ -44,7 +44,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "41"
+WEBAPP_VERSION = "42"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -99,16 +99,100 @@ questions_cache = {
 }
 questions_cache_lock = asyncio.Lock()
 
-def save_user(user_id):
-    users = set()
+GRADE_AGE_GROUPS = {
+    8: "13–15 лет",
+    9: "14–16 лет",
+    10: "15–17 лет",
+    11: "16–18 лет",
+}
+
+
+def save_user(user):
+    user_id = int(getattr(user, "id", user))
+    users = {}
     if os.path.exists(USERS_FILE):
         try:
-            with open(USERS_FILE, "r") as f:
-                users = set(json.load(f))
-        except: pass
-    users.add(user_id)
-    with open(USERS_FILE, "w") as f:
-        json.dump(list(users), f)
+            with open(USERS_FILE, "r", encoding="utf-8") as source:
+                stored = json.load(source)
+            if isinstance(stored, dict):
+                users = stored
+            elif isinstance(stored, list):
+                users = {str(value): {} for value in stored}
+        except (OSError, ValueError, TypeError):
+            users = {}
+    record = users.setdefault(str(user_id), {})
+    if hasattr(user, "id"):
+        record.update({
+            "name": " ".join(filter(None, [
+                str(getattr(user, "first_name", "") or "").strip(),
+                str(getattr(user, "last_name", "") or "").strip(),
+            ])).strip(),
+            "username": str(getattr(user, "username", "") or "").lstrip("@"),
+        })
+    with open(USERS_FILE, "w", encoding="utf-8") as target:
+        json.dump(users, target, ensure_ascii=False, indent=2)
+
+
+def build_users_report(users, community_data):
+    """Build an admin-only class/age-group report without storing birth dates."""
+    if isinstance(users, dict):
+        records = {
+            str(user_id): info if isinstance(info, dict) else {}
+            for user_id, info in users.items()
+        }
+    else:
+        records = {str(user_id): {} for user_id in (users or [])}
+    profiles = community_data.get("profiles", {}) if isinstance(community_data, dict) else {}
+    class_counts = {grade: 0 for grade in SUPPORTED_GRADES}
+    unknown_count = 0
+    rows = []
+    for user_id in sorted(
+        records,
+        key=lambda value: (0, int(value)) if value.isdigit() else (1, value),
+    ):
+        stored = records[user_id]
+        profile = profiles.get(user_id, {}) if isinstance(profiles, dict) else {}
+        name = stored.get("name") or profile.get("nickname") or "Без имени"
+        username_value = stored.get("username") or profile.get("telegram_username") or ""
+        username = f"@{username_value}" if username_value else "Нет @username"
+        try:
+            grade = int(profile.get("grade"))
+        except (TypeError, ValueError):
+            grade = None
+        if grade in class_counts:
+            class_counts[grade] += 1
+            class_label = f"{grade} класс"
+            age_label = f"ориентировочно {GRADE_AGE_GROUPS[grade]}"
+        else:
+            unknown_count += 1
+            class_label = "класс не выбран"
+            age_label = "возрастная группа неизвестна"
+        rows.append(
+            f"ID: {user_id} | Имя: {name} | ТГ: {username} | "
+            f"{class_label} | {age_label}"
+        )
+
+    leaders = []
+    if class_counts and max(class_counts.values(), default=0) > 0:
+        maximum = max(class_counts.values())
+        leaders = [str(grade) for grade, count in class_counts.items() if count == maximum]
+    summary = [
+        f"{grade} класс · ориентировочно {GRADE_AGE_GROUPS[grade]}: {class_counts[grade]} чел."
+        for grade in sorted(SUPPORTED_GRADES)
+    ]
+    summary.append(f"Класс ещё не выбран: {unknown_count} чел.")
+    if leaders:
+        summary.append(f"Больше всего пользователей: {' и '.join(leaders)} класс.")
+    return (
+        f"📊 Всего в боте: {len(records)} чел.\n"
+        "Возрастные группы рассчитаны ориентировочно по выбранному классу; "
+        "даты рождения бот не собирает.\n\n"
+        "РАСПРЕДЕЛЕНИЕ ПО КЛАССАМ\n"
+        + "\n".join(summary)
+        + "\n\nПОЛЬЗОВАТЕЛИ\n"
+        + ("\n".join(rows) if rows else "Пользователей пока нет.")
+        + "\n"
+    )
 
 
 def load_user_ids(path=None):
@@ -168,7 +252,7 @@ async def send_broadcast(source_message=None, text=None, user_ids=None, bot_clie
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    save_user(message.from_user.id)
+    save_user(message.from_user)
     # Сбрасываем кэш, чтобы у пользователей всегда открывалась свежая версия приложения
     safe_url = f"{WEBAPP_URL}?v={int(time.time())}"
     
@@ -180,18 +264,22 @@ async def start(message: types.Message):
 @dp.message(Command("admin"))
 async def admin_panel(message: types.Message):
     if is_admin_telegram_user(message.from_user):
-        markup = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
                 text="🔄 Обновить базу заданий",
                 callback_data="admin_refresh_questions",
-            )
-        ]])
+            )],
+            [InlineKeyboardButton(
+                text="👥 Пользователи по классам",
+                callback_data="admin_users_report",
+            )],
+        ])
         await message.answer(
             "🛠 Панель администратора\n\n"
             "1. Отправьте боту готовое сообщение: текст, фото, видео, аудио или голосовое.\n"
             "2. Ответьте на это сообщение командой /sendall или /all.\n\n"
             "Также можно отправить: /sendall текст сообщения\n"
-            "/users — количество и список пользователей\n"
+            "/users — пользователи, классы и возрастные группы\n"
             "/delete_last — удалить последнюю рассылку у получателей\n"
             "/refresh — обновить тренировки, вторую часть и игру «Ты — эксперт»",
             reply_markup=markup,
@@ -355,12 +443,16 @@ async def delete_last_broadcast(message: types.Message):
 
     os.remove(BROADCAST_FILE)
     await message.answer(f"🗑 Успешно удалено сообщений: {deleted_count} из {len(sent_messages)}.")
+
+
 @dp.message(Command("users"))
 async def get_all_users(message: types.Message):
-    # Проверка, что пишет именно админ
     if not is_admin_telegram_user(message.from_user):
         return
+    await _send_users_report(message)
 
+
+async def _send_users_report(message):
     if not os.path.exists(USERS_FILE):
         await message.answer("⚠ База пользователей пока пуста.")
         return
@@ -372,26 +464,26 @@ async def get_all_users(message: types.Message):
         await message.answer("⚠ Ошибка чтения файла.")
         return
 
+    async with community_store.lock:
+        community_data = community_store._load()
+
     # Создаем временный файл-отчет
     report_path = f"{DATA_DIR}/users_report.txt"
     with open(report_path, "w", encoding="utf-8") as f:
-        f.write(f"📊 Всего в боте: {len(users)} чел.\n")
-        f.write("="*40 + "\n\n")
-        
-        # Если база уже в новом формате (словарь)
-        if isinstance(users, dict):
-            for uid, info in users.items():
-                name = info.get("name", "Без имени")
-                username = f"@{info.get('username')}" if info.get('username') else "Нет @username"
-                f.write(f"ID: {uid} | Имя: {name} | ТГ: {username}\n")
-        # Если база еще старая (список ID)
-        else:
-            for uid in users:
-                f.write(f"ID: {uid} (Нужно обновить данные, нажав /start)\n")
+        f.write(build_users_report(users, community_data))
 
     # Отправляем файл пользователю
     doc = FSInputFile(report_path)
-    await message.answer_document(doc, caption="👥 База твоих учеников")
+    await message.answer_document(doc, caption="👥 Пользователи по классам и возрастным группам")
+
+
+@dp.callback_query(F.data == "admin_users_report")
+async def users_report_button(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    await callback.answer("Формирую отчёт")
+    await _send_users_report(callback.message)
 
 # === БЛОК 3: ВЕБ-СЕРВЕР (Для работы мини-приложения) ===
 

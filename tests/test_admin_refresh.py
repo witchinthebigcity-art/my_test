@@ -28,6 +28,20 @@ class AdminRefreshTests(unittest.IsolatedAsyncioTestCase):
         markup = message.answers[0][1]["reply_markup"]
         button = markup.inline_keyboard[0][0]
         self.assertEqual(button.callback_data, "admin_refresh_questions")
+        self.assertEqual(markup.inline_keyboard[1][0].callback_data, "admin_users_report")
+
+    def test_user_report_groups_people_by_selected_class_without_birth_dates(self):
+        report = bot.build_users_report(
+            {"101": {"name": "Анна", "username": "anna"}, "202": {}},
+            {"profiles": {
+                "101": {"grade": 8, "nickname": "Аня"},
+                "202": {"grade": 11, "nickname": "Илья", "telegram_username": "ilya"},
+            }},
+        )
+        self.assertIn("8 класс · ориентировочно 13–15 лет: 1 чел.", report)
+        self.assertIn("11 класс · ориентировочно 16–18 лет: 1 чел.", report)
+        self.assertIn("ID: 101 | Имя: Анна | ТГ: @anna | 8 класс", report)
+        self.assertIn("даты рождения бот не собирает", report)
 
     async def test_refresh_reports_counts_for_every_grade(self):
         questions = [
