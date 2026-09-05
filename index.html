@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=40">
+    <link rel="stylesheet" href="/app.css?v=41">
 </head>
 <body data-grade="8">
 
@@ -509,7 +509,7 @@
                 <span class="game-world-status">В проекте</span>
             </article>
         </div>
-        <button class="btn btn-secondary" type="button" onclick="showScreen('mainMenu')">Вернуться в меню класса</button>
+        <button class="btn btn-secondary" type="button" onclick="returnToClassMenuFromUniverse()">Меню класса</button>
     </div>
 
     <div id="expertNumberScreen" class="screen game-universe-screen">
@@ -860,13 +860,33 @@
         }
     }
 
+    const gameFlowScreens = new Set(['gameUniverseScreen', 'expertNumberScreen', 'adventureScreen']);
+
+    function pruneGameFlowHistory() {
+        for (let index = screenHistory.length - 1; index >= 0; index -= 1) {
+            if (gameFlowScreens.has(screenHistory[index])) screenHistory.splice(index, 1);
+        }
+    }
+
+    function replaceAdventureWithUniverse() {
+        pruneGameFlowHistory();
+        showScreen('gameUniverseScreen', {fromBack: true, replace: true});
+    }
+
+    function returnToClassMenuFromUniverse() {
+        pruneGameFlowHistory();
+        const target = currentClass ? 'mainMenu' : 'classSelection';
+        showScreen(target, {fromBack: true, replace: true});
+    }
+
     function returnToRootMenu() {
         screenHistory.length = 0;
         showScreen('classSelection', {fromBack: true, replace: true});
     }
 
     function handleGlobalNavigation() {
-        if (currentScreenId === 'mainMenu') returnToRootMenu();
+        if (currentScreenId === 'gameUniverseScreen') returnToClassMenuFromUniverse();
+        else if (currentScreenId === 'mainMenu') returnToRootMenu();
         else navigateBack();
     }
 
@@ -879,10 +899,10 @@
         const adventureExit = currentScreenId === 'adventureScreen'
             && !document.getElementById('adventureLeaveButton')?.hidden;
         button.hidden = currentScreenId === 'classSelection' || battleHasLeave || adventureExit;
-        const isClassMenu = currentScreenId === 'mainMenu';
-        button.textContent = isClassMenu ? 'Меню' : '←';
-        button.setAttribute('aria-label', isClassMenu ? 'Главное меню' : 'Назад');
-        button.classList.toggle('root-menu-button', isClassMenu);
+        const isMenuButton = currentScreenId === 'mainMenu' || currentScreenId === 'gameUniverseScreen';
+        button.textContent = isMenuButton ? 'Меню' : '←';
+        button.setAttribute('aria-label', isMenuButton ? 'Меню класса' : 'Назад');
+        button.classList.toggle('root-menu-button', isMenuButton);
 
         document.querySelectorAll('.screen button').forEach((candidate) => {
             const label = candidate.textContent.trim().toLowerCase();
@@ -1414,7 +1434,7 @@ function sendToForm(grade, topic, status) {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=35"></script>
-<script src="/community.js?v=40"></script>
-<script src="/adventure.js?v=40"></script>
+<script src="/community.js?v=41"></script>
+<script src="/adventure.js?v=41"></script>
 </body>
 </html>

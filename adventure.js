@@ -236,7 +236,7 @@ async function leaveAdventureGame() {
             body: JSON.stringify({}),
         });
         adventureState.session = null;
-        openGameUniverse();
+        replaceAdventureWithUniverse();
         updateAdventureResume();
     } catch (error) {
         alert(error.message);
