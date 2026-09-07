@@ -118,6 +118,44 @@ class StudentLearningStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.store.reminder_candidates(next_day), [])
 
 
+class AdminStudentFormTests(unittest.TestCase):
+    def test_numbered_form_from_telegram_is_parsed(self):
+        fields = bot.parse_admin_student_fields(
+            "1. @whitarrr\n"
+            "2. Класс 9\n"
+            "3. Кирилл\n"
+            "4. Сдача ОГЭ и поступление в лицей\n"
+            "5. Нужны задачи высокого уровня сложности\n"
+            "6. 6. Понедельник в 17:30, суббота в 14:00\n"
+            "7. 13:00"
+        )
+        self.assertEqual(fields["username"], "whitarrr")
+        self.assertEqual(fields["grade"], "9")
+        self.assertEqual(fields["display_name"], "Кирилл")
+        self.assertEqual(fields["lesson_schedule"], "Понедельник в 17:30, суббота в 14:00")
+        self.assertEqual(fields["reminder_time"], "13:00")
+
+    def test_labels_without_numbering_are_supported(self):
+        fields = bot.parse_admin_student_fields(
+            "Telegram username: student_test\n"
+            "Класс: 11\n"
+            "Имя для кабинета: Анна\n"
+            "Глобальная цель на год: ЕГЭ\n"
+            "Важные факты и особенности: любит геометрию\n"
+            "Дни и время занятий: среда 18:00\n"
+            "Время ежедневного напоминания: 20:30"
+        )
+        self.assertEqual(fields["username"], "student_test")
+        self.assertEqual(fields["grade"], "11")
+        self.assertEqual(fields["display_name"], "Анна")
+
+    def test_field_specific_error_for_bad_username(self):
+        with self.assertRaisesRegex(StudentLearningError, "Первая строка"):
+            bot.parse_admin_student_fields(
+                "1. неправильный юз\n2. 9\n3. Имя\n4. Цель\n5. Факты\n6. Время\n7. 13:00"
+            )
+
+
 class StudentLearningApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.directory = tempfile.TemporaryDirectory()

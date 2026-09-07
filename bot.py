@@ -5,6 +5,7 @@ import base64
 import ssl
 import time
 import random
+import re
 import tempfile
 from collections import OrderedDict, deque
 from datetime import datetime, timezone
@@ -524,6 +525,53 @@ def _student_keyboard(students, prefix):
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def _clean_numbered_admin_field(value, label_pattern=None):
+    """Accept both plain fields and the numbered template shown to the admin."""
+    cleaned = re.sub(r"^(?:\s*\d+\s*[.)]\s*)+", "", str(value or "").strip())
+    if label_pattern:
+        cleaned = re.sub(
+            rf"^(?:{label_pattern})\s*[:=\-–—]?\s*",
+            "",
+            cleaned,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    return cleaned.strip()
+
+
+def parse_admin_student_fields(text):
+    """Parse the seven-line admin form without treating list numbers as data."""
+    lines = [line.strip() for line in str(text or "").splitlines() if line.strip()]
+    if len(lines) != 7:
+        raise StudentLearningError(
+            "Нужно прислать ровно 7 заполненных строк. Проверьте формат и повторите или отправьте /cancel."
+        )
+
+    username = _clean_numbered_admin_field(
+        lines[0], r"(?:telegram\s*)?(?:username|юзернейм|юз)"
+    )
+    username_match = re.fullmatch(r"@?([A-Za-z0-9_]{5,32})", username)
+    if not username_match:
+        raise StudentLearningError(
+            "Первая строка должна содержать Telegram username, например @whitarrr"
+        )
+
+    grade = _clean_numbered_admin_field(lines[1], r"класс")
+    grade_match = re.fullmatch(r"(8|9|10|11)(?:\s*класс)?", grade, flags=re.IGNORECASE)
+    if not grade_match:
+        raise StudentLearningError("Во второй строке укажите класс: 8, 9, 10 или 11")
+
+    return {
+        "username": username_match.group(1),
+        "grade": grade_match.group(1),
+        "display_name": _clean_numbered_admin_field(lines[2], r"имя(?:\s+для\s+кабинета)?"),
+        "goal": _clean_numbered_admin_field(lines[3], r"глобальная\s+цель(?:\s+на\s+год)?"),
+        "facts": _clean_numbered_admin_field(lines[4], r"важные\s+факты(?:\s+и\s+особенности)?"),
+        "lesson_schedule": _clean_numbered_admin_field(lines[5], r"дни\s+и\s+время(?:\s+(?:уроков|занятий))?"),
+        "reminder_time": _clean_numbered_admin_field(lines[6], r"время(?:\s+ежедневного)?\s+напоминания"),
+    }
+
+
 @dp.callback_query(F.data == "admin_student_add")
 async def admin_student_add(callback: types.CallbackQuery):
     if not is_admin_telegram_user(callback.from_user):
@@ -779,14 +827,10 @@ async def admin_student_flow_message(message: types.Message):
     if not flow:
         return
     if flow["kind"] == "add_student":
-        lines = [line.strip() for line in (message.text or "").splitlines()]
-        if len(lines) < 7:
-            await message.answer("Нужно прислать все 7 строк. Проверьте формат и повторите или отправьте /cancel.")
-            return
         try:
+            fields = parse_admin_student_fields(message.text)
             student, password = await student_learning_store.add_student(
-                username=lines[0], grade=lines[1], display_name=lines[2], goal=lines[3], facts=lines[4],
-                lesson_schedule=lines[5], reminder_time=lines[6],
+                **fields,
             )
         except StudentLearningError as error:
             await message.answer(f"⚠ {error}")
