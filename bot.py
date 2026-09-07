@@ -1,9 +1,11 @@
 import os
 import json
 import asyncio
+import base64
 import ssl
 import time
 import random
+import tempfile
 from collections import OrderedDict, deque
 from datetime import datetime, timezone
 from urllib.parse import urlencode
@@ -32,6 +34,12 @@ from aiogram.exceptions import (
 )
 
 from community import CommunityError, CommunityStore, validate_telegram_init_data
+from student_learning import (
+    ALLOWED_STUDENT_FILE_TYPES,
+    MAX_STUDENT_FILE_BYTES,
+    StudentLearningError,
+    StudentLearningStore,
+)
 from drive_questions import (
     fetch_expert_game_index,
     fetch_public_drive_index,
@@ -44,7 +52,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "42"
+WEBAPP_VERSION = "43"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -87,8 +95,11 @@ USERS_FILE = f"{DATA_DIR}/users.json"
 BROADCAST_FILE = f"{DATA_DIR}/last_broadcast.json"
 RESULTS_FILE = f"{DATA_DIR}/results.json" # Сюда будут падать результаты из WebApp
 COMMUNITY_FILE = f"{DATA_DIR}/community.json"
+STUDENT_LEARNING_FILE = f"{DATA_DIR}/student_learning.json"
 
 community_store = CommunityStore(COMMUNITY_FILE)
+student_learning_store = StudentLearningStore(STUDENT_LEARNING_FILE)
+admin_student_flows = {}
 
 questions_cache = {
     "loaded_at": 0.0,
@@ -273,6 +284,22 @@ async def admin_panel(message: types.Message):
                 text="👥 Пользователи по классам",
                 callback_data="admin_users_report",
             )],
+            [InlineKeyboardButton(
+                text="🎓 Добавить ученика",
+                callback_data="admin_student_add",
+            )],
+            [InlineKeyboardButton(
+                text="✏️ Изменить данные ученика",
+                callback_data="admin_student_edit",
+            )],
+            [InlineKeyboardButton(
+                text="📄 Добавить конспект урока",
+                callback_data="admin_student_lesson",
+            )],
+            [InlineKeyboardButton(
+                text="✅ Проверить ДЗ",
+                callback_data="admin_student_homework",
+            )],
         ])
         await message.answer(
             "🛠 Панель администратора\n\n"
@@ -281,7 +308,8 @@ async def admin_panel(message: types.Message):
             "Также можно отправить: /sendall текст сообщения\n"
             "/users — пользователи, классы и возрастные группы\n"
             "/delete_last — удалить последнюю рассылку у получателей\n"
-            "/refresh — обновить тренировки, вторую часть и игру «Ты — эксперт»",
+            "/refresh — обновить тренировки, вторую часть и игру «Ты — эксперт»\n\n"
+            "Персональные кабинеты создаются кнопкой «Добавить ученика». Пароль показывается один раз.",
             reply_markup=markup,
         )
 
@@ -485,6 +513,344 @@ async def users_report_button(callback: types.CallbackQuery):
     await callback.answer("Формирую отчёт")
     await _send_users_report(callback.message)
 
+
+def _student_keyboard(students, prefix):
+    rows = []
+    for student in students:
+        rows.append([InlineKeyboardButton(
+            text=f"{student['displayName']} · {student['grade']} класс",
+            callback_data=f"{prefix}:{student['id']}",
+        )])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+@dp.callback_query(F.data == "admin_student_add")
+async def admin_student_add(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    admin_student_flows[str(callback.from_user.id)] = {"kind": "add_student"}
+    await callback.answer()
+    await callback.message.answer(
+        "Пришлите данные одним сообщением, каждая строка отдельно:\n\n"
+        "1. @username ученика\n"
+        "2. Класс: 8, 9, 10 или 11\n"
+        "3. Имя для кабинета\n"
+        "4. Глобальная цель на год\n"
+        "5. Важные факты и особенности\n"
+        "6. Дни и время уроков\n"
+        "7. Время ежедневного напоминания в формате ЧЧ:ММ\n\n"
+        "Отмена: /cancel"
+    )
+
+
+@dp.callback_query(F.data == "admin_student_lesson")
+async def admin_student_lesson(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    students = await student_learning_store.list_students()
+    await callback.answer()
+    if not students:
+        await callback.message.answer("Сначала добавьте хотя бы одного ученика.")
+        return
+    await callback.message.answer("Выберите ученика для нового конспекта:", reply_markup=_student_keyboard(students, "student_lesson"))
+
+
+@dp.callback_query(F.data == "admin_student_edit")
+async def admin_student_edit(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    students = await student_learning_store.list_students()
+    await callback.answer()
+    if not students:
+        await callback.message.answer("Сначала добавьте хотя бы одного ученика.")
+        return
+    await callback.message.answer("Выберите ученика:", reply_markup=_student_keyboard(students, "student_edit"))
+
+
+@dp.callback_query(F.data.startswith("student_edit:"))
+async def admin_student_edit_choice(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    student_id = callback.data.split(":", 1)[1]
+    students = await student_learning_store.list_students()
+    student = next((item for item in students if item["id"] == student_id), None)
+    if not student:
+        await callback.answer("Ученик не найден", show_alert=True)
+        return
+    admin_student_flows[str(callback.from_user.id)] = {"kind": "edit_student", "student_id": student_id}
+    await callback.answer()
+    await callback.message.answer(
+        "Пришлите обновлённые данные шестью строками:\n\n"
+        f"1. Класс (сейчас: {student['grade']})\n"
+        f"2. Имя (сейчас: {student['displayName']})\n"
+        f"3. Глобальная цель (сейчас: {student['goal']})\n"
+        f"4. Важные учебные факты (сейчас: {student['facts'] or 'не указаны'})\n"
+        f"5. Дни и время занятий (сейчас: {student['lessonSchedule']})\n"
+        f"6. Время напоминания (сейчас: {student['reminderTime'] or 'не указано'})\n\n"
+        "Username и привязанный Telegram ID этим действием не меняются. Отмена: /cancel"
+    )
+
+
+@dp.callback_query(F.data.startswith("student_lesson:"))
+async def admin_student_lesson_choice(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    student_id = callback.data.split(":", 1)[1]
+    students = await student_learning_store.list_students()
+    student = next((item for item in students if item["id"] == student_id), None)
+    if not student:
+        await callback.answer("Ученик не найден", show_alert=True)
+        return
+    admin_student_flows[str(callback.from_user.id)] = {"kind": "lesson_pdf", "student_id": student_id}
+    await callback.answer()
+    await callback.message.answer(
+        f"Прикрепите PDF-конспект для {student['displayName']}.\n"
+        "В подписи при желании напишите тему следующего урока — она будет учтена при составлении ДЗ."
+    )
+
+
+@dp.callback_query(F.data == "admin_student_homework")
+async def admin_student_homework(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    students = await student_learning_store.list_students()
+    await callback.answer()
+    if not students:
+        await callback.message.answer("Ученики пока не добавлены.")
+        return
+    await callback.message.answer("Чьё домашнее задание открыть?", reply_markup=_student_keyboard(students, "student_homework"))
+
+
+@dp.callback_query(F.data.startswith("student_homework:"))
+async def admin_student_homework_choice(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    student_id = callback.data.split(":", 1)[1]
+    submissions = await student_learning_store.submissions_for_student(student_id)
+    await callback.answer()
+    if not submissions:
+        await callback.message.answer("У этого ученика пока нет отправленных работ.")
+        return
+    for submission in submissions[:20]:
+        await callback.message.answer(
+            f"ДЗ · {submission['lesson_title']}\nОтправлено: {submission['created_at'][:16].replace('T', ' ')}"
+        )
+        for item in submission["files"]:
+            try:
+                if item["content_type"].startswith("image/"):
+                    await callback.message.answer_photo(FSInputFile(item["path"]), caption=item["name"])
+                else:
+                    await callback.message.answer_document(FSInputFile(item["path"]), caption=item["name"])
+            except (OSError, TelegramBadRequest):
+                await callback.message.answer(f"Файл {item['name']} временно недоступен.")
+
+
+@dp.message(Command("cancel"))
+async def cancel_admin_student_flow(message: types.Message):
+    admin_student_flows.pop(str(message.from_user.id), None)
+    await message.answer("Действие отменено.")
+
+
+async def _extract_pdf_text(path):
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(path)
+        return "\n".join((page.extract_text() or "") for page in reader.pages)[:60_000]
+    except Exception:
+        return ""
+
+
+def _render_homework_pdf(path, title, student_name, tasks):
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.units import mm
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+    except ImportError as error:
+        raise StudentLearningError("Модуль создания PDF не установлен") from error
+    font_path = next((item for item in (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/Library/Fonts/Arial.ttf",
+    ) if os.path.isfile(item)), None)
+    if not font_path:
+        raise StudentLearningError("На сервере не найден шрифт для русского PDF")
+    pdfmetrics.registerFont(TTFont("StudentSans", font_path))
+    styles = getSampleStyleSheet()
+    normal = ParagraphStyle("StudentNormal", parent=styles["BodyText"], fontName="StudentSans", fontSize=11, leading=16, textColor=colors.HexColor("#15213b"), spaceAfter=6)
+    heading = ParagraphStyle("StudentHeading", parent=normal, fontSize=18, leading=23, alignment=TA_CENTER, textColor=colors.HexColor("#263a79"), spaceAfter=12)
+    story = [Paragraph(title, heading), Paragraph(f"Ученик: {student_name}", normal), Spacer(1, 5 * mm)]
+    for index, task in enumerate(tasks, 1):
+        safe_text = str(task).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br/>")
+        story.append(Paragraph(f"<b>{index}.</b> {safe_text}", normal))
+        story.append(Spacer(1, 3 * mm))
+    document = SimpleDocTemplate(path, pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm, topMargin=18 * mm, bottomMargin=18 * mm, title=title)
+    document.build(story)
+
+
+async def _generate_student_package(student, notes_text, next_topic, output_dir, notes_path):
+    if not OPENAI_API_KEY:
+        raise StudentLearningError("На сервере не настроен OPENAI_API_KEY для генерации теста и ДЗ")
+    prompt = (
+        f"Класс: {student['grade']}\nГлобальная цель: {student.get('goal', '')}\n"
+        f"Особенности ученика: {student.get('facts', '')}\nСледующая тема: {next_topic or 'не указана'}\n\n"
+        f"КОНСПЕКТ:\n{notes_text}"
+    )
+    schema = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "next_topic": {"type": "string"},
+            "test_questions": {"type": "array", "minItems": 5, "maxItems": 10, "items": {
+                "type": "object", "properties": {
+                    "question": {"type": "string"},
+                    "options": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "string"}},
+                    "correct_index": {"type": "integer", "minimum": 0, "maximum": 3},
+                    "explanation": {"type": "string"},
+                }, "required": ["question", "options", "correct_index", "explanation"], "additionalProperties": False,
+            }},
+            "homework_tasks": {"type": "array", "minItems": 5, "maxItems": 12, "items": {"type": "string"}},
+        },
+        "required": ["title", "next_topic", "test_questions", "homework_tasks"],
+        "additionalProperties": False,
+    }
+    with open(notes_path, "rb") as source:
+        encoded_notes = base64.b64encode(source.read()).decode("ascii")
+    request_payload = {
+        "model": OPENAI_GRADER_MODEL,
+        "store": False,
+        "instructions": (
+            "Ты опытный школьный преподаватель математики. На основе конспекта создай персональный тест и ДЗ. "
+            "Тест проверяет понимание теории и ключевых идей, ровно один вариант верный. "
+            "Нельзя копировать примеры из конспекта: во всех задачах замени числа, функции, объекты и формулировки, "
+            "сохранив проверяемый навык. ДЗ закрепляет прошедший урок и мягко подводит к следующей теме. "
+            "Все задания должны соответствовать указанному классу, быть однозначными и математически корректными."
+        ),
+        "input": [{"role": "user", "content": [
+            {"type": "input_text", "text": prompt},
+            {"type": "input_file", "filename": "lesson-notes.pdf", "file_data": f"data:application/pdf;base64,{encoded_notes}"},
+        ]}],
+        "text": {"format": {"type": "json_schema", "name": "student_lesson_package", "strict": True, "schema": schema}},
+    }
+    timeout = aiohttp.ClientTimeout(total=90)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(
+            "https://api.openai.com/v1/responses",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+            json=request_payload,
+        ) as response:
+            response_data = await response.json(content_type=None)
+            if response.status >= 400:
+                raise StudentLearningError("ИИ не смог сформировать комплект урока")
+    output_text = response_data.get("output_text")
+    if not output_text:
+        for item in response_data.get("output", []):
+            for part in item.get("content", []):
+                if part.get("type") == "output_text":
+                    output_text = part.get("text")
+                    break
+    try:
+        generated = json.loads(output_text or "")
+    except json.JSONDecodeError as error:
+        raise StudentLearningError("ИИ вернул неполный комплект урока") from error
+    homework_path = os.path.join(output_dir, "homework.pdf")
+    _render_homework_pdf(homework_path, f"Домашнее задание · {generated['title']}", student["displayName"], generated["homework_tasks"])
+    generated["homework_path"] = homework_path
+    generated["generation_status"] = "ready"
+    return generated
+
+
+@dp.message()
+async def admin_student_flow_message(message: types.Message):
+    if not is_admin_telegram_user(message.from_user):
+        return
+    flow = admin_student_flows.get(str(message.from_user.id))
+    if not flow:
+        return
+    if flow["kind"] == "add_student":
+        lines = [line.strip() for line in (message.text or "").splitlines()]
+        if len(lines) < 7:
+            await message.answer("Нужно прислать все 7 строк. Проверьте формат и повторите или отправьте /cancel.")
+            return
+        try:
+            student, password = await student_learning_store.add_student(
+                username=lines[0], grade=lines[1], display_name=lines[2], goal=lines[3], facts=lines[4],
+                lesson_schedule=lines[5], reminder_time=lines[6],
+            )
+        except StudentLearningError as error:
+            await message.answer(f"⚠ {error}")
+            return
+        admin_student_flows.pop(str(message.from_user.id), None)
+        await message.answer(
+            f"✅ Кабинет создан для {student['displayName']} (@{student['username']})\n"
+            f"Класс: {student['grade']}\nВременный пароль: <code>{password}</code>\n\n"
+            "Передайте пароль ученику лично. Бот не хранит его открытым текстом; после первого входа кабинет привяжется к Telegram ID.",
+            parse_mode="HTML",
+        )
+        return
+    if flow["kind"] == "edit_student":
+        lines = [line.strip() for line in (message.text or "").splitlines()]
+        if len(lines) < 6:
+            await message.answer("Нужно прислать все 6 строк или отправьте /cancel.")
+            return
+        try:
+            student = await student_learning_store.update_student(
+                flow["student_id"], lines[0], lines[1], lines[2], lines[3], lines[4], lines[5]
+            )
+        except StudentLearningError as error:
+            await message.answer(f"⚠ {error}")
+            return
+        admin_student_flows.pop(str(message.from_user.id), None)
+        await message.answer(f"✅ Данные {student['displayName']} обновлены.")
+        return
+    if flow["kind"] == "lesson_pdf":
+        document = message.document
+        if not document or document.mime_type != "application/pdf":
+            await message.answer("Прикрепите именно PDF-файл конспекта или отправьте /cancel.")
+            return
+        if document.file_size and document.file_size > MAX_STUDENT_FILE_BYTES:
+            await message.answer("PDF должен быть меньше 15 МБ.")
+            return
+        students = await student_learning_store.list_students()
+        student = next((item for item in students if item["id"] == flow["student_id"]), None)
+        if not student:
+            await message.answer("Ученик больше не найден.")
+            admin_student_flows.pop(str(message.from_user.id), None)
+            return
+        status = await message.answer("⏳ Читаю конспект и создаю персональные тест и ДЗ…")
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                notes_path = os.path.join(directory, "notes.pdf")
+                await bot.download(document, destination=notes_path)
+                notes_text = await _extract_pdf_text(notes_path)
+                generated = await _generate_student_package(student, notes_text, message.caption or "", directory, notes_path)
+                lesson = await student_learning_store.create_lesson(
+                    student["id"], notes_path, document.file_name or "Конспект.pdf", generated
+                )
+            admin_student_flows.pop(str(message.from_user.id), None)
+            await status.edit_text(
+                f"✅ Урок «{lesson['title']}» добавлен для {student['displayName']}.\n"
+                f"Тест: {len(lesson['test_questions'])} вопросов. ДЗ: {len(lesson['homework_tasks'])} заданий."
+            )
+            if student.get("bound"):
+                async with student_learning_store.lock:
+                    saved = student_learning_store._load()["students"].get(student["id"], {})
+                if saved.get("telegram_user_id"):
+                    await bot.send_message(int(saved["telegram_user_id"]), "📚 В кабинете ученика появился новый конспект, тест и домашнее задание.")
+        except (StudentLearningError, aiohttp.ClientError, asyncio.TimeoutError, OSError) as error:
+            await status.edit_text(f"⚠ Не удалось подготовить урок: {error}\nСостояние не потеряно — пришлите PDF ещё раз или /cancel.")
+
 # === БЛОК 3: ВЕБ-СЕРВЕР (Для работы мини-приложения) ===
 
 async def handle_index(request):
@@ -509,6 +875,10 @@ async def handle_math_script(request):
 
 async def handle_adventure_script(request):
     return web.FileResponse('adventure.js', headers={"Cache-Control": "no-store, max-age=0"})
+
+
+async def handle_student_learning_script(request):
+    return web.FileResponse('student-learning.js', headers={"Cache-Control": "no-store, max-age=0"})
 
 
 def _authenticated_user(request):
@@ -1604,6 +1974,151 @@ async def recognize_solution(request):
         return _community_error(error, status=422)
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, TypeError):
         return _community_error(CommunityError("Распознавание временно недоступно"), status=502)
+
+
+def _student_error(error, status=422):
+    return web.json_response({"error": str(error)}, status=status)
+
+
+async def get_student_status(request):
+    try:
+        return web.json_response(await student_learning_store.status(_authenticated_user(request)))
+    except StudentLearningError as error:
+        return _student_error(error)
+
+
+async def login_student(request):
+    try:
+        payload = await request.json()
+        student = await student_learning_store.login(
+            _authenticated_user(request), payload.get("password"), payload.get("reminderTime")
+        )
+        return web.json_response({"authenticated": True, "student": student})
+    except (StudentLearningError, ValueError, TypeError, json.JSONDecodeError) as error:
+        return _student_error(error)
+
+
+async def get_student_dashboard(request):
+    try:
+        return web.json_response(await student_learning_store.dashboard(_authenticated_user(request)))
+    except StudentLearningError as error:
+        return _student_error(error, status=403)
+
+
+async def open_student_lesson(request):
+    try:
+        return web.json_response(await student_learning_store.open_lesson(
+            _authenticated_user(request), request.match_info["lesson_id"]
+        ))
+    except StudentLearningError as error:
+        return _student_error(error, status=403)
+
+
+async def confirm_student_lesson(request):
+    try:
+        return web.json_response(await student_learning_store.confirm_reading(
+            _authenticated_user(request), request.match_info["lesson_id"]
+        ))
+    except StudentLearningError as error:
+        return _student_error(error, status=403)
+
+
+async def get_student_material(request):
+    try:
+        path, lesson = await student_learning_store.material_path(
+            _authenticated_user(request), request.match_info["lesson_id"], request.match_info["kind"]
+        )
+        filename = "Конспект.pdf" if request.match_info["kind"] == "notes" else "Домашнее задание.pdf"
+        return web.FileResponse(
+            path,
+            headers={
+                "Content-Disposition": f"inline; filename*=UTF-8''{urlencode({'x': filename})[2:]}",
+                "Content-Type": "application/pdf",
+                "X-Lesson-Title": str(lesson.get("title") or "")[:120],
+            },
+        )
+    except StudentLearningError as error:
+        return _student_error(error, status=404)
+
+
+async def get_student_test(request):
+    try:
+        return web.json_response(await student_learning_store.test(
+            _authenticated_user(request), request.match_info["lesson_id"]
+        ))
+    except StudentLearningError as error:
+        return _student_error(error, status=403)
+
+
+async def submit_student_test(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await student_learning_store.submit_test(
+            _authenticated_user(request), request.match_info["lesson_id"], payload.get("answers")
+        ))
+    except (StudentLearningError, ValueError, TypeError, json.JSONDecodeError) as error:
+        return _student_error(error)
+
+
+def _admin_chat_ids():
+    result = []
+    if ADMIN_ID:
+        try:
+            result.append(int(ADMIN_ID))
+        except ValueError:
+            pass
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r", encoding="utf-8") as source:
+                users = json.load(source)
+            if isinstance(users, dict):
+                for user_id, record in users.items():
+                    username = str((record or {}).get("username") or "").casefold()
+                    if username == "supertutor15":
+                        result.append(int(user_id))
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            pass
+    return list(dict.fromkeys(result))
+
+
+async def submit_student_homework(request):
+    try:
+        user = _authenticated_user(request)
+        reader = await request.multipart()
+        lesson_id = ""
+        uploads = []
+        async for part in reader:
+            if part.name == "lessonId":
+                lesson_id = (await part.text()).strip()
+                continue
+            if part.name != "files":
+                continue
+            content_type = str(part.headers.get("Content-Type") or "").split(";", 1)[0].lower()
+            if content_type not in ALLOWED_STUDENT_FILE_TYPES:
+                raise StudentLearningError("Разрешены PDF, JPG, PNG и WebP")
+            data = await part.read(decode=False)
+            if len(data) > MAX_STUDENT_FILE_BYTES:
+                raise StudentLearningError("Каждый файл должен быть меньше 15 МБ")
+            uploads.append({"name": part.filename, "content_type": content_type, "data": data})
+            if len(uploads) > 50:
+                raise StudentLearningError("Отправляйте не более 50 файлов за один раз; следующую часть можно отправить отдельно")
+        result = await student_learning_store.save_submission(user, lesson_id, uploads)
+        username = str(user.get("username") or "").lstrip("@")
+        notice = (
+            f"📥 {result['student']['displayName']} (@{username or result['student']['username']}) прикрепил(а) ДЗ\n"
+            f"Урок: {result['lessonTitle']}\nФайлов: {result['files']}\n\n"
+            "Открыть: /admin → «Проверить ДЗ»"
+        )
+        for chat_id in _admin_chat_ids():
+            try:
+                await bot.send_message(chat_id, notice)
+            except (TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError, TelegramServerError):
+                pass
+        return web.json_response(result)
+    except StudentLearningError as error:
+        return _student_error(error)
+    except (ValueError, TypeError, OSError) as error:
+        return _student_error(StudentLearningError("Не удалось сохранить файлы ДЗ"))
 def security_middleware():
     # Bounded, per-worker limits. Persistent friendship limits also survive restarts.
     windows = OrderedDict()
@@ -1653,13 +2168,14 @@ def security_middleware():
 
 
 def create_app():
-    application = web.Application(client_max_size=4 * 1024 * 1024, middlewares=[security_middleware()])
+    application = web.Application(client_max_size=64 * 1024 * 1024, middlewares=[security_middleware()])
     application.router.add_get('/', handle_index)
     application.router.add_get('/app.css', handle_styles)
     application.router.add_get('/community.js', handle_community_script)
     application.router.add_get('/characters.js', handle_character_script)
     application.router.add_get('/math-format.js', handle_math_script)
     application.router.add_get('/adventure.js', handle_adventure_script)
+    application.router.add_get('/student-learning.js', handle_student_learning_script)
     application.router.add_static('/assets/', 'assets', show_index=False)
     application.router.add_get('/api/questions', get_questions)
     application.router.add_post('/save', save_progress)
@@ -1713,6 +2229,15 @@ def create_app():
     application.router.add_get('/api/battles/{battle_id}', get_battle)
     application.router.add_post('/api/battles/{battle_id}/forfeit', forfeit_battle)
     application.router.add_post('/api/battles/{battle_id}/answer', answer_battle)
+    application.router.add_get('/api/student/status', get_student_status)
+    application.router.add_post('/api/student/login', login_student)
+    application.router.add_get('/api/student/dashboard', get_student_dashboard)
+    application.router.add_post('/api/student/lessons/{lesson_id}/open', open_student_lesson)
+    application.router.add_post('/api/student/lessons/{lesson_id}/read', confirm_student_lesson)
+    application.router.add_get('/api/student/lessons/{lesson_id}/{kind:notes|homework}', get_student_material)
+    application.router.add_get('/api/student/lessons/{lesson_id}/test', get_student_test)
+    application.router.add_post('/api/student/lessons/{lesson_id}/test', submit_student_test)
+    application.router.add_post('/api/student/homework', submit_student_homework)
     return application
 
 
@@ -1720,6 +2245,22 @@ app = create_app()
 
 
 # === ЗАПУСК ===
+
+async def student_reminder_worker():
+    while True:
+        try:
+            for reminder in await student_learning_store.reminder_candidates():
+                try:
+                    await bot.send_message(
+                        reminder["telegram_user_id"],
+                        f"⏰ Напоминание о домашнем задании к уроку «{reminder['lesson_title']}». "
+                        "Откройте мини-приложение → «Кабинет ученика» → «ДЗ»."
+                    )
+                except (TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError, TelegramServerError):
+                    pass
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+        await asyncio.sleep(30)
 
 async def main():
     # Бот получает обновления через polling. Удаляем webhook, который мог
@@ -1760,6 +2301,7 @@ async def main():
         ):
             print("Не удалось настроить команды администратора")
     asyncio.create_task(dp.start_polling(bot))
+    asyncio.create_task(student_reminder_worker())
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', PORT)

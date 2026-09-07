@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=42">
+    <link rel="stylesheet" href="/app.css?v=43">
 </head>
 <body data-grade="8">
 
@@ -76,6 +76,9 @@
             <button class="hybrid-shortcut" onclick="openProfile('classSelection')"><span>💼</span><strong>Кабинет</strong></button>
             <button class="hybrid-shortcut" onclick="openFriends('classSelection')"><span>👥</span><strong>Друзья</strong></button>
         </div>
+        <button id="studentModeEntry" class="student-mode-entry" type="button" onclick="openStudentMode()">
+            <span>🎓</span><span><strong id="studentModeEntryTitle">Режим ученика</strong><small>Персональные уроки, тесты и домашние задания</small></span><b>›</b>
+        </button>
         <section id="adminUniverseHomePanel" class="admin-universe-home" data-admin-universe-entry hidden>
             <div><span>🪐</span><strong>Вселенная игр</strong><small>Быстрый вход администратора</small></div>
             <div class="admin-universe-grades" aria-label="Выберите класс для входа во Вселенную игр">
@@ -107,6 +110,69 @@
             <button type="button" onclick="loadMyStats()"><span>📊</span><small>Прогресс</small></button>
             <button type="button" onclick="openCharacterProfile('classSelection')"><span>👤</span><small>Профиль</small></button>
         </nav>
+    </div>
+
+    <div id="studentLoginScreen" class="screen student-screen">
+        <p class="eyebrow">Персональное обучение</p>
+        <h2>Вход в режим ученика</h2>
+        <p class="student-lead">Кабинет доступен только ученикам, которых преподаватель добавил заранее. Войдите с тем же Telegram-аккаунтом.</p>
+        <label class="field-label" for="studentPassword">Личный пароль</label>
+        <input id="studentPassword" class="text-field" type="password" autocomplete="current-password" maxlength="128" placeholder="Введите пароль">
+        <label class="field-label" for="studentReminderTime">Удобное время напоминания</label>
+        <input id="studentReminderTime" class="text-field" type="time" value="18:00">
+        <button class="btn" type="button" onclick="loginStudentMode()">Войти</button>
+        <div id="studentLoginMessage" class="inline-message" hidden></div>
+        <p class="student-security-note">Пароль не сохраняется на устройстве. После первого входа кабинет защищён привязкой к вашему Telegram ID.</p>
+    </div>
+
+    <div id="studentDashboardScreen" class="screen student-screen">
+        <p class="eyebrow">Кабинет ученика</p>
+        <h2 id="studentDashboardName">Персональный маршрут</h2>
+        <div id="studentGoalCard" class="student-goal-card"></div>
+        <div class="menu-actions student-actions">
+            <button class="action-card" type="button" onclick="openStudentLesson()"><span class="action-icon">📘</span><span><strong>Прошедший урок</strong><small id="studentLessonStatus">Конспект и тест по теме</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" type="button" onclick="openStudentHomework()"><span class="action-icon">✍️</span><span><strong>ДЗ</strong><small>Получить или отправить домашнюю работу</small></span><span class="action-arrow">›</span></button>
+            <button class="action-card" type="button" onclick="openStudentTheory()"><span class="action-icon">📚</span><span><strong>Теория</strong><small>Материалы для вашего класса</small></span><span class="action-arrow">›</span></button>
+        </div>
+        <div id="studentDashboardMessage" class="inline-message" hidden></div>
+    </div>
+
+    <div id="studentLessonScreen" class="screen student-screen student-document-screen">
+        <p class="eyebrow">Прошедший урок</p>
+        <h2 id="studentLessonTitle">Конспект</h2>
+        <div id="studentLessonEmpty" class="empty-state" hidden>Преподаватель ещё не добавил конспект.</div>
+        <iframe id="studentLessonFrame" class="student-pdf-frame" title="Конспект прошедшего урока"></iframe>
+        <p class="student-reader-hint">Пролистайте материал до конца. Кнопка теста откроется после подтверждения чтения или автоматически через 10 минут.</p>
+        <button id="studentReadButton" class="btn btn-secondary" type="button" onclick="confirmStudentLessonRead()">Я изучил(а) конспект</button>
+        <button id="studentTestButton" class="btn" type="button" onclick="openStudentTest()" disabled>Пройти тест</button>
+        <div id="studentLessonMessage" class="inline-message" hidden></div>
+    </div>
+
+    <div id="studentHomeworkScreen" class="screen student-screen">
+        <p class="eyebrow">Домашняя работа</p>
+        <h2>ДЗ по последнему уроку</h2>
+        <button class="action-card" type="button" onclick="openStudentHomeworkFile()"><span class="action-icon">📄</span><span><strong>Получить ДЗ</strong><small>Открыть персональный PDF</small></span><span class="action-arrow">›</span></button>
+        <section class="student-upload-card">
+            <h3>Отправить выполненное ДЗ</h3>
+            <p>Можно выбрать сразу несколько фотографий и PDF. Если файлов очень много, отправьте их несколькими партиями.</p>
+            <input id="studentHomeworkFiles" class="student-file-input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple>
+            <button class="btn" type="button" onclick="submitStudentHomework()">Прикрепить преподавателю</button>
+        </section>
+        <a class="btn btn-secondary link-button" href="https://t.me/Dany_german" target="_blank" rel="noopener">Задать вопрос преподавателю</a>
+        <div id="studentHomeworkMessage" class="inline-message" hidden></div>
+    </div>
+
+    <div id="studentHomeworkDocumentScreen" class="screen student-screen student-document-screen">
+        <p class="eyebrow">Персональное ДЗ</p>
+        <h2 id="studentHomeworkTitle">Домашнее задание</h2>
+        <iframe id="studentHomeworkFrame" class="student-pdf-frame" title="Домашнее задание"></iframe>
+    </div>
+
+    <div id="studentTestScreen" class="screen student-screen">
+        <p class="eyebrow">Проверка понимания</p>
+        <h2 id="studentTestTitle">Тест по уроку</h2>
+        <form id="studentTestForm" class="student-test-form" onsubmit="submitStudentTest(event)"></form>
+        <div id="studentTestResult" class="inline-message" hidden></div>
     </div>
     <button id="globalBackButton" class="global-back-button" type="button" onclick="handleGlobalNavigation()" aria-label="Назад" hidden>←</button>
 <div id="statsScreen" class="screen matrix-screen">
@@ -738,7 +804,7 @@
     <div id="legacy-theory-data-placeholder" class="theory-class-container">
             </div>
 
-        <button class="btn btn-secondary" onclick="showScreen('mainMenu')">Назад в меню</button>
+        <button class="btn btn-secondary" onclick="returnFromTheory()">Назад</button>
     </div>
     <div id="shopScreen" class="screen cozy-shop-screen">
         <div class="shop-heading">
@@ -1434,7 +1500,8 @@ function sendToForm(grade, topic, status) {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=35"></script>
-<script src="/community.js?v=42"></script>
-<script src="/adventure.js?v=42"></script>
+<script src="/community.js?v=43"></script>
+<script src="/student-learning.js?v=43"></script>
+<script src="/adventure.js?v=43"></script>
 </body>
 </html>

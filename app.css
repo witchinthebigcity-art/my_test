@@ -2123,3 +2123,37 @@ select:focus {
     .admin-universe-grades { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .admin-universe-grades button { width: 100%; }
 }
+
+.student-mode-entry {
+    width: 100%; margin: 10px 0 14px; padding: 13px 15px; display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 11px;
+    border: 1px solid rgba(106, 226, 255, .56); border-radius: 17px;
+    background: linear-gradient(135deg, rgba(10, 64, 112, .76), rgba(70, 35, 128, .7));
+    color: #f7fbff; text-align: left; box-shadow: 0 0 22px rgba(83, 177, 255, .13);
+}
+.student-mode-entry > span:first-child { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; background: rgba(5, 18, 52, .62); font-size: 22px; }
+.student-mode-entry strong, .student-mode-entry small { display: block; }
+.student-mode-entry small { margin-top: 3px; color: #afc4e5; font-size: 11px; }
+.student-mode-entry b { color: #78eaff; font-size: 22px; }
+
+.student-screen { background: radial-gradient(circle at 82% 8%, rgba(154, 91, 255, .14), transparent 16rem), linear-gradient(160deg, rgba(4, 22, 52, .98), rgba(19, 13, 53, .98)) !important; }
+.student-lead, .student-security-note, .student-reader-hint { color: var(--text-muted); line-height: 1.55; }
+.student-security-note { margin-top: 15px; font-size: 12px; }
+.student-goal-card { margin: 14px 0 18px; padding: 16px; border: 1px solid rgba(91, 220, 255, .35); border-radius: 18px; background: rgba(12, 37, 80, .54); }
+.student-goal-card strong, .student-goal-card small { display: block; }
+.student-goal-card p { margin: 7px 0 0; color: #c2d1ed; }
+.student-actions { display: grid; gap: 8px; }
+.student-document-screen { min-height: min(780px, var(--app-stable-height, 780px)); }
+.student-pdf-frame { width: 100%; height: clamp(390px, 62vh, 650px); border: 1px solid rgba(112, 201, 255, .35); border-radius: 16px; background: #fff; }
+.student-upload-card { margin: 15px 0; padding: 16px; border: 1px solid rgba(161, 108, 255, .36); border-radius: 18px; background: rgba(40, 26, 84, .42); }
+.student-upload-card p { color: var(--text-muted); font-size: 13px; line-height: 1.45; }
+.student-file-input { width: 100%; margin: 10px 0 12px; padding: 12px; border: 1px dashed rgba(100, 222, 255, .48); border-radius: 14px; color: #dce8ff; background: rgba(4, 19, 48, .72); }
+.student-test-form { display: grid; gap: 15px; }
+.student-test-question { padding: 16px; border: 1px solid rgba(97, 207, 255, .32); border-radius: 18px; background: rgba(7, 28, 65, .72); }
+.student-test-question > strong { display: block; margin-bottom: 11px; line-height: 1.45; }
+.student-test-option { display: flex; gap: 9px; align-items: flex-start; margin: 8px 0; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.045); }
+.student-test-option input { margin-top: 3px; accent-color: #65e0ff; }
+@media (max-width: 520px) {
+    .student-pdf-frame { height: 58vh; min-height: 360px; }
+    .student-mode-entry { margin-top: 8px; }
+}
