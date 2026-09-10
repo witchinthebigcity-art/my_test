@@ -2149,10 +2149,14 @@ select:focus {
 .student-upload-card p { color: var(--text-muted); font-size: 13px; line-height: 1.45; }
 .student-file-input { width: 100%; margin: 10px 0 12px; padding: 12px; border: 1px dashed rgba(100, 222, 255, .48); border-radius: 14px; color: #dce8ff; background: rgba(4, 19, 48, .72); }
 .student-test-form { display: grid; gap: 15px; }
+.student-test-progress { margin: 0; color: #9fc8ed; font-size: 13px; font-weight: 700; letter-spacing: .03em; }
 .student-test-question { padding: 16px; border: 1px solid rgba(97, 207, 255, .32); border-radius: 18px; background: rgba(7, 28, 65, .72); }
 .student-test-question > strong { display: block; margin-bottom: 11px; line-height: 1.45; }
 .student-test-option { display: flex; gap: 9px; align-items: flex-start; margin: 8px 0; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.045); }
 .student-test-option input { margin-top: 3px; accent-color: #65e0ff; }
+.student-test-feedback { padding: 15px; border-radius: 16px; line-height: 1.5; white-space: pre-line; }
+.student-test-feedback.is-correct { border: 1px solid rgba(93, 232, 164, .45); background: rgba(24, 112, 76, .28); color: #b9ffdc; }
+.student-test-feedback.is-wrong { border: 1px solid rgba(255, 164, 114, .48); background: rgba(124, 54, 42, .3); color: #ffe0cf; }
 @media (max-width: 520px) {
     .student-pdf-frame { height: 58vh; min-height: 360px; }
     .student-mode-entry { margin-top: 8px; }

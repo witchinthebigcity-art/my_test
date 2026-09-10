@@ -53,7 +53,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "44"
+WEBAPP_VERSION = "45"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -690,6 +690,156 @@ def parse_manual_lesson_content(text):
     }
 
 
+def parse_manual_test_content(text, fallback_title=""):
+    """Parse a teacher-authored test copied from a message or extracted from a PDF."""
+    value = str(text or "").replace("\xa0", " ").replace("\r", "\n").strip()
+    if not value or len(value) > 60_000:
+        raise StudentLearningError("Тест пустой или слишком длинный")
+
+    # Text extracted from a PDF sometimes joins visually separate rows. Restore
+    # the boundaries used by the documented template before parsing blocks.
+    value = re.sub(
+        r"[ \t]+(?=(?:\d{1,2}\s*[.)]\s+|[A-DА-Г]\s*[).:]\s+|(?:правильный\s+)?ответ\s*:|(?:пояснение|объяснение)\s*:))",
+        "\n",
+        value,
+        flags=re.IGNORECASE,
+    )
+    lines = [re.sub(r"\s+", " ", line).strip() for line in value.splitlines()]
+
+    title = ""
+    next_topic = ""
+    question_blocks = []
+    current = None
+    active_field = "question"
+    preamble = []
+
+    for line in lines:
+        if not line:
+            continue
+        title_match = re.match(r"^тема(?:\s+урока)?\s*:\s*(.+)$", line, flags=re.IGNORECASE)
+        next_match = re.match(r"^следующая\s+тема\s*:\s*(.+)$", line, flags=re.IGNORECASE)
+        if current is None and title_match:
+            title = title_match.group(1).strip()
+            continue
+        if current is None and next_match:
+            next_topic = next_match.group(1).strip()
+            continue
+        if current is None and re.fullmatch(r"тест(?:\s+по\s+.+)?\s*: ?", line, flags=re.IGNORECASE):
+            continue
+
+        question_match = re.match(r"^(\d{1,2})\s*[.)]\s*(.+)$", line)
+        if question_match:
+            if current:
+                question_blocks.append(current)
+            current = {
+                "question": question_match.group(2).strip(),
+                "options": [],
+                "answer": None,
+                "explanation": "",
+            }
+            active_field = "question"
+            continue
+        if current is None:
+            preamble.append(line)
+            continue
+
+        option_match = re.match(r"^([A-DА-Г])\s*[).:]\s*(.+)$", line, flags=re.IGNORECASE)
+        if option_match:
+            current["options"].append([option_match.group(1).upper(), option_match.group(2).strip()])
+            active_field = "option"
+            continue
+        answer_match = re.match(
+            r"^(?:правильный\s+)?ответ\s*:\s*([A-DА-Г1-4])\s*$",
+            line,
+            flags=re.IGNORECASE,
+        )
+        if answer_match:
+            current["answer"] = answer_match.group(1).upper()
+            active_field = "answer"
+            continue
+        explanation_match = re.match(
+            r"^(?:пояснение|объяснение)\s*:\s*(.*)$",
+            line,
+            flags=re.IGNORECASE,
+        )
+        if explanation_match:
+            current["explanation"] = explanation_match.group(1).strip()
+            active_field = "explanation"
+            continue
+        if active_field == "explanation":
+            current["explanation"] = f"{current['explanation']} {line}".strip()
+        elif active_field == "option" and current["options"]:
+            current["options"][-1][1] = f"{current['options'][-1][1]} {line}".strip()
+        else:
+            current["question"] = f"{current['question']} {line}".strip()
+
+    if current:
+        question_blocks.append(current)
+    if not question_blocks:
+        raise StudentLearningError(
+            "Не нашёл вопросы. Начните каждый со строки «1. …», «2. …» и так далее"
+        )
+    if len(question_blocks) > 30:
+        raise StudentLearningError("В одном тесте может быть не больше 30 вопросов")
+
+    answer_map = {
+        "A": 0, "А": 0, "B": 1, "Б": 1, "C": 2, "В": 2, "D": 3, "Г": 3,
+        "1": 0, "2": 1, "3": 2, "4": 3,
+    }
+    expected_labels = [{"A", "А"}, {"B", "Б"}, {"C", "В"}, {"D", "Г"}]
+    test_questions = []
+    for index, block in enumerate(question_blocks, 1):
+        if len(block["options"]) != 4:
+            raise StudentLearningError(f"В вопросе {index} должно быть ровно 4 варианта: А, Б, В и Г")
+        labels = [option[0] for option in block["options"]]
+        if any(label not in allowed for label, allowed in zip(labels, expected_labels)):
+            raise StudentLearningError(f"В вопросе {index} расположите варианты по порядку: А, Б, В, Г")
+        answer_index = answer_map.get(block["answer"])
+        if answer_index is None:
+            raise StudentLearningError(f"В вопросе {index} укажите строку «Ответ: А/Б/В/Г»")
+        if not block["explanation"]:
+            raise StudentLearningError(
+                f"В вопросе {index} добавьте строку «Пояснение: …» — она покажется при ошибке"
+            )
+        test_questions.append({
+            "question": block["question"][:2000],
+            "options": [option[:1000] for _, option in block["options"]],
+            "correct_index": answer_index,
+            "explanation": block["explanation"][:2000],
+        })
+
+    inferred_title = next((
+        line for line in preamble
+        if not re.fullmatch(r"тест\s*: ?", line, flags=re.IGNORECASE)
+    ), "")
+    return {
+        "title": (title or inferred_title or str(fallback_title or "").strip() or "Тест по уроку")[:160],
+        "next_topic": next_topic[:500],
+        "test_questions": test_questions,
+        "generation_status": "manual",
+    }
+
+
+def parse_manual_homework_content(text):
+    """Parse homework supplied as a plain Telegram message."""
+    value = str(text or "").replace("\xa0", " ").strip()
+    if not value or len(value) > 50_000:
+        raise StudentLearningError("ДЗ пустое или слишком длинное")
+    tasks = []
+    for line in value.splitlines():
+        cleaned = re.sub(r"\s+", " ", line).strip()
+        if not cleaned or re.fullmatch(r"(?:дз|домашнее\s+задание)\s*: ?", cleaned, flags=re.IGNORECASE):
+            continue
+        cleaned = re.sub(r"^(?:\d+\s*[.)]|[-•])\s*", "", cleaned).strip()
+        if cleaned:
+            tasks.append(cleaned)
+    if not tasks:
+        raise StudentLearningError("Добавьте хотя бы одно задание")
+    if len(tasks) > 50:
+        raise StudentLearningError("В одном ДЗ может быть не больше 50 заданий")
+    return tasks
+
+
 @dp.callback_query(F.data == "admin_student_add")
 async def admin_student_add(callback: types.CallbackQuery):
     if not is_admin_telegram_user(callback.from_user):
@@ -799,7 +949,8 @@ async def admin_student_lesson_mode(callback: types.CallbackQuery):
     await callback.answer()
     if mode == "manual":
         description = (
-            "После PDF бот попросит одним сообщением прислать придуманные вами задания и вопросы теста. "
+            "После конспекта бот сначала попросит тест, а затем ДЗ. "
+            "Каждую часть можно прислать текстом или PDF. "
             "OpenAI API не понадобится."
         )
     else:
@@ -1049,19 +1200,16 @@ async def admin_student_flow_message(message: types.Message):
         if flow.get("mode") == "manual":
             admin_student_flows[str(message.from_user.id)] = {
                 **flow,
-                "kind": "lesson_manual_content",
+                "kind": "lesson_manual_test",
                 "notes_file_id": document.file_id,
                 "notes_name": document.file_name or "Конспект.pdf",
                 "caption": message.caption or "",
             }
             await message.answer(
-                "Теперь пришлите тест и ДЗ одним текстовым сообщением по образцу:\n\n"
+                "Шаг 1 из 2. Пришлите тест текстом или PDF.\n\n"
+                "Формат теста:\n"
                 "Тема: Квадратные уравнения\n"
                 "Следующая тема: Теорема Виета\n\n"
-                "ДЗ:\n"
-                "1. Решить уравнение …\n"
-                "2. Построить график …\n\n"
-                "ТЕСТ:\n"
                 "1. Какой вопрос проверяем?\n"
                 "А) Первый вариант\n"
                 "Б) Второй вариант\n"
@@ -1069,8 +1217,8 @@ async def admin_student_flow_message(message: types.Message):
                 "Г) Четвёртый вариант\n"
                 "Ответ: Б\n"
                 "Пояснение: Почему этот ответ верный\n\n"
-                "Затем таким же блоком можно добавить вопросы 2, 3 и далее. "
-                "Строка «Следующая тема» необязательна. Отмена: /cancel"
+                "Важно: PDF должен содержать выделяемый текст, а не только фотографии. "
+                "Для каждого вопроса нужны 4 варианта, ответ и пояснение. Отмена: /cancel"
             )
             return
         status = await message.answer("⏳ Читаю конспект и создаю персональные тест и ДЗ…")
@@ -1092,11 +1240,69 @@ async def admin_student_flow_message(message: types.Message):
         except (StudentLearningError, aiohttp.ClientError, asyncio.TimeoutError, OSError) as error:
             await status.edit_text(f"⚠ Не удалось подготовить урок: {error}\nСостояние не потеряно — пришлите PDF ещё раз или /cancel.")
         return
-    if flow["kind"] == "lesson_manual_content":
+    if flow["kind"] == "lesson_manual_test":
+        document = message.document
+        if not message.text and not document:
+            await message.answer("Пришлите тест текстом или PDF или отправьте /cancel.")
+            return
+        if document and (
+            document.mime_type != "application/pdf"
+            and not str(document.file_name or "").casefold().endswith(".pdf")
+        ):
+            await message.answer("Для теста прикрепите PDF-файл или пришлите текст.")
+            return
+        if document and document.file_size and document.file_size > MAX_STUDENT_FILE_BYTES:
+            await message.answer("PDF с тестом должен быть меньше 15 МБ.")
+            return
         try:
-            generated = parse_manual_lesson_content(message.text)
+            test_text = message.text or ""
+            if document:
+                with tempfile.TemporaryDirectory() as directory:
+                    test_path = os.path.join(directory, "test.pdf")
+                    await bot.download(document, destination=test_path)
+                    test_text = await _extract_pdf_text(test_path)
+                if not test_text.strip():
+                    raise StudentLearningError(
+                        "В PDF не нашёлся выделяемый текст. "
+                        "Пришлите PDF с текстовым слоем или вставьте тест сообщением"
+                    )
+            fallback_title = os.path.splitext(flow.get("notes_name") or "")[0]
+            generated = parse_manual_test_content(test_text, fallback_title=fallback_title)
         except StudentLearningError as error:
-            await message.answer(f"⚠ {error}\n\nИсправьте сообщение и пришлите его ещё раз или отправьте /cancel.")
+            await message.answer(f"⚠ {error}\n\nИсправьте тест и пришлите его ещё раз или отправьте /cancel.")
+            return
+        admin_student_flows[str(message.from_user.id)] = {
+            **flow,
+            "kind": "lesson_manual_homework",
+            "title": generated["title"],
+            "next_topic": generated["next_topic"],
+            "test_questions": generated["test_questions"],
+        }
+        await message.answer(
+            f"✅ Тест распознан: {len(generated['test_questions'])} вопросов.\n\n"
+            "Шаг 2 из 2. Теперь пришлите ДЗ:\n"
+            "• текстом — каждое задание с новой строки;\n"
+            "• или готовым PDF-файлом.\n\nОтмена: /cancel"
+        )
+        return
+    if flow["kind"] == "lesson_manual_homework":
+        document = message.document
+        if not message.text and not document:
+            await message.answer("Пришлите ДЗ текстом или PDF или отправьте /cancel.")
+            return
+        if document and (
+            document.mime_type != "application/pdf"
+            and not str(document.file_name or "").casefold().endswith(".pdf")
+        ):
+            await message.answer("Для ДЗ прикрепите PDF-файл или пришлите текст.")
+            return
+        if document and document.file_size and document.file_size > MAX_STUDENT_FILE_BYTES:
+            await message.answer("PDF с ДЗ должен быть меньше 15 МБ.")
+            return
+        try:
+            homework_tasks = [] if document else parse_manual_homework_content(message.text)
+        except StudentLearningError as error:
+            await message.answer(f"⚠ {error}\n\nИсправьте ДЗ и пришлите его ещё раз или /cancel.")
             return
         students = await student_learning_store.list_students()
         student = next((item for item in students if item["id"] == flow["student_id"]), None)
@@ -1110,22 +1316,38 @@ async def admin_student_flow_message(message: types.Message):
                 notes_path = os.path.join(directory, "notes.pdf")
                 await bot.download(flow["notes_file_id"], destination=notes_path)
                 homework_path = os.path.join(directory, "homework.pdf")
-                _render_homework_pdf(
-                    homework_path,
-                    f"Домашнее задание · {generated['title']}",
-                    student["displayName"],
-                    generated["homework_tasks"],
-                )
-                generated["homework_path"] = homework_path
-                if not generated.get("next_topic"):
-                    generated["next_topic"] = flow.get("caption", "")
+                if document:
+                    await bot.download(document, destination=homework_path)
+                    extracted_homework = await _extract_pdf_text(homework_path)
+                    if extracted_homework.strip():
+                        try:
+                            homework_tasks = parse_manual_homework_content(extracted_homework)
+                        except StudentLearningError:
+                            homework_tasks = []
+                else:
+                    _render_homework_pdf(
+                        homework_path,
+                        f"Домашнее задание · {flow['title']}",
+                        student["displayName"],
+                        homework_tasks,
+                    )
+                generated = {
+                    "title": flow["title"],
+                    "next_topic": flow.get("next_topic") or flow.get("caption", ""),
+                    "test_questions": flow["test_questions"],
+                    "homework_tasks": homework_tasks,
+                    "homework_path": homework_path,
+                    "generation_status": "manual",
+                }
                 lesson = await student_learning_store.create_lesson(
                     student["id"], notes_path, flow["notes_name"], generated
                 )
             admin_student_flows.pop(str(message.from_user.id), None)
+            homework_summary = "PDF-файл" if document else f"{len(lesson['homework_tasks'])} заданий"
             await status.edit_text(
                 f"✅ Урок «{lesson['title']}» добавлен для {student['displayName']} без OpenAI.\n"
-                f"Тест: {len(lesson['test_questions'])} вопросов. ДЗ: {len(lesson['homework_tasks'])} заданий.\n"
+                f"Тест: {len(lesson['test_questions'])} вопросов. "
+                f"ДЗ: {homework_summary}.\n"
                 "Ежедневные напоминания будут приходить в установленное для ученика время до отправки ДЗ."
             )
             await _notify_student_new_lesson(student)
@@ -2334,6 +2556,19 @@ async def get_student_test(request):
         return _student_error(error, status=403)
 
 
+async def check_student_test_answer(request):
+    try:
+        payload = await request.json()
+        return web.json_response(await student_learning_store.check_test_answer(
+            _authenticated_user(request),
+            request.match_info["lesson_id"],
+            payload.get("questionIndex"),
+            payload.get("answer"),
+        ))
+    except (StudentLearningError, ValueError, TypeError, json.JSONDecodeError) as error:
+        return _student_error(error)
+
+
 async def submit_student_test(request):
     try:
         payload = await request.json()
@@ -2520,6 +2755,7 @@ def create_app():
     application.router.add_post('/api/student/lessons/{lesson_id}/read', confirm_student_lesson)
     application.router.add_get('/api/student/lessons/{lesson_id}/{kind:notes|homework}', get_student_material)
     application.router.add_get('/api/student/lessons/{lesson_id}/test', get_student_test)
+    application.router.add_post('/api/student/lessons/{lesson_id}/test/check', check_student_test_answer)
     application.router.add_post('/api/student/lessons/{lesson_id}/test', submit_student_test)
     application.router.add_post('/api/student/homework', submit_student_homework)
     return application

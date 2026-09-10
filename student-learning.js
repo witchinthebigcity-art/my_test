@@ -4,6 +4,7 @@ const studentLearningState = {
     homeworkUrl: null,
     theoryReturn: false,
     unlockTimer: null,
+    testRun: null,
 };
 
 function studentMessage(id, text, kind = 'info') {
@@ -195,48 +196,140 @@ async function openStudentTest() {
     try {
         const test = await studentRequest(`/api/student/lessons/${lesson.id}/test`);
         document.getElementById('studentTestTitle').textContent = test.title;
-        const form = document.getElementById('studentTestForm');
-        form.replaceChildren();
-        test.questions.forEach((question, questionIndex) => {
-            const card = document.createElement('section');
-            card.className = 'student-test-question';
-            const title = document.createElement('strong');
-            title.textContent = `${questionIndex + 1}. ${question.question}`;
-            card.appendChild(title);
-            question.options.forEach((option, optionIndex) => {
-                const label = document.createElement('label');
-                label.className = 'student-test-option';
-                const input = document.createElement('input');
-                input.type = 'radio'; input.name = `studentQuestion${questionIndex}`; input.value = String(optionIndex); input.required = true;
-                const text = document.createElement('span'); text.textContent = option;
-                label.append(input, text); card.appendChild(label);
-            });
-            form.appendChild(card);
-        });
-        const submit = document.createElement('button');
-        submit.type = 'submit'; submit.className = 'btn'; submit.textContent = 'Завершить тест';
-        form.appendChild(submit);
+        if (!test.questions.length) throw new Error('В этом уроке пока нет вопросов');
+        studentLearningState.testRun = {
+            questions: test.questions,
+            index: 0,
+            answers: Array(test.questions.length).fill(null),
+            checking: false,
+        };
+        renderStudentTestQuestion();
         studentMessage('studentTestResult', '');
     } catch (error) {
         studentMessage('studentTestResult', error.message, 'error');
     }
 }
 
+function renderStudentTestQuestion() {
+    const run = studentLearningState.testRun;
+    if (!run) return;
+    const question = run.questions[run.index];
+    const form = document.getElementById('studentTestForm');
+    form.replaceChildren();
+
+    const progress = document.createElement('p');
+    progress.className = 'student-test-progress';
+    progress.textContent = `Вопрос ${run.index + 1} из ${run.questions.length}`;
+    form.appendChild(progress);
+
+    const card = document.createElement('section');
+    card.className = 'student-test-question';
+    const title = document.createElement('strong');
+    title.textContent = question.question;
+    card.appendChild(title);
+    question.options.forEach((option, optionIndex) => {
+        const label = document.createElement('label');
+        label.className = 'student-test-option';
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'studentCurrentAnswer';
+        input.value = String(optionIndex);
+        input.required = true;
+        const text = document.createElement('span');
+        text.textContent = option;
+        label.append(input, text);
+        card.appendChild(label);
+    });
+    form.appendChild(card);
+
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.className = 'btn';
+    submit.textContent = 'Проверить ответ';
+    form.appendChild(submit);
+    studentMessage('studentTestResult', '');
+}
+
 async function submitStudentTest(event) {
     event.preventDefault();
     const lesson = studentLearningState.dashboard?.lesson;
-    if (!lesson) return;
-    const questions = [...document.querySelectorAll('.student-test-question')];
-    const answers = questions.map((_, index) => Number(new FormData(event.currentTarget).get(`studentQuestion${index}`)));
+    const run = studentLearningState.testRun;
+    if (!lesson || !run || run.checking) return;
+    const selected = new FormData(event.currentTarget).get('studentCurrentAnswer');
+    if (selected === null) {
+        studentMessage('studentTestResult', 'Выберите один вариант ответа.', 'error');
+        return;
+    }
+    const answer = Number(selected);
+    run.checking = true;
+    try {
+        const result = await studentRequest(`/api/student/lessons/${lesson.id}/test/check`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({questionIndex: run.index, answer}),
+        });
+        run.answers[run.index] = answer;
+        event.currentTarget.querySelectorAll('input').forEach((input) => { input.disabled = true; });
+        event.currentTarget.querySelector('button[type="submit"]')?.remove();
+
+        const feedback = document.createElement('div');
+        feedback.className = `student-test-feedback ${result.correct ? 'is-correct' : 'is-wrong'}`;
+        if (result.correct) {
+            feedback.textContent = '✓ Верно!';
+        } else {
+            const question = run.questions[run.index];
+            const labels = ['А', 'Б', 'В', 'Г'];
+            const correctOption = question.options[result.correctIndex] || '';
+            feedback.textContent = (
+                `Неверно. Правильный ответ: ${labels[result.correctIndex] || result.correctIndex + 1}) ${correctOption}\n\n`
+                + (result.explanation || 'Пояснение к этому вопросу не добавлено.')
+            );
+        }
+        event.currentTarget.appendChild(feedback);
+
+        const next = document.createElement('button');
+        next.type = 'button';
+        next.className = 'btn';
+        next.textContent = run.index + 1 < run.questions.length ? 'Следующий вопрос' : 'Завершить тест';
+        next.addEventListener('click', advanceStudentTest);
+        event.currentTarget.appendChild(next);
+    } catch (error) {
+        studentMessage('studentTestResult', error.message, 'error');
+    } finally {
+        run.checking = false;
+    }
+}
+
+async function advanceStudentTest(event) {
+    const lesson = studentLearningState.dashboard?.lesson;
+    const run = studentLearningState.testRun;
+    if (!lesson || !run || run.checking) return;
+    if (run.index + 1 < run.questions.length) {
+        run.index += 1;
+        renderStudentTestQuestion();
+        return;
+    }
+    run.checking = true;
+    event.currentTarget.disabled = true;
     try {
         const result = await studentRequest(`/api/student/lessons/${lesson.id}/test`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({answers}),
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({answers: run.answers}),
         });
-        studentMessage('studentTestResult', `Результат: ${result.score} из ${result.total}. Результат сохранён в кабинете.`, result.score === result.total ? 'success' : 'info');
+        document.getElementById('studentTestForm').replaceChildren();
+        studentMessage(
+            'studentTestResult',
+            `Результат: ${result.score} из ${result.total}. Результат сохранён в кабинете.`,
+            result.score === result.total ? 'success' : 'info',
+        );
         const fresh = await studentRequest('/api/student/dashboard');
         renderStudentDashboard(fresh);
     } catch (error) {
+        event.currentTarget.disabled = false;
         studentMessage('studentTestResult', error.message, 'error');
+    } finally {
+        run.checking = false;
     }
 }
 

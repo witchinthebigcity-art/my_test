@@ -367,6 +367,43 @@ class StudentLearningStore:
                 })
             return {"lessonId": lesson["id"], "title": lesson.get("title"), "questions": questions}
 
+    async def check_test_answer(self, user, lesson_id, question_index, answer):
+        """Check one answer without exposing later answers or completing the test."""
+        async with self.lock:
+            data = self._load()
+            student = self._require_bound_student(data, user)
+            lesson = data["lessons"].get(str(lesson_id))
+            if not lesson or lesson["student_id"] != student["id"]:
+                raise StudentLearningError("Тест не найден")
+            unlocked = bool(lesson.get("reading_confirmed_at"))
+            if not unlocked and lesson.get("opened_by_student_at"):
+                try:
+                    unlocked = _now() >= datetime.fromisoformat(lesson["opened_by_student_at"]) + timedelta(minutes=10)
+                except ValueError:
+                    pass
+            if not unlocked:
+                raise StudentLearningError("Сначала изучите конспект или подождите 10 минут после открытия")
+            questions = lesson.get("test_questions") or []
+            try:
+                question_index = int(question_index)
+                answer = int(answer)
+            except (TypeError, ValueError) as error:
+                raise StudentLearningError("Выберите один из вариантов ответа") from error
+            if question_index < 0 or question_index >= len(questions):
+                raise StudentLearningError("Вопрос не найден")
+            question = questions[question_index]
+            options = question.get("options") or []
+            if answer < 0 or answer >= len(options):
+                raise StudentLearningError("Выберите один из вариантов ответа")
+            correct_index = int(question.get("correct_index", -1))
+            correct = answer == correct_index
+            return {
+                "questionIndex": question_index,
+                "correct": correct,
+                "correctIndex": correct_index,
+                "explanation": "" if correct else str(question.get("explanation") or "")[:2000],
+            }
+
     async def submit_test(self, user, lesson_id, answers):
         async with self.lock:
             data = self._load()

@@ -86,8 +86,8 @@ class StudentLearningStoreTests(unittest.IsolatedAsyncioTestCase):
         lesson = await self.store.create_lesson(self.student["id"], str(notes), "notes.pdf", {
             "title": "Квадратные уравнения", "homework_path": str(homework),
             "test_questions": [
-                {"question": "q1", "options": ["a", "b", "c", "d"], "correct_index": 2},
-                {"question": "q2", "options": ["a", "b", "c", "d"], "correct_index": 0},
+                {"question": "q1", "options": ["a", "b", "c", "d"], "correct_index": 2, "explanation": "because c"},
+                {"question": "q2", "options": ["a", "b", "c", "d"], "correct_index": 0, "explanation": "because a"},
             ],
             "homework_tasks": ["task"],
         })
@@ -97,6 +97,13 @@ class StudentLearningStoreTests(unittest.IsolatedAsyncioTestCase):
         await self.store.confirm_reading(self.user, lesson["id"])
         public_test = await self.store.test(self.user, lesson["id"])
         self.assertNotIn("correct_index", public_test["questions"][0])
+        wrong = await self.store.check_test_answer(self.user, lesson["id"], 0, 1)
+        self.assertFalse(wrong["correct"])
+        self.assertEqual(wrong["correctIndex"], 2)
+        self.assertEqual(wrong["explanation"], "because c")
+        correct = await self.store.check_test_answer(self.user, lesson["id"], 1, 0)
+        self.assertTrue(correct["correct"])
+        self.assertEqual(correct["explanation"], "")
         self.assertEqual(await self.store.submit_test(self.user, lesson["id"], [2, 1]), {"score": 1, "total": 2})
 
     async def test_daily_reminder_stops_after_submission(self):
@@ -201,6 +208,31 @@ class AdminManualLessonTests(unittest.TestCase):
         with self.assertRaisesRegex(StudentLearningError, "ДЗ"):
             bot.parse_manual_lesson_content("Тема: Функции\nТЕСТ:\n")
 
+    def test_test_text_or_pdf_extraction_format_is_parsed_separately(self):
+        result = bot.parse_manual_test_content(
+            "Тема: Линейные уравнения\n"
+            "1. Чему равен x?\n"
+            "А) 1\nБ) 2\nВ) 3\nГ) 4\n"
+            "Правильный ответ: В\n"
+            "Объяснение: После переноса слагаемого\nполучаем x = 3."
+        )
+        self.assertEqual(result["title"], "Линейные уравнения")
+        self.assertEqual(result["test_questions"][0]["correct_index"], 2)
+        self.assertIn("x = 3", result["test_questions"][0]["explanation"])
+
+    def test_test_requires_explanation_for_each_wrong_answer(self):
+        with self.assertRaisesRegex(StudentLearningError, "Пояснение"):
+            bot.parse_manual_test_content(
+                "1. Вопрос?\nА) 1\nБ) 2\nВ) 3\nГ) 4\nОтвет: А",
+                fallback_title="Тема",
+            )
+
+    def test_homework_is_parsed_after_test(self):
+        self.assertEqual(
+            bot.parse_manual_homework_content("ДЗ:\n1. Решить № 5\n• Повторить формулы"),
+            ["Решить № 5", "Повторить формулы"],
+        )
+
 
 class StudentLearningApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -236,6 +268,40 @@ class StudentLearningApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await dashboard.json())["student"]["grade"], 8)
         for response in (status, login, dashboard):
             self.assertIn("no-store", response.headers.get("Cache-Control", ""))
+
+    async def test_single_question_check_returns_explanation_only_for_error(self):
+        await self.store.login(self.user, self.password)
+        notes = Path(self.directory.name) / "api-notes.pdf"
+        homework = Path(self.directory.name) / "api-homework.pdf"
+        notes.write_bytes(b"%PDF notes")
+        homework.write_bytes(b"%PDF homework")
+        lesson = await self.store.create_lesson(self.student["id"], str(notes), "notes.pdf", {
+            "title": "Тест API",
+            "homework_path": str(homework),
+            "homework_tasks": ["Задача"],
+            "test_questions": [{
+                "question": "2 + 2?",
+                "options": ["2", "3", "4", "5"],
+                "correct_index": 2,
+                "explanation": "Два плюс два равно четыре.",
+            }],
+        })
+        await self.store.confirm_reading(self.user, lesson["id"])
+        wrong = await self.client.post(
+            f"/api/student/lessons/{lesson['id']}/test/check",
+            headers=self.headers(),
+            json={"questionIndex": 0, "answer": 1},
+        )
+        self.assertEqual(wrong.status, 200)
+        wrong_payload = await wrong.json()
+        self.assertFalse(wrong_payload["correct"])
+        self.assertIn("четыре", wrong_payload["explanation"])
+        correct = await self.client.post(
+            f"/api/student/lessons/{lesson['id']}/test/check",
+            headers=self.headers(),
+            json={"questionIndex": 0, "answer": 2},
+        )
+        self.assertEqual((await correct.json())["explanation"], "")
 
 
 if __name__ == "__main__":
