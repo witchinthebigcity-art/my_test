@@ -220,6 +220,23 @@ class AdminManualLessonTests(unittest.TestCase):
         self.assertEqual(result["test_questions"][0]["correct_index"], 2)
         self.assertIn("x = 3", result["test_questions"][0]["explanation"])
 
+    def test_pdf_style_numbered_solution_steps_are_not_questions(self):
+        lines = ["Тест по математике", "11 класс · 20 заданий"]
+        for number in range(1, 21):
+            lines.extend([
+                f"{number}. Решите задание {number}",
+                "А) 1", "Б) 2", "В) 3", "Г) 4",
+                "Ответ: Б) 2",
+                "Подробное объяснение",
+                "Шаг 1. Выполняем первое действие.",
+                "Шаг 2. Получаем ответ 2.",
+            ])
+        result = bot.parse_manual_test_content("\n".join(lines))
+        self.assertEqual(result["title"], "Тест по математике")
+        self.assertEqual(len(result["test_questions"]), 20)
+        self.assertTrue(all(question["correct_index"] == 1 for question in result["test_questions"]))
+        self.assertIn("Шаг 2", result["test_questions"][0]["explanation"])
+
     def test_test_requires_explanation_for_each_wrong_answer(self):
         with self.assertRaisesRegex(StudentLearningError, "Пояснение"):
             bot.parse_manual_test_content(

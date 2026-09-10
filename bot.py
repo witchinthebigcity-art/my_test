@@ -53,7 +53,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "45"
+WEBAPP_VERSION = "46"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -696,15 +696,25 @@ def parse_manual_test_content(text, fallback_title=""):
     if not value or len(value) > 60_000:
         raise StudentLearningError("Тест пустой или слишком длинный")
 
-    # Text extracted from a PDF sometimes joins visually separate rows. Restore
-    # the boundaries used by the documented template before parsing blocks.
-    value = re.sub(
-        r"[ \t]+(?=(?:\d{1,2}\s*[.)]\s+|[A-DА-Г]\s*[).:]\s+|(?:правильный\s+)?ответ\s*:|(?:пояснение|объяснение)\s*:))",
-        "\n",
-        value,
-        flags=re.IGNORECASE,
-    )
+    # Keep the PDF's line boundaries intact. Splitting on numbered fragments
+    # would turn explanatory text such as "Шаг 2." into a fake question.
     lines = [re.sub(r"\s+", " ", line).strip() for line in value.splitlines()]
+
+    def looks_like_question_start(line_index, expected_number):
+        match = re.match(r"^(\d{1,2})\s*[.)]\s*(.+)$", lines[line_index])
+        if not match or int(match.group(1)) != expected_number:
+            return None
+        expected_options = [{"A", "А"}, {"B", "Б"}, {"C", "В"}, {"D", "Г"}]
+        option_position = 0
+        for candidate in lines[line_index + 1:line_index + 11]:
+            option = re.match(r"^([A-DА-Г])\s*[).:]\s*(.+)$", candidate, flags=re.IGNORECASE)
+            if option and option_position < 4 and option.group(1).upper() in expected_options[option_position]:
+                option_position += 1
+                if option_position == 4:
+                    return match
+            elif re.match(r"^\d{1,2}\s*[.)]\s*", candidate):
+                break
+        return None
 
     title = ""
     next_topic = ""
@@ -713,8 +723,12 @@ def parse_manual_test_content(text, fallback_title=""):
     active_field = "question"
     preamble = []
 
-    for line in lines:
+    for line_index, line in enumerate(lines):
         if not line:
+            continue
+        if re.fullmatch(r"стр\.?\s*\d+", line, flags=re.IGNORECASE):
+            continue
+        if re.fullmatch(r".+\s+[·|]\s+\d{1,2}\s+класс", line, flags=re.IGNORECASE):
             continue
         title_match = re.match(r"^тема(?:\s+урока)?\s*:\s*(.+)$", line, flags=re.IGNORECASE)
         next_match = re.match(r"^следующая\s+тема\s*:\s*(.+)$", line, flags=re.IGNORECASE)
@@ -727,7 +741,8 @@ def parse_manual_test_content(text, fallback_title=""):
         if current is None and re.fullmatch(r"тест(?:\s+по\s+.+)?\s*: ?", line, flags=re.IGNORECASE):
             continue
 
-        question_match = re.match(r"^(\d{1,2})\s*[.)]\s*(.+)$", line)
+        expected_number = len(question_blocks) + (2 if current else 1)
+        question_match = looks_like_question_start(line_index, expected_number)
         if question_match:
             if current:
                 question_blocks.append(current)
@@ -749,7 +764,7 @@ def parse_manual_test_content(text, fallback_title=""):
             active_field = "option"
             continue
         answer_match = re.match(
-            r"^(?:правильный\s+)?ответ\s*:\s*([A-DА-Г1-4])\s*$",
+            r"^(?:правильный\s+)?ответ\s*[:.]\s*([A-DА-Г1-4])(?:\s*[).:]?\s*.*)?$",
             line,
             flags=re.IGNORECASE,
         )
@@ -758,7 +773,7 @@ def parse_manual_test_content(text, fallback_title=""):
             active_field = "answer"
             continue
         explanation_match = re.match(
-            r"^(?:пояснение|объяснение)\s*:\s*(.*)$",
+            r"^(?:подробн(?:ое|ый)\s+)?(?:пояснение|объяснение|разбор)\s*:?\s*(.*)$",
             line,
             flags=re.IGNORECASE,
         )
@@ -808,10 +823,12 @@ def parse_manual_test_content(text, fallback_title=""):
             "explanation": block["explanation"][:2000],
         })
 
-    inferred_title = next((
-        line for line in preamble
-        if not re.fullmatch(r"тест\s*: ?", line, flags=re.IGNORECASE)
-    ), "")
+    inferred_title = next((line for line in preamble if re.search(r"\bтест\b", line, flags=re.IGNORECASE)), "")
+    if not inferred_title:
+        inferred_title = next((
+            line for line in preamble
+            if not re.fullmatch(r"тест\s*: ?", line, flags=re.IGNORECASE)
+        ), "")
     return {
         "title": (title or inferred_title or str(fallback_title or "").strip() or "Тест по уроку")[:160],
         "next_topic": next_topic[:500],
