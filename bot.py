@@ -53,7 +53,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "43"
+WEBAPP_VERSION = "44"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -525,6 +525,19 @@ def _student_keyboard(students, prefix):
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def _student_lesson_mode_keyboard(student_id):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="✍️ Заполнить тест и ДЗ вручную",
+            callback_data=f"student_lesson_mode:manual:{student_id}",
+        )],
+        [InlineKeyboardButton(
+            text="🤖 Сгенерировать автоматически",
+            callback_data=f"student_lesson_mode:auto:{student_id}",
+        )],
+    ])
+
+
 def _clean_numbered_admin_field(value, label_pattern=None):
     """Accept both plain fields and the numbered template shown to the admin."""
     cleaned = re.sub(r"^(?:\s*\d+\s*[.)]\s*)+", "", str(value or "").strip())
@@ -569,6 +582,111 @@ def parse_admin_student_fields(text):
         "facts": _clean_numbered_admin_field(lines[4], r"важные\s+факты(?:\s+и\s+особенности)?"),
         "lesson_schedule": _clean_numbered_admin_field(lines[5], r"дни\s+и\s+время(?:\s+(?:уроков|занятий))?"),
         "reminder_time": _clean_numbered_admin_field(lines[6], r"время(?:\s+ежедневного)?\s+напоминания"),
+    }
+
+
+def parse_manual_lesson_content(text):
+    """Parse a teacher-authored lesson package from a Telegram message."""
+    value = str(text or "").strip()
+    if not value or len(value) > 50_000:
+        raise StudentLearningError("Сообщение с тестом и ДЗ пустое или слишком длинное")
+
+    lines = [line.strip() for line in value.splitlines()]
+    homework_index = next((
+        index for index, line in enumerate(lines)
+        if re.fullmatch(r"(?:дз|домашнее\s+задание)\s*:?", line, flags=re.IGNORECASE)
+    ), None)
+    test_index = next((
+        index for index, line in enumerate(lines)
+        if re.fullmatch(r"тест\s*:?", line, flags=re.IGNORECASE)
+    ), None)
+    if homework_index is None or test_index is None or homework_index >= test_index:
+        raise StudentLearningError("Добавьте отдельные разделы «ДЗ:» и «ТЕСТ:» по образцу")
+
+    title = ""
+    next_topic = ""
+    for line in lines[:homework_index]:
+        title_match = re.match(r"^тема(?:\s+урока)?\s*:\s*(.+)$", line, flags=re.IGNORECASE)
+        next_match = re.match(r"^следующая\s+тема\s*:\s*(.+)$", line, flags=re.IGNORECASE)
+        if title_match:
+            title = title_match.group(1).strip()
+        elif next_match:
+            next_topic = next_match.group(1).strip()
+    if not title:
+        raise StudentLearningError("В начале сообщения укажите «Тема: …»")
+
+    homework_tasks = []
+    for line in lines[homework_index + 1:test_index]:
+        cleaned = re.sub(r"^(?:\d+\s*[.)]|[-•])\s*", "", line).strip()
+        if cleaned:
+            homework_tasks.append(cleaned)
+    if not homework_tasks:
+        raise StudentLearningError("Добавьте хотя бы одно задание в раздел «ДЗ»")
+    if len(homework_tasks) > 50:
+        raise StudentLearningError("В одном ДЗ может быть не больше 50 заданий")
+
+    question_blocks = []
+    current = None
+    for line in lines[test_index + 1:]:
+        if not line:
+            continue
+        question_match = re.match(r"^(\d+)\s*[.)]\s*(.+)$", line)
+        if question_match:
+            if current:
+                question_blocks.append(current)
+            current = {"question": question_match.group(2).strip(), "options": [], "answer": None, "explanation": ""}
+            continue
+        if current is None:
+            continue
+        option_match = re.match(r"^([A-DА-Г])\s*[).:]\s*(.+)$", line, flags=re.IGNORECASE)
+        if option_match:
+            current["options"].append((option_match.group(1).upper(), option_match.group(2).strip()))
+            continue
+        answer_match = re.match(r"^ответ\s*:\s*([A-DА-Г1-4])\s*$", line, flags=re.IGNORECASE)
+        if answer_match:
+            current["answer"] = answer_match.group(1).upper()
+            continue
+        explanation_match = re.match(r"^пояснение\s*:\s*(.*)$", line, flags=re.IGNORECASE)
+        if explanation_match:
+            current["explanation"] = explanation_match.group(1).strip()
+            continue
+        if current["explanation"]:
+            current["explanation"] += " " + line
+        else:
+            current["question"] += " " + line
+    if current:
+        question_blocks.append(current)
+    if not question_blocks:
+        raise StudentLearningError("Добавьте хотя бы один вопрос в раздел «ТЕСТ»")
+    if len(question_blocks) > 30:
+        raise StudentLearningError("В одном тесте может быть не больше 30 вопросов")
+
+    answer_map = {"A": 0, "А": 0, "B": 1, "Б": 1, "C": 2, "В": 2, "D": 3, "Г": 3,
+                  "1": 0, "2": 1, "3": 2, "4": 3}
+    test_questions = []
+    for index, block in enumerate(question_blocks, 1):
+        if len(block["options"]) != 4:
+            raise StudentLearningError(f"В вопросе {index} должно быть ровно 4 варианта: А, Б, В и Г")
+        answer_index = answer_map.get(block["answer"])
+        if answer_index is None:
+            raise StudentLearningError(f"В вопросе {index} укажите строку «Ответ: А/Б/В/Г»")
+        option_labels = [label for label, _ in block["options"]]
+        expected_labels = [{"A", "А"}, {"B", "Б"}, {"C", "В"}, {"D", "Г"}]
+        if any(label not in allowed for label, allowed in zip(option_labels, expected_labels)):
+            raise StudentLearningError(f"В вопросе {index} расположите варианты по порядку: А, Б, В, Г")
+        test_questions.append({
+            "question": block["question"][:2000],
+            "options": [option[:1000] for _, option in block["options"]],
+            "correct_index": answer_index,
+            "explanation": block["explanation"][:2000],
+        })
+
+    return {
+        "title": title[:160],
+        "next_topic": next_topic[:500],
+        "homework_tasks": homework_tasks,
+        "test_questions": test_questions,
+        "generation_status": "manual",
     }
 
 
@@ -654,11 +772,43 @@ async def admin_student_lesson_choice(callback: types.CallbackQuery):
     if not student:
         await callback.answer("Ученик не найден", show_alert=True)
         return
-    admin_student_flows[str(callback.from_user.id)] = {"kind": "lesson_pdf", "student_id": student_id}
     await callback.answer()
     await callback.message.answer(
-        f"Прикрепите PDF-конспект для {student['displayName']}.\n"
-        "В подписи при желании напишите тему следующего урока — она будет учтена при составлении ДЗ."
+        f"Как подготовить тест и ДЗ для {student['displayName']}?",
+        reply_markup=_student_lesson_mode_keyboard(student_id),
+    )
+
+
+@dp.callback_query(F.data.startswith("student_lesson_mode:"))
+async def admin_student_lesson_mode(callback: types.CallbackQuery):
+    if not is_admin_telegram_user(callback.from_user):
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+    _, mode, student_id = callback.data.split(":", 2)
+    if mode not in {"manual", "auto"}:
+        await callback.answer("Неизвестный режим", show_alert=True)
+        return
+    students = await student_learning_store.list_students()
+    student = next((item for item in students if item["id"] == student_id), None)
+    if not student:
+        await callback.answer("Ученик не найден", show_alert=True)
+        return
+    admin_student_flows[str(callback.from_user.id)] = {
+        "kind": "lesson_pdf", "student_id": student_id, "mode": mode,
+    }
+    await callback.answer()
+    if mode == "manual":
+        description = (
+            "После PDF бот попросит одним сообщением прислать придуманные вами задания и вопросы теста. "
+            "OpenAI API не понадобится."
+        )
+    else:
+        description = (
+            "В подписи при желании напишите тему следующего урока. "
+            "Для этого режима нужен работающий OpenAI API."
+        )
+    await callback.message.answer(
+        f"Прикрепите PDF-конспект для {student['displayName']}.\n{description}\n\nОтмена: /cancel"
     )
 
 
@@ -713,6 +863,30 @@ async def _extract_pdf_text(path):
         return "\n".join((page.extract_text() or "") for page in reader.pages)[:60_000]
     except Exception:
         return ""
+
+
+async def _notify_student_new_lesson(student):
+    if not student.get("bound"):
+        return
+    try:
+        async with student_learning_store.lock:
+            saved = student_learning_store._load()["students"].get(student["id"], {})
+        if saved.get("telegram_user_id"):
+            await bot.send_message(
+                int(saved["telegram_user_id"]),
+                "📚 В кабинете ученика появился новый конспект, тест и домашнее задание.",
+            )
+    except (
+        OSError,
+        ValueError,
+        TelegramBadRequest,
+        TelegramForbiddenError,
+        TelegramNetworkError,
+        TelegramServerError,
+    ):
+        # The lesson is already saved. A blocked chat must not turn a successful
+        # admin action into a false failure report.
+        pass
 
 
 def _render_homework_pdf(path, title, student_name, tasks):
@@ -872,6 +1046,33 @@ async def admin_student_flow_message(message: types.Message):
             await message.answer("Ученик больше не найден.")
             admin_student_flows.pop(str(message.from_user.id), None)
             return
+        if flow.get("mode") == "manual":
+            admin_student_flows[str(message.from_user.id)] = {
+                **flow,
+                "kind": "lesson_manual_content",
+                "notes_file_id": document.file_id,
+                "notes_name": document.file_name or "Конспект.pdf",
+                "caption": message.caption or "",
+            }
+            await message.answer(
+                "Теперь пришлите тест и ДЗ одним текстовым сообщением по образцу:\n\n"
+                "Тема: Квадратные уравнения\n"
+                "Следующая тема: Теорема Виета\n\n"
+                "ДЗ:\n"
+                "1. Решить уравнение …\n"
+                "2. Построить график …\n\n"
+                "ТЕСТ:\n"
+                "1. Какой вопрос проверяем?\n"
+                "А) Первый вариант\n"
+                "Б) Второй вариант\n"
+                "В) Третий вариант\n"
+                "Г) Четвёртый вариант\n"
+                "Ответ: Б\n"
+                "Пояснение: Почему этот ответ верный\n\n"
+                "Затем таким же блоком можно добавить вопросы 2, 3 и далее. "
+                "Строка «Следующая тема» необязательна. Отмена: /cancel"
+            )
+            return
         status = await message.answer("⏳ Читаю конспект и создаю персональные тест и ДЗ…")
         try:
             with tempfile.TemporaryDirectory() as directory:
@@ -887,13 +1088,52 @@ async def admin_student_flow_message(message: types.Message):
                 f"✅ Урок «{lesson['title']}» добавлен для {student['displayName']}.\n"
                 f"Тест: {len(lesson['test_questions'])} вопросов. ДЗ: {len(lesson['homework_tasks'])} заданий."
             )
-            if student.get("bound"):
-                async with student_learning_store.lock:
-                    saved = student_learning_store._load()["students"].get(student["id"], {})
-                if saved.get("telegram_user_id"):
-                    await bot.send_message(int(saved["telegram_user_id"]), "📚 В кабинете ученика появился новый конспект, тест и домашнее задание.")
+            await _notify_student_new_lesson(student)
         except (StudentLearningError, aiohttp.ClientError, asyncio.TimeoutError, OSError) as error:
             await status.edit_text(f"⚠ Не удалось подготовить урок: {error}\nСостояние не потеряно — пришлите PDF ещё раз или /cancel.")
+        return
+    if flow["kind"] == "lesson_manual_content":
+        try:
+            generated = parse_manual_lesson_content(message.text)
+        except StudentLearningError as error:
+            await message.answer(f"⚠ {error}\n\nИсправьте сообщение и пришлите его ещё раз или отправьте /cancel.")
+            return
+        students = await student_learning_store.list_students()
+        student = next((item for item in students if item["id"] == flow["student_id"]), None)
+        if not student:
+            await message.answer("Ученик больше не найден.")
+            admin_student_flows.pop(str(message.from_user.id), None)
+            return
+        status = await message.answer("⏳ Сохраняю конспект, тест и ДЗ…")
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                notes_path = os.path.join(directory, "notes.pdf")
+                await bot.download(flow["notes_file_id"], destination=notes_path)
+                homework_path = os.path.join(directory, "homework.pdf")
+                _render_homework_pdf(
+                    homework_path,
+                    f"Домашнее задание · {generated['title']}",
+                    student["displayName"],
+                    generated["homework_tasks"],
+                )
+                generated["homework_path"] = homework_path
+                if not generated.get("next_topic"):
+                    generated["next_topic"] = flow.get("caption", "")
+                lesson = await student_learning_store.create_lesson(
+                    student["id"], notes_path, flow["notes_name"], generated
+                )
+            admin_student_flows.pop(str(message.from_user.id), None)
+            await status.edit_text(
+                f"✅ Урок «{lesson['title']}» добавлен для {student['displayName']} без OpenAI.\n"
+                f"Тест: {len(lesson['test_questions'])} вопросов. ДЗ: {len(lesson['homework_tasks'])} заданий.\n"
+                "Ежедневные напоминания будут приходить в установленное для ученика время до отправки ДЗ."
+            )
+            await _notify_student_new_lesson(student)
+        except (StudentLearningError, OSError) as error:
+            await status.edit_text(
+                f"⚠ Не удалось сохранить урок: {error}\n"
+                "Текст не потерян: исправьте причину и пришлите его ещё раз или /cancel."
+            )
 
 # === БЛОК 3: ВЕБ-СЕРВЕР (Для работы мини-приложения) ===
 

@@ -456,7 +456,7 @@ class StudentLearningStore:
                 if now.strftime("%H:%M") != reminder_time:
                     continue
                 lesson = self._latest_lesson(data, student["id"])
-                if not lesson:
+                if not lesson or not lesson.get("homework_path"):
                     continue
                 submitted = any(
                     item["student_id"] == student["id"] and item["lesson_id"] == lesson["id"]

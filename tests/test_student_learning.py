@@ -117,6 +117,16 @@ class StudentLearningStoreTests(unittest.IsolatedAsyncioTestCase):
         next_day = datetime(2026, 9, 8, 19, 30, tzinfo=MOSCOW)
         self.assertEqual(await self.store.reminder_candidates(next_day), [])
 
+    async def test_no_reminder_is_sent_when_homework_is_not_attached(self):
+        await self.store.login(self.user, self.password, "19:30")
+        notes = Path(self.directory.name) / "notes.pdf"
+        notes.write_bytes(b"%PDF notes")
+        await self.store.create_lesson(self.student["id"], str(notes), "notes.pdf", {
+            "title": "Только конспект", "test_questions": [], "homework_tasks": []
+        })
+        now = datetime(2026, 9, 7, 19, 30, tzinfo=MOSCOW)
+        self.assertEqual(await self.store.reminder_candidates(now), [])
+
 
 class AdminStudentFormTests(unittest.TestCase):
     def test_numbered_form_from_telegram_is_parsed(self):
@@ -154,6 +164,42 @@ class AdminStudentFormTests(unittest.TestCase):
             bot.parse_admin_student_fields(
                 "1. неправильный юз\n2. 9\n3. Имя\n4. Цель\n5. Факты\n6. Время\n7. 13:00"
             )
+
+
+class AdminManualLessonTests(unittest.TestCase):
+    def test_manual_lesson_content_is_parsed(self):
+        result = bot.parse_manual_lesson_content(
+            "Тема: Квадратные уравнения\n"
+            "Следующая тема: Теорема Виета\n\n"
+            "ДЗ:\n"
+            "1. Решить x² - 5x + 6 = 0\n"
+            "2. Построить график функции\n\n"
+            "ТЕСТ:\n"
+            "1. Сколько корней может иметь квадратное уравнение?\n"
+            "А) Только один\n"
+            "Б) Не больше двух\n"
+            "В) Только три\n"
+            "Г) Бесконечно много\n"
+            "Ответ: Б\n"
+            "Пояснение: Степень уравнения равна двум\n\n"
+            "2. Что показывает дискриминант?\n"
+            "А) Количество корней\n"
+            "Б) Коэффициент a\n"
+            "В) Вершину параболы\n"
+            "Г) Область определения\n"
+            "Ответ: А\n"
+            "Пояснение: Его знак определяет количество действительных корней"
+        )
+        self.assertEqual(result["title"], "Квадратные уравнения")
+        self.assertEqual(result["next_topic"], "Теорема Виета")
+        self.assertEqual(len(result["homework_tasks"]), 2)
+        self.assertEqual(len(result["test_questions"]), 2)
+        self.assertEqual(result["test_questions"][0]["correct_index"], 1)
+        self.assertEqual(result["generation_status"], "manual")
+
+    def test_manual_lesson_requires_homework_and_test_sections(self):
+        with self.assertRaisesRegex(StudentLearningError, "ДЗ"):
+            bot.parse_manual_lesson_content("Тема: Функции\nТЕСТ:\n")
 
 
 class StudentLearningApiTests(unittest.IsolatedAsyncioTestCase):
