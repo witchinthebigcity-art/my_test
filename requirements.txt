@@ -3,3 +3,4 @@ aiohttp
 certifi
 pypdf
 reportlab
+PyMuPDF>=1.24,<2

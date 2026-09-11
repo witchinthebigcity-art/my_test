@@ -63,7 +63,7 @@
     50% { transform: translateY(-10px) rotateY(20deg); }
 }
     </style>
-    <link rel="stylesheet" href="/app.css?v=46">
+    <link rel="stylesheet" href="/app.css?v=47">
 </head>
 <body data-grade="8">
 
@@ -141,7 +141,15 @@
         <p class="eyebrow">Прошедший урок</p>
         <h2 id="studentLessonTitle">Конспект</h2>
         <div id="studentLessonEmpty" class="empty-state" hidden>Преподаватель ещё не добавил конспект.</div>
-        <iframe id="studentLessonFrame" class="student-pdf-frame" title="Конспект прошедшего урока"></iframe>
+        <section id="studentLessonViewer" class="student-pdf-viewer" hidden>
+            <div class="student-pdf-preview"><img id="studentLessonPage" alt="Страница конспекта"><span id="studentLessonLoading">Открываем страницу…</span></div>
+            <div class="student-pdf-toolbar">
+                <button id="studentLessonPrev" type="button" onclick="changeStudentPdfPage('notes', -1)" aria-label="Предыдущая страница">←</button>
+                <strong id="studentLessonPageIndicator">1 / 1</strong>
+                <button id="studentLessonNext" type="button" onclick="changeStudentPdfPage('notes', 1)" aria-label="Следующая страница">→</button>
+            </div>
+            <button class="btn btn-secondary student-pdf-fullscreen" type="button" onclick="openStudentPdfFullscreen('notes')">⛶ Открыть на весь экран и увеличить</button>
+        </section>
         <p class="student-reader-hint">Пролистайте материал до конца. Кнопка теста откроется после подтверждения чтения или автоматически через 10 минут.</p>
         <button id="studentReadButton" class="btn btn-secondary" type="button" onclick="confirmStudentLessonRead()">Я изучил(а) конспект</button>
         <button id="studentTestButton" class="btn" type="button" onclick="openStudentTest()" disabled>Пройти тест</button>
@@ -165,7 +173,16 @@
     <div id="studentHomeworkDocumentScreen" class="screen student-screen student-document-screen">
         <p class="eyebrow">Персональное ДЗ</p>
         <h2 id="studentHomeworkTitle">Домашнее задание</h2>
-        <iframe id="studentHomeworkFrame" class="student-pdf-frame" title="Домашнее задание"></iframe>
+        <section id="studentHomeworkViewer" class="student-pdf-viewer">
+            <div class="student-pdf-preview"><img id="studentHomeworkPage" alt="Страница домашнего задания"><span id="studentHomeworkLoading">Открываем страницу…</span></div>
+            <div class="student-pdf-toolbar">
+                <button id="studentHomeworkPrev" type="button" onclick="changeStudentPdfPage('homework', -1)" aria-label="Предыдущая страница">←</button>
+                <strong id="studentHomeworkPageIndicator">1 / 1</strong>
+                <button id="studentHomeworkNext" type="button" onclick="changeStudentPdfPage('homework', 1)" aria-label="Следующая страница">→</button>
+            </div>
+            <button class="btn btn-secondary student-pdf-fullscreen" type="button" onclick="openStudentPdfFullscreen('homework')">⛶ Открыть на весь экран и увеличить</button>
+        </section>
+        <div id="studentHomeworkDocumentMessage" class="inline-message" hidden></div>
     </div>
 
     <div id="studentTestScreen" class="screen student-screen">
@@ -173,6 +190,30 @@
         <h2 id="studentTestTitle">Тест по уроку</h2>
         <form id="studentTestForm" class="student-test-form" onsubmit="submitStudentTest(event)"></form>
         <div id="studentTestResult" class="inline-message" hidden></div>
+    </div>
+
+    <div id="mediaViewer" class="media-viewer" role="dialog" aria-modal="true" aria-hidden="true" hidden>
+        <header class="media-viewer-header">
+            <strong id="mediaViewerTitle">Просмотр</strong>
+            <button type="button" onclick="closeMediaViewer()" aria-label="Закрыть полноэкранный просмотр">✕</button>
+        </header>
+        <div id="mediaViewerStage" class="media-viewer-stage">
+            <img id="mediaViewerImage" alt="Материал в полноэкранном режиме">
+            <span id="mediaViewerLoading" class="media-viewer-loading">Открываем страницу…</span>
+        </div>
+        <footer class="media-viewer-footer">
+            <div id="mediaViewerPageControls" class="media-viewer-page-controls">
+                <button id="mediaViewerPrev" type="button" onclick="changeMediaViewerPage(-1)" aria-label="Предыдущая страница">←</button>
+                <strong id="mediaViewerPageIndicator">1 / 1</strong>
+                <button id="mediaViewerNext" type="button" onclick="changeMediaViewerPage(1)" aria-label="Следующая страница">→</button>
+            </div>
+            <div class="media-viewer-zoom-controls">
+                <button type="button" onclick="changeMediaViewerZoom(-0.5)" aria-label="Уменьшить">−</button>
+                <strong id="mediaViewerZoomValue">100%</strong>
+                <button type="button" onclick="changeMediaViewerZoom(0.5)" aria-label="Увеличить">+</button>
+            </div>
+            <small>Разведите пальцы, чтобы увеличить · перетаскивайте увеличенное изображение</small>
+        </footer>
     </div>
     <button id="globalBackButton" class="global-back-button" type="button" onclick="handleGlobalNavigation()" aria-label="Назад" hidden>←</button>
 <div id="statsScreen" class="screen matrix-screen">
@@ -651,7 +692,8 @@
             <h3 id="expertTaskTitle"></h3>
             <p id="expertTaskQuestion" class="extended-task-question"></p>
             <div id="expertRunStats" class="expert-run-stats"></div>
-            <img id="expertTaskImage" class="question-media expert-work-image" alt="Работа ученика для оценивания">
+            <img id="expertTaskImage" class="question-media expert-work-image zoomable-media" alt="Работа ученика для оценивания" onclick="openExpertTaskFullscreen()">
+            <button class="btn btn-secondary media-open-button" type="button" onclick="openExpertTaskFullscreen()">⛶ На весь экран и увеличить</button>
             <div class="criteria-note"><strong>Задача</strong><span>Оцените математическую корректность и полноту решения. При ошибке откроется ответ эксперта.</span></div>
             <button id="expertCriteriaButton" class="btn btn-secondary" type="button" onclick="toggleExpertCriteria()">Критерии</button>
             <section id="expertCriteriaPanel" class="expert-criteria-panel" hidden><div id="expertCriteriaImages"></div></section>
@@ -1501,7 +1543,8 @@ function sendToForm(grade, topic, status) {
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/characters.js?v=35"></script>
 <script src="/community.js?v=43"></script>
-<script src="/student-learning.js?v=46"></script>
-<script src="/adventure.js?v=43"></script>
+<script src="/media-viewer.js?v=47"></script>
+<script src="/student-learning.js?v=47"></script>
+<script src="/adventure.js?v=47"></script>
 </body>
 </html>

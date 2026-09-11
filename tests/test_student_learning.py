@@ -320,6 +320,44 @@ class StudentLearningApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual((await correct.json())["explanation"], "")
 
+    async def test_pdf_pages_are_private_and_rendered_one_at_a_time(self):
+        await self.store.login(self.user, self.password)
+        notes = Path(self.directory.name) / "pageable-notes.pdf"
+        homework = Path(self.directory.name) / "pageable-homework.pdf"
+        notes.write_bytes(b"%PDF notes")
+        homework.write_bytes(b"%PDF homework")
+        lesson = await self.store.create_lesson(self.student["id"], str(notes), "notes.pdf", {
+            "title": "Постраничный материал",
+            "homework_path": str(homework),
+            "homework_tasks": [],
+            "test_questions": [],
+        })
+
+        with patch.object(bot, "_pdf_page_count", return_value=3):
+            info = await self.client.get(
+                f"/api/student/lessons/{lesson['id']}/notes/info",
+                headers=self.headers(),
+            )
+        self.assertEqual(info.status, 200)
+        self.assertEqual((await info.json())["pages"], 3)
+
+        png = b"\x89PNG\r\n\x1a\nrendered-page"
+        with patch.object(bot, "_render_pdf_page", return_value=(png, 3)) as render:
+            page = await self.client.get(
+                f"/api/student/lessons/{lesson['id']}/notes/page/2",
+                headers=self.headers(),
+            )
+        self.assertEqual(page.status, 200)
+        self.assertEqual(page.headers["Content-Type"], "image/png")
+        self.assertIn("no-store", page.headers["Cache-Control"])
+        self.assertEqual(await page.read(), png)
+        render.assert_called_once_with(lesson["notes_path"], 2)
+
+        anonymous = await self.client.get(
+            f"/api/student/lessons/{lesson['id']}/notes/page/1"
+        )
+        self.assertEqual(anonymous.status, 401)
+
 
 if __name__ == "__main__":
     unittest.main()

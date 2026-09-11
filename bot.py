@@ -53,7 +53,7 @@ from questions import QuestionFormatError, SUPPORTED_GRADES, parse_questions_csv
 # === НАСТРОЙКИ ===
 TOKEN = os.getenv("TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-WEBAPP_VERSION = "46"
+WEBAPP_VERSION = "47"
 ADMIN_ID = os.getenv("ADMIN_ID")
 MATHPIX_APP_ID = os.getenv("MATHPIX_APP_ID", "").strip()
 MATHPIX_APP_KEY = os.getenv("MATHPIX_APP_KEY", "").strip()
@@ -1033,6 +1033,29 @@ async def _extract_pdf_text(path):
         return ""
 
 
+def _pdf_page_count(path):
+    from pypdf import PdfReader
+
+    count = len(PdfReader(path).pages)
+    if count < 1 or count > 300:
+        raise StudentLearningError("PDF должен содержать от 1 до 300 страниц")
+    return count
+
+
+def _render_pdf_page(path, page_number):
+    try:
+        import pymupdf
+    except ImportError:  # Compatibility with older PyMuPDF package layouts.
+        import fitz as pymupdf
+
+    with pymupdf.open(path) as document:
+        if page_number < 1 or page_number > document.page_count:
+            raise StudentLearningError("Страница PDF не найдена")
+        page = document.load_page(page_number - 1)
+        pixmap = page.get_pixmap(dpi=160, colorspace=pymupdf.csRGB, alpha=False)
+        return pixmap.tobytes("png"), document.page_count
+
+
 async def _notify_student_new_lesson(student):
     if not student.get("bound"):
         return
@@ -1235,7 +1258,9 @@ async def admin_student_flow_message(message: types.Message):
                 "Ответ: Б\n"
                 "Пояснение: Почему этот ответ верный\n\n"
                 "Важно: PDF должен содержать выделяемый текст, а не только фотографии. "
-                "Для каждого вопроса нужны 4 варианта, ответ и пояснение. Отмена: /cancel"
+                "Для каждого вопроса нужны 4 варианта, ответ и пояснение. "
+                "Оптимальная длина пояснения — 300–700 символов, максимум 2000: "
+                "одно правило, 2–4 шага и короткий вывод. Отмена: /cancel"
             )
             return
         status = await message.answer("⏳ Читаю конспект и создаю персональные тест и ДЗ…")
@@ -1402,6 +1427,10 @@ async def handle_adventure_script(request):
 
 async def handle_student_learning_script(request):
     return web.FileResponse('student-learning.js', headers={"Cache-Control": "no-store, max-age=0"})
+
+
+async def handle_media_viewer_script(request):
+    return web.FileResponse('media-viewer.js', headers={"Cache-Control": "no-store, max-age=0"})
 
 
 def _authenticated_user(request):
@@ -2564,6 +2593,41 @@ async def get_student_material(request):
         return _student_error(error, status=404)
 
 
+async def get_student_material_info(request):
+    try:
+        path, lesson = await student_learning_store.material_path(
+            _authenticated_user(request), request.match_info["lesson_id"], request.match_info["kind"]
+        )
+        pages = await asyncio.to_thread(_pdf_page_count, path)
+        return web.json_response({
+            "lessonId": lesson["id"],
+            "title": lesson.get("title") or "",
+            "kind": request.match_info["kind"],
+            "pages": pages,
+        })
+    except (StudentLearningError, OSError, ValueError) as error:
+        return _student_error(error, status=404)
+
+
+async def get_student_material_page(request):
+    try:
+        path, _ = await student_learning_store.material_path(
+            _authenticated_user(request), request.match_info["lesson_id"], request.match_info["kind"]
+        )
+        try:
+            page_number = int(request.match_info["page"])
+        except (TypeError, ValueError) as error:
+            raise StudentLearningError("Неверный номер страницы") from error
+        image_data, _ = await asyncio.to_thread(_render_pdf_page, path, page_number)
+        return web.Response(
+            body=image_data,
+            content_type="image/png",
+            headers={"Cache-Control": "private, no-store, max-age=0"},
+        )
+    except (StudentLearningError, OSError, ValueError, RuntimeError, ImportError) as error:
+        return _student_error(error, status=404)
+
+
 async def get_student_test(request):
     try:
         return web.json_response(await student_learning_store.test(
@@ -2712,6 +2776,7 @@ def create_app():
     application.router.add_get('/math-format.js', handle_math_script)
     application.router.add_get('/adventure.js', handle_adventure_script)
     application.router.add_get('/student-learning.js', handle_student_learning_script)
+    application.router.add_get('/media-viewer.js', handle_media_viewer_script)
     application.router.add_static('/assets/', 'assets', show_index=False)
     application.router.add_get('/api/questions', get_questions)
     application.router.add_post('/save', save_progress)
@@ -2770,6 +2835,8 @@ def create_app():
     application.router.add_get('/api/student/dashboard', get_student_dashboard)
     application.router.add_post('/api/student/lessons/{lesson_id}/open', open_student_lesson)
     application.router.add_post('/api/student/lessons/{lesson_id}/read', confirm_student_lesson)
+    application.router.add_get('/api/student/lessons/{lesson_id}/{kind:notes|homework}/info', get_student_material_info)
+    application.router.add_get('/api/student/lessons/{lesson_id}/{kind:notes|homework}/page/{page}', get_student_material_page)
     application.router.add_get('/api/student/lessons/{lesson_id}/{kind:notes|homework}', get_student_material)
     application.router.add_get('/api/student/lessons/{lesson_id}/test', get_student_test)
     application.router.add_post('/api/student/lessons/{lesson_id}/test/check', check_student_test_answer)

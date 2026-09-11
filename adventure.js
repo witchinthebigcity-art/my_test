@@ -249,6 +249,7 @@ function renderExpertTask(task, run = {}, stage = 'grading', result = null) {
     document.getElementById('expertTaskQuestion').textContent = task.question;
     const image = document.getElementById('expertTaskImage');
     image.src = task.imageUrl;
+    image.hidden = !task.imageUrl;
     document.getElementById('expertRunStats').textContent =
         `Работа ${Number(run.index || 0) + 1} из ${Number(run.total || 1)} · ` +
         `❤️ ${run.adminUnlimited ? '∞' : `${Number(run.lives || 0)} из ${Number(run.maxLives || 5)}`} · ` +
@@ -260,6 +261,11 @@ function renderExpertTask(task, run = {}, stage = 'grading', result = null) {
         criteria.className = 'question-media expert-criteria-image';
         criteria.src = url;
         criteria.alt = `Критерии, страница ${index + 1}`;
+        criteria.classList.add('zoomable-media');
+        criteria.addEventListener('click', () => openMediaViewer({
+            title: `${task.title} · критерии ${index + 1}`,
+            src: url,
+        }));
         criteriaImages.appendChild(criteria);
     });
     document.getElementById('expertCriteriaPanel').hidden = true;
@@ -284,6 +290,15 @@ function renderExpertTask(task, run = {}, stage = 'grading', result = null) {
     if (stage === 'review' && result) renderExpertReview(review, result);
 }
 
+function openExpertTaskFullscreen() {
+    const image = document.getElementById('expertTaskImage');
+    if (!image?.src || typeof openMediaViewer !== 'function') return;
+    openMediaViewer({
+        title: document.getElementById('expertTaskTitle')?.textContent || 'Работа для оценивания',
+        src: image.src,
+    });
+}
+
 function toggleExpertCriteria() {
     const panel = document.getElementById('expertCriteriaPanel');
     panel.hidden = !panel.hidden;
@@ -302,6 +317,11 @@ function renderExpertReview(panel, result) {
         answer.className = 'question-media expert-answer-image';
         answer.src = result.answerImageUrl;
         answer.alt = 'Ответ и разбор эксперта';
+        answer.classList.add('zoomable-media');
+        answer.addEventListener('click', () => openMediaViewer({
+            title: 'Ответ и разбор эксперта',
+            src: result.answerImageUrl,
+        }));
         panel.append(heading, answer);
     }
     const next = document.createElement('button');

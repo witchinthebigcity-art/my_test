@@ -1,7 +1,9 @@
 const studentLearningState = {
     dashboard: null,
-    lessonUrl: null,
-    homeworkUrl: null,
+    pdfViewers: {
+        notes: {prefix: 'studentLesson', page: 1, totalPages: 0, endpoint: '', objectUrl: null, title: 'Конспект'},
+        homework: {prefix: 'studentHomework', page: 1, totalPages: 0, endpoint: '', objectUrl: null, title: 'Домашнее задание'},
+    },
     theoryReturn: false,
     unlockTimer: null,
     testRun: null,
@@ -125,17 +127,81 @@ async function studentPdfBlob(url) {
     return response.blob();
 }
 
-function setStudentPdf(frameId, stateKey, blob) {
-    if (studentLearningState[stateKey]) URL.revokeObjectURL(studentLearningState[stateKey]);
+function setStudentPdfPage(viewer, blob) {
+    if (viewer.objectUrl) URL.revokeObjectURL(viewer.objectUrl);
     const url = URL.createObjectURL(blob);
-    studentLearningState[stateKey] = url;
-    document.getElementById(frameId).src = url;
+    viewer.objectUrl = url;
+    return url;
+}
+
+function updateStudentPdfControls(kind) {
+    const viewer = studentLearningState.pdfViewers[kind];
+    document.getElementById(`${viewer.prefix}PageIndicator`).textContent = `${viewer.page} / ${viewer.totalPages || 1}`;
+    document.getElementById(`${viewer.prefix}Prev`).disabled = viewer.page <= 1;
+    document.getElementById(`${viewer.prefix}Next`).disabled = viewer.page >= viewer.totalPages;
+}
+
+async function showStudentPdfPage(kind, page) {
+    const viewer = studentLearningState.pdfViewers[kind];
+    if (!viewer?.endpoint || !viewer.totalPages) throw new Error('Файл пока не загружен');
+    const targetPage = Math.min(viewer.totalPages, Math.max(1, Number(page) || 1));
+    const loading = document.getElementById(`${viewer.prefix}Loading`);
+    const image = document.getElementById(`${viewer.prefix}Page`);
+    loading.textContent = 'Открываем страницу…';
+    loading.hidden = false;
+    image.classList.add('is-loading');
+    try {
+        const blob = await studentPdfBlob(`${viewer.endpoint}/page/${targetPage}`);
+        const url = setStudentPdfPage(viewer, blob);
+        image.src = url;
+        await image.decode().catch(() => {});
+        viewer.page = targetPage;
+        updateStudentPdfControls(kind);
+        document.getElementById(`${viewer.prefix}Viewer`).hidden = false;
+        return url;
+    } finally {
+        loading.hidden = true;
+        image.classList.remove('is-loading');
+    }
+}
+
+async function loadStudentPdfViewer(kind, lesson) {
+    const viewer = studentLearningState.pdfViewers[kind];
+    viewer.endpoint = `/api/student/lessons/${lesson.id}/${kind}`;
+    viewer.title = `${kind === 'notes' ? 'Конспект' : 'Домашнее задание'} · ${lesson.title}`;
+    const info = await studentRequest(`${viewer.endpoint}/info`);
+    viewer.totalPages = Number(info.pages) || 1;
+    viewer.page = 1;
+    updateStudentPdfControls(kind);
+    return showStudentPdfPage(kind, 1);
+}
+
+async function changeStudentPdfPage(kind, delta) {
+    const viewer = studentLearningState.pdfViewers[kind];
+    if (!viewer) return;
+    try {
+        await showStudentPdfPage(kind, viewer.page + Number(delta || 0));
+    } catch (error) {
+        const messageId = kind === 'notes' ? 'studentLessonMessage' : 'studentHomeworkDocumentMessage';
+        studentMessage(messageId, error.message, 'error');
+    }
+}
+
+function openStudentPdfFullscreen(kind) {
+    const viewer = studentLearningState.pdfViewers[kind];
+    if (!viewer?.objectUrl || typeof openMediaViewer !== 'function') return;
+    openMediaViewer({
+        title: viewer.title,
+        initialPage: viewer.page,
+        totalPages: viewer.totalPages,
+        loadPage: (page) => showStudentPdfPage(kind, page),
+    });
 }
 
 function syncStudentLessonControls() {
     const lesson = studentLearningState.dashboard?.lesson;
     const hasLesson = Boolean(lesson?.hasNotes);
-    document.getElementById('studentLessonFrame').hidden = !hasLesson;
+    document.getElementById('studentLessonViewer').hidden = !hasLesson;
     document.getElementById('studentLessonEmpty').hidden = hasLesson;
     document.getElementById('studentReadButton').hidden = !hasLesson || lesson.testUnlocked;
     const testButton = document.getElementById('studentTestButton');
@@ -157,8 +223,7 @@ async function openStudentLesson() {
         const payload = await studentRequest(`/api/student/lessons/${lesson.id}/open`, {method: 'POST'});
         renderStudentDashboard(payload);
         lesson = payload.lesson;
-        const blob = await studentPdfBlob(`/api/student/lessons/${lesson.id}/notes`);
-        setStudentPdf('studentLessonFrame', 'lessonUrl', blob);
+        await loadStudentPdfViewer('notes', lesson);
         syncStudentLessonControls();
         clearTimeout(studentLearningState.unlockTimer);
         if (!lesson.testUnlocked) {
@@ -272,7 +337,7 @@ async function submitStudentTest(event) {
         event.currentTarget.querySelectorAll('input').forEach((input) => { input.disabled = true; });
         event.currentTarget.querySelector('button[type="submit"]')?.remove();
 
-        const feedback = document.createElement('div');
+        const feedback = document.createElement('section');
         feedback.className = `student-test-feedback ${result.correct ? 'is-correct' : 'is-wrong'}`;
         if (result.correct) {
             feedback.textContent = '✓ Верно!';
@@ -280,10 +345,15 @@ async function submitStudentTest(event) {
             const question = run.questions[run.index];
             const labels = ['А', 'Б', 'В', 'Г'];
             const correctOption = question.options[result.correctIndex] || '';
-            feedback.textContent = (
-                `Неверно. Правильный ответ: ${labels[result.correctIndex] || result.correctIndex + 1}) ${correctOption}\n\n`
-                + (result.explanation || 'Пояснение к этому вопросу не добавлено.')
-            );
+            const answerHeading = document.createElement('strong');
+            answerHeading.textContent = `Неверно. Правильный ответ: ${labels[result.correctIndex] || result.correctIndex + 1}) ${correctOption}`;
+            const explanationHeading = document.createElement('span');
+            explanationHeading.className = 'student-test-explanation-title';
+            explanationHeading.textContent = 'Пояснение';
+            const explanation = document.createElement('p');
+            explanation.className = 'student-test-explanation-text';
+            explanation.textContent = result.explanation || 'Пояснение к этому вопросу не добавлено.';
+            feedback.append(answerHeading, explanationHeading, explanation);
         }
         event.currentTarget.appendChild(feedback);
 
@@ -345,13 +415,14 @@ async function openStudentHomeworkFile() {
         studentMessage('studentHomeworkMessage', 'Персональный файл ДЗ пока не готов.', 'error');
         return;
     }
+    document.getElementById('studentHomeworkTitle').textContent = lesson.title;
+    studentMessage('studentHomeworkDocumentMessage', 'Открываем ДЗ…');
+    showScreen('studentHomeworkDocumentScreen');
     try {
-        const blob = await studentPdfBlob(`/api/student/lessons/${lesson.id}/homework`);
-        setStudentPdf('studentHomeworkFrame', 'homeworkUrl', blob);
-        document.getElementById('studentHomeworkTitle').textContent = lesson.title;
-        showScreen('studentHomeworkDocumentScreen');
+        await loadStudentPdfViewer('homework', lesson);
+        studentMessage('studentHomeworkDocumentMessage', '');
     } catch (error) {
-        studentMessage('studentHomeworkMessage', error.message, 'error');
+        studentMessage('studentHomeworkDocumentMessage', error.message, 'error');
     }
 }
 
